@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 val ComicRed = Color(0xFFE11D48)
 val ComicRedDark = Color(0xFFBE123C)
 val ComicInk = Color(0xFF18181B)
+val ComicBlack = ComicInk
 val ComicPaper = Color(0xFFFAF8F5)
 val ComicPanel = Color(0xFFFFFFFF)
 val ComicYellow = Color(0xFFFACC15)
