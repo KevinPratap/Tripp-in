@@ -1,0 +1,29 @@
+# Multi-stage production build for NestJS Backend
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS builder
+WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY packages/ ./packages/
+COPY apps/backend/ ./apps/backend/
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @trippin/shared-types run build
+RUN pnpm --filter @trippin/itinerary-schema run build
+RUN pnpm --filter @trippin/api-contracts run build
+RUN pnpm --filter @trippin/backend run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
+EXPOSE 4000
+CMD ["node", "apps/backend/dist/main.js"]

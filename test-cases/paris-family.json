@@ -1,0 +1,23 @@
+{
+  "testCaseId": "paris-family",
+  "name": "Paris Family Cultural Journey",
+  "description": "Family of 4 traveling to Paris with moderate pace and cultural interest. Must respect museum opening hours and allow child-friendly rest buffers.",
+  "requirements": {
+    "destination": "Paris",
+    "startDate": "2026-06-10",
+    "endDate": "2026-06-13",
+    "travelersCount": 4,
+    "budgetTotal": 2000,
+    "currency": "EUR",
+    "pace": "MODERATE",
+    "travelStyles": ["FAMILY", "CULTURAL"],
+    "interests": ["Museums", "Art", "Parks", "Food"],
+    "foodPreferences": ["LOCAL_CUISINE"]
+  },
+  "expectedChecks": {
+    "minDays": 3,
+    "maxActivitiesPerDay": 4,
+    "mandatoryPlaces": ["Louvre Museum", "Eiffel Tower"],
+    "requireRestBuffers": true
+  }
+}

@@ -1,0 +1,405 @@
+// Trippin' AI — PostgreSQL + PostGIS Prisma Database Schema
+// Fully normalized business entities with UUID primary keys and timestamps.
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis()]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// -------------------------------------------------------------
+// 1. Users, Profiles & Preferences (TRP-011, TRP-012, TRP-013)
+// -------------------------------------------------------------
+
+model User {
+  id          String   @id @default(uuid())
+  firebaseUid String   @unique @map("firebase_uid")
+  email       String   @unique
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profile       UserProfile?
+  preference    UserPreference?
+  trips         Trip[]
+  tripTravelers TripTraveler[]
+  bookingOrders BookingOrder[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  displayName String   @map("display_name")
+  photoUrl    String?  @map("photo_url")
+  phoneNumber String?  @map("phone_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserPreference {
+  id                        String   @id @default(uuid())
+  userId                    String   @unique @map("user_id")
+  travelStyles              String[] @default([]) @map("travel_styles") // e.g. ["CULTURAL", "FAMILY"]
+  pace                      String   @default("MODERATE") // RELAXED, MODERATE, FAST
+  foodPreferences           String[] @default([]) @map("food_preferences")
+  transportPreference       String   @default("PUBLIC_TRANSIT") @map("transport_preference")
+  currency                  String   @default("USD")
+  interests                 String[] @default([])
+  accessibilityRequirements String[] @default([]) @map("accessibility_requirements")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// -------------------------------------------------------------
+// 2. Destinations & Trips (TRP-014, TRP-015)
+// -------------------------------------------------------------
+
+model Destination {
+  id              String   @id @default(uuid())
+  name            String
+  country         String
+  city            String
+  description     String?
+  latitude        Float
+  longitude       Float
+  imageUrl        String?  @map("image_url")
+  popularityScore Float    @default(0.0) @map("popularity_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tripDestinations  TripDestination[]
+  weatherForecasts  WeatherForecast[]
+
+  @@index([latitude, longitude])
+  @@map("destinations")
+}
+
+model Trip {
+  id                  String   @id @default(uuid())
+  userId              String   @map("user_id")
+  destinationName     String   @map("destination_name")
+  startDate           DateTime @map("start_date")
+  endDate             DateTime @map("end_date")
+  travelersCount      Int      @default(1) @map("travelers_count")
+  budgetTotal         Float?   @map("budget_total")
+  currency            String   @default("USD")
+  status              String   @default("DRAFT") // DRAFT, GENERATING, READY, FAILED, ARCHIVED
+  pace                String   @default("MODERATE")
+  transportPreference String   @default("MIXED") @map("transport_preference")
+  notes               String?
+  heroImageUrl        String?  @map("hero_image_url")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  travelers        TripTraveler[]
+  tripDestinations TripDestination[]
+  itineraries      Itinerary[]
+  bookingOrders    BookingOrder[]
+  aiRequests       AIRequest[]
+  tripEvents       TripEvent[]
+
+  @@map("trips")
+}
+
+model TripTraveler {
+  id        String   @id @default(uuid())
+  tripId    String   @map("trip_id")
+  userId    String?  @map("user_id")
+  email     String
+  name      String
+  role      String   @default("TRAVELER") // OWNER, ORGANIZER, TRAVELER
+  createdAt DateTime @default(now()) @map("created_at")
+
+  trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("trip_travelers")
+}
+
+model TripDestination {
+  id            String   @id @default(uuid())
+  tripId        String   @map("trip_id")
+  destinationId String   @map("destination_id")
+  orderIndex    Int      @default(0) @map("order_index")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  trip        Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, destinationId])
+  @@map("trip_destinations")
+}
+
+// -------------------------------------------------------------
+// 3. Itineraries, Days & Activities (TRP-016, TRP-017)
+// -------------------------------------------------------------
+
+model Itinerary {
+  id                 String   @id @default(uuid())
+  tripId             String   @map("trip_id")
+  version            Int      @default(1)
+  isCurrent          Boolean  @default(true) @map("is_current")
+  status             String   @default("VERIFIED") // DRAFT, VERIFIED, ARCHIVED
+  title              String?
+  summary            String?
+  totalEstimatedCost Float?   @map("total_estimated_cost")
+  currency           String   @default("USD")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  trip Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  days ItineraryDay[]
+
+  @@unique([tripId, version])
+  @@map("itineraries")
+}
+
+model ItineraryDay {
+  id             String   @id @default(uuid())
+  itineraryId    String   @map("itinerary_id")
+  dayIndex       Int      @map("day_index")
+  date           DateTime
+  themeSummary   String?  @map("theme_summary")
+  weatherSummary String?  @map("weather_summary")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  itinerary  Itinerary  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  activities Activity[]
+
+  @@unique([itineraryId, dayIndex])
+  @@map("itinerary_days")
+}
+
+model Activity {
+  id                  String   @id @default(uuid())
+  itineraryDayId      String   @map("itinerary_day_id")
+  placeId             String   @map("place_id")
+  title               String
+  activityType        String   @default("ATTRACTION") @map("activity_type")
+  startTime           String   @map("start_time") // HH:mm
+  endTime             String   @map("end_time") // HH:mm
+  durationMinutes     Int      @map("duration_minutes")
+  travelTimeToNextMin Int      @default(0) @map("travel_time_to_next_min")
+  transitMode         String   @default("TRANSIT") @map("transit_mode")
+  estimatedCost       Float?   @map("estimated_cost")
+  currency            String   @default("USD")
+  reason              String?
+  tips                String?
+  bookingUrl          String?  @map("booking_url")
+  orderIndex          Int      @default(0) @map("order_index")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  day      ItineraryDay @relation(fields: [itineraryDayId], references: [id], onDelete: Cascade)
+  place    Place        @relation(fields: [placeId], references: [id])
+  bookings Booking[]
+
+  @@map("activities")
+}
+
+// -------------------------------------------------------------
+// 4. Places & Routes (TRP-018, TRP-019)
+// -------------------------------------------------------------
+
+model Place {
+  id               String   @id @default(uuid())
+  googlePlaceId    String   @unique @map("google_place_id")
+  name             String
+  formattedAddress String   @map("formatted_address")
+  latitude         Float
+  longitude        Float
+  rating           Float?
+  userRatingsTotal Int?     @map("user_ratings_total")
+  priceLevel       Int?     @map("price_level")
+  photoUrls        String[] @default([]) @map("photo_urls")
+  openingHoursJson Json?    @map("opening_hours_json")
+  types            String[] @default([])
+  websiteUrl       String?  @map("website_url")
+  phoneNumber      String?  @map("phone_number")
+  cachedAt         DateTime @default(now()) @map("cached_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  activities Activity[]
+
+  @@index([latitude, longitude])
+  @@map("places")
+}
+
+model RouteCache {
+  id                 String   @id @default(uuid())
+  originPlaceId      String   @map("origin_place_id")
+  destinationPlaceId String   @map("destination_place_id")
+  mode               String   @default("TRANSIT")
+  distanceMeters     Int      @map("distance_meters")
+  durationSeconds    Int      @map("duration_seconds")
+  encodedPolyline    String?  @map("encoded_polyline")
+  cachedAt           DateTime @default(now()) @map("cached_at")
+
+  @@unique([originPlaceId, destinationPlaceId, mode])
+  @@map("routes_cache")
+}
+
+// -------------------------------------------------------------
+// 5. Weather Forecasts (TRP-020)
+// -------------------------------------------------------------
+
+model WeatherForecast {
+  id                   String   @id @default(uuid())
+  destinationId        String   @map("destination_id")
+  forecastDate         DateTime @map("forecast_date")
+  temperatureCelsius   Float    @map("temperature_celsius")
+  temperatureMin       Float    @map("temperature_min")
+  temperatureMax       Float    @map("temperature_max")
+  condition            String   @map("condition") // SUNNY, RAIN, etc.
+  precipitationProb    Int      @default(0) @map("precipitation_prob")
+  windSpeedKmh         Float    @default(0.0) @map("wind_speed_kmh")
+  advisoryNote         String?  @map("advisory_note")
+  cachedAt             DateTime @default(now()) @map("cached_at")
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, forecastDate])
+  @@map("weather_forecasts")
+}
+
+// -------------------------------------------------------------
+// 6. Bookings & Payments
+// -------------------------------------------------------------
+
+model BookingOrder {
+  id          String   @id @default(uuid())
+  tripId      String   @map("trip_id")
+  userId      String   @map("user_id")
+  totalAmount Float    @map("total_amount")
+  currency    String   @default("USD")
+  status      String   @default("PENDING") // PENDING, PAID, CANCELLED
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+  payments Payment[]
+
+  @@map("booking_orders")
+}
+
+model Booking {
+  id                String   @id @default(uuid())
+  orderId           String   @map("order_id")
+  activityId        String?  @map("activity_id")
+  category          String // FLIGHT, HOTEL, ACTIVITY, RESTAURANT
+  provider          String // e.g. "Booking.com", "GetYourGuide", "OpenTable"
+  providerProductId String?  @map("provider_product_id")
+  confirmationUrl   String?  @map("confirmation_url")
+  status            String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  price             Float?
+  currency          String   @default("USD")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  order    BookingOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  activity Activity?    @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@map("bookings")
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  orderId           String   @map("order_id")
+  amount            Float
+  currency          String   @default("USD")
+  status            String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  providerPaymentId String?  @map("provider_payment_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  order BookingOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// -------------------------------------------------------------
+// 7. AI Telemetry & Requests (Section 27 Observability)
+// -------------------------------------------------------------
+
+model AIRequest {
+  id            String   @id @default(uuid())
+  tripId        String   @map("trip_id")
+  model         String
+  promptVersion String   @map("prompt_version")
+  schemaVersion String   @map("schema_version")
+  status        String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  inputTokens   Int?     @map("input_tokens")
+  outputTokens  Int?     @map("output_tokens")
+  latencyMs     Int?     @map("latency_ms")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  trip        Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  generations AIGeneration[]
+
+  @@map("ai_requests")
+}
+
+model AIGeneration {
+  id               String   @id @default(uuid())
+  requestId        String   @map("request_id")
+  rawOutput        String   @map("raw_output")
+  parsedJson       Json?    @map("parsed_json")
+  isValid          Boolean  @default(false) @map("is_valid")
+  validationErrors String[] @default([]) @map("validation_errors")
+  repairIterations Int      @default(0) @map("repair_iterations")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  request AIRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("ai_generations")
+}
+
+// -------------------------------------------------------------
+// 8. Notifications & Trip Events (TRP-045)
+// -------------------------------------------------------------
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  title        String
+  body         String
+  eventType    String   @map("event_type")
+  isRead       Boolean  @default(false) @map("is_read")
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model TripEvent {
+  id          String   @id @default(uuid())
+  tripId      String   @map("trip_id")
+  eventType   String   @map("event_type")
+  payloadJson Json     @map("payload_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("trip_events")
+}

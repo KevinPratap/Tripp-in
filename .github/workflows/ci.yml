@@ -1,0 +1,61 @@
+name: Trippin AI CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend-and-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.3
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Shared Packages
+        run: |
+          pnpm --filter @trippin/shared-types run build
+          pnpm --filter @trippin/itinerary-schema run build
+          pnpm --filter @trippin/api-contracts run build
+
+      - name: Run Package Tests
+        run: pnpm --filter @trippin/itinerary-schema run test
+
+      - name: Build Backend
+        run: pnpm --filter @trippin/backend run build
+
+      - name: Run Backend Tests
+        run: pnpm --filter @trippin/backend run test
+
+  android-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run Android Unit Tests
+        working-directory: apps/android
+        run: ./gradlew testDebugUnitTest

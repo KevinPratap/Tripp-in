@@ -1,0 +1,21 @@
+{
+  "testCaseId": "budget-europe",
+  "name": "Rome Strict Budget Exploration",
+  "description": "Checks budget cap enforcement. Activities and dining must not exceed strict allocated budget.",
+  "requirements": {
+    "destination": "Rome",
+    "startDate": "2026-05-15",
+    "endDate": "2026-05-18",
+    "travelersCount": 2,
+    "budgetTotal": 300,
+    "currency": "EUR",
+    "pace": "RELAXED",
+    "travelStyles": ["BUDGET", "BACKPACKER"],
+    "interests": ["Architecture", "Walking", "Street Food", "Churches"],
+    "transportPreference": "WALKING"
+  },
+  "expectedChecks": {
+    "strictBudgetEnforced": true,
+    "maxTotalCost": 300
+  }
+}

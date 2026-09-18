@@ -1,0 +1,26 @@
+{
+  "name": "trippin-ai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trippin' AI — AI-Powered travel planning application monorepo",
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* --filter=apps/backend run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "backend:dev": "pnpm --filter @trippin/backend run start:dev",
+    "backend:build": "pnpm --filter @trippin/backend run build",
+    "backend:test": "pnpm --filter @trippin/backend run test",
+    "db:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @trippin/backend run prisma:migrate",
+    "db:generate": "pnpm --filter @trippin/backend run prisma:generate",
+    "db:seed": "pnpm --filter @trippin/backend run prisma:seed"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@10.33.3"
+}

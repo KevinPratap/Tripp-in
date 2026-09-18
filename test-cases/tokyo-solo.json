@@ -1,0 +1,22 @@
+{
+  "testCaseId": "tokyo-solo",
+  "name": "Tokyo Solo Fast-Paced Exploration",
+  "description": "Solo traveler wanting fast-paced tech and culinary exploration across Tokyo with transit-heavy schedule.",
+  "requirements": {
+    "destination": "Tokyo",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-05",
+    "travelersCount": 1,
+    "budgetTotal": 1500,
+    "currency": "USD",
+    "pace": "FAST",
+    "travelStyles": ["SOLO", "ADVENTURE"],
+    "interests": ["Technology", "Street Food", "Anime", "Temples"],
+    "transportPreference": "PUBLIC_TRANSIT"
+  },
+  "expectedChecks": {
+    "minDays": 4,
+    "maxActivitiesPerDay": 6,
+    "requireTransitOptimized": true
+  }
+}
