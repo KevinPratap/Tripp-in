@@ -10,26 +10,45 @@ export class OSMPlacesProvider implements PlaceProvider {
   private readonly placeCache = new Map<string, PlaceModel>();
 
   async search(params: PlaceSearchParams): Promise<PlaceModel[]> {
-    const query = params.query || 'attractions';
-    
-    // 1. Primary: Photon API (Free, fast Komoot OpenStreetMap geocoder)
+    const raw = params.query || 'attractions';
+    const cleanCity = raw
+      .replace(/attractions|landmarks|places|monuments|sightseeing/gi, '')
+      .split(',')[0]
+      .trim() || raw;
+
     try {
-      const places = await this.searchPhoton(query, params.location);
+      const [attractions, museums] = await Promise.all([
+        this.searchNominatim(`${cleanCity} attraction`, params.location),
+        this.searchNominatim(`${cleanCity} museum`, params.location)
+      ]);
+
+      const combined = [...attractions, ...museums];
+      // Deduplicate by name or coordinates
+      const seen = new Set<string>();
+      const places: PlaceModel[] = [];
+      for (const p of combined) {
+        const key = p.name.toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          places.push(p);
+        }
+      }
+
       if (places.length > 0) {
         places.forEach((p) => this.placeCache.set(p.id, p));
         return places;
       }
     } catch (err) {
-      this.logger.debug(`Photon API search error: ${(err as Error).message}. Trying Nominatim.`);
+      this.logger.debug(`Nominatim multi-search error: ${(err as Error).message}. Falling back to Photon.`);
     }
 
-    // 2. Secondary: Nominatim OpenStreetMap API
+    // Secondary fallback: Photon
     try {
-      const places = await this.searchNominatim(query, params.location);
+      const places = await this.searchPhoton(cleanCity, params.location);
       places.forEach((p) => this.placeCache.set(p.id, p));
       return places;
     } catch (err) {
-      this.logger.warn(`Nominatim search error: ${(err as Error).message}`);
+      this.logger.warn(`Photon fallback error: ${(err as Error).message}`);
       return [];
     }
   }
