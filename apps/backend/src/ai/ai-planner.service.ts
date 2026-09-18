@@ -34,9 +34,35 @@ export class AIPlannerService {
     private readonly weatherService: WeatherService,
     private readonly validator: ItineraryValidator
   ) {
-    const apiKey = this.config.get<string>('OPENAI_API_KEY', '');
-    const baseURL = this.config.get<string>('OPENAI_BASE_URL');
-    this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o');
+    let apiKey = this.config.get<string>('OPENAI_API_KEY', '');
+    let baseURL = this.config.get<string>('OPENAI_BASE_URL');
+    let model = this.config.get<string>('OPENAI_MODEL', 'gemini-2.0-flash');
+
+    // Auto-detect Gemini from environment if OPENAI_API_KEY is missing or placeholder
+    const geminiKey = this.config.get<string>('GEMINI_API_KEY');
+    if ((!apiKey || apiKey.includes('placeholder')) && geminiKey) {
+      apiKey = geminiKey;
+      baseURL = baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai/';
+      model = 'gemini-2.0-flash';
+    }
+
+    // Auto-detect DeepSeek from environment (Active & Verified in Hermes)
+    const deepseekKey = this.config.get<string>('DEEPSEEK_API_KEY');
+    if ((!apiKey || apiKey.includes('placeholder')) && deepseekKey) {
+      apiKey = deepseekKey;
+      baseURL = baseURL || 'https://api.deepseek.com';
+      model = 'deepseek-chat';
+    }
+
+    // Auto-detect Groq from environment if still placeholder
+    const groqKey = this.config.get<string>('GROQ_API_KEY');
+    if ((!apiKey || apiKey.includes('placeholder')) && groqKey) {
+      apiKey = groqKey;
+      baseURL = baseURL || 'https://api.groq.com/openai/v1';
+      model = 'llama-3.3-70b-versatile';
+    }
+
+    this.model = model;
 
     if (apiKey && !apiKey.includes('placeholder')) {
       this.openai = new OpenAI({
