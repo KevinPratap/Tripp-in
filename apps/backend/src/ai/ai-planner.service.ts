@@ -36,14 +36,14 @@ export class AIPlannerService {
   ) {
     let apiKey = this.config.get<string>('OPENAI_API_KEY', '');
     let baseURL = this.config.get<string>('OPENAI_BASE_URL');
-    let model = this.config.get<string>('OPENAI_MODEL', 'gemini-2.0-flash');
+    let model = this.config.get<string>('OPENAI_MODEL', 'gemini-3.6-flash');
 
     // Auto-detect Gemini from environment if OPENAI_API_KEY is missing or placeholder
     const geminiKey = this.config.get<string>('GEMINI_API_KEY');
     if ((!apiKey || apiKey.includes('placeholder')) && geminiKey) {
       apiKey = geminiKey;
       baseURL = baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai/';
-      model = 'gemini-2.0-flash';
+      model = 'gemini-3.6-flash';
     }
 
     // Auto-detect Groq from environment if still placeholder
