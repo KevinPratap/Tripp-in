@@ -177,28 +177,49 @@ Rules:
 4. Ensure activities do not overlap.
 `;
 
-    const response = await this.openai!.chat.completions.create({
-      model: this.model,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are Trippin AI planner. Respond strictly with valid JSON conforming to the requested schema.'
+    let raw = '';
+    try {
+      const response = await this.openai!.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Trippin AI planner. Respond strictly with valid JSON conforming to the requested schema.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'ItineraryV1',
+            schema: ItineraryJsonSchemaV1 as any,
+            strict: true
+          }
         },
-        { role: 'user', content: prompt }
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'ItineraryV1',
-          schema: ItineraryJsonSchemaV1 as any,
-          strict: true
-        }
-      },
-      temperature: 0.2
-    });
+        temperature: 0.2
+      });
+      raw = response.choices[0]?.message?.content || '{}';
+    } catch (schemaErr) {
+      this.logger.debug(
+        `Structured outputs json_schema not supported by endpoint: ${(schemaErr as Error).message}. Falling back to json_object.`
+      );
+      const response = await this.openai!.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are Trippin AI planner. Respond strictly with valid JSON matching ItineraryV1 format.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2
+      });
+      raw = response.choices[0]?.message?.content || '{}';
+    }
 
-    const raw = response.choices[0]?.message?.content || '{}';
     return JSON.parse(raw);
   }
 
