@@ -46,14 +46,6 @@ export class AIPlannerService {
       model = 'gemini-2.0-flash';
     }
 
-    // Auto-detect DeepSeek from environment (Active & Verified in Hermes)
-    const deepseekKey = this.config.get<string>('DEEPSEEK_API_KEY');
-    if ((!apiKey || apiKey.includes('placeholder')) && deepseekKey) {
-      apiKey = deepseekKey;
-      baseURL = baseURL || 'https://api.deepseek.com';
-      model = 'deepseek-chat';
-    }
-
     // Auto-detect Groq from environment if still placeholder
     const groqKey = this.config.get<string>('GROQ_API_KEY');
     if ((!apiKey || apiKey.includes('placeholder')) && groqKey) {
