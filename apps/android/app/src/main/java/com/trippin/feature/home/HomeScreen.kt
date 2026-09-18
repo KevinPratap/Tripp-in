@@ -30,6 +30,16 @@ fun HomeScreen(
     onNavigateToTrip: (String) -> Unit,
     onNavigateToExplore: () -> Unit
 ) {
+    var homeFeed by remember { mutableStateOf<com.trippin.core.network.HomeFeedDto?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            homeFeed = com.trippin.core.network.NetworkModule.apiService.getHome()
+        } catch (_: Exception) {
+            // Keep default display if offline
+        }
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
@@ -77,7 +87,7 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Hi, Alex 👋",
+                            text = "Hello, ${homeFeed?.user?.displayName ?: "Traveler"}",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -203,48 +213,94 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateToTrip("demo-trip-id") },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(EmeraldTeal.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.CardTravel, contentDescription = null, tint = EmeraldTeal)
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Paris Spring Escape",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "10 Apr - 14 Apr · 3 Days · 9 Places",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        AssistChip(
-                            onClick = {},
-                            label = { Text("READY", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                labelColor = EmeraldTeal
-                            )
+
+                val recentList = homeFeed?.recentTrips ?: emptyList()
+                if (recentList.isEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToPlanner() },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(ComicRed.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.AddLocationAlt, contentDescription = null, tint = ComicRed)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Ready to Explore?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Tap to build your first verified itinerary",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        recentList.forEach { trip ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigateToTrip(trip.id) },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(ComicRed.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicRed)
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "${trip.destination} Field Issue",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${trip.startDate} - ${trip.endDate} · ${trip.travelersCount} Travelers",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    AssistChip(
+                                        onClick = { onNavigateToTrip(trip.id) },
+                                        label = { Text(trip.status, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            labelColor = ComicRed
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

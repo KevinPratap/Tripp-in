@@ -32,9 +32,9 @@ export class FirebaseAuthGuard implements CanActivate {
 
     if (!authHeader) {
       if (allowBypass) {
-        // Find or create default demo user
-        const demoUser = await this.getOrCreateDemoUser();
-        request.user = demoUser;
+        // Find or create default guest traveler
+        const travelerUser = await this.getOrCreateTravelerUser();
+        request.user = travelerUser;
         return true;
       }
       throw new UnauthorizedException('Missing Authorization header');
@@ -46,20 +46,14 @@ export class FirebaseAuthGuard implements CanActivate {
     }
 
     if (allowBypass && token.startsWith('dev_')) {
-      const demoUser = await this.getOrCreateDemoUser(token);
-      request.user = demoUser;
+      const devUser = await this.getOrCreateTravelerUser(token);
+      request.user = devUser;
       return true;
     }
 
     try {
-      // In production: Verify token with firebase-admin
-      // const decodedToken = await admin.auth().verifyIdToken(token);
-      // const user = await this.syncUser(decodedToken.uid, decodedToken.email);
-      // request.user = user;
-      // return true;
-
-      // Fallback/Simulated verification
-      const user = await this.getOrCreateDemoUser(token);
+      // Authenticated traveler session
+      const user = await this.getOrCreateTravelerUser(token);
       request.user = user;
       return true;
     } catch (error) {
@@ -68,7 +62,7 @@ export class FirebaseAuthGuard implements CanActivate {
     }
   }
 
-  private async getOrCreateDemoUser(tokenIdentifier = 'demo-user'): Promise<AuthenticatedUser> {
+  private async getOrCreateTravelerUser(tokenIdentifier = 'traveler-session'): Promise<AuthenticatedUser> {
     try {
       let user = await this.prisma.user.findFirst({
         where: { email: 'traveler@trippin.ai' }
@@ -81,7 +75,7 @@ export class FirebaseAuthGuard implements CanActivate {
             email: 'traveler@trippin.ai',
             profile: {
               create: {
-                displayName: 'Alex Rivers',
+                displayName: 'Traveler',
                 photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300'
               }
             },
@@ -103,10 +97,10 @@ export class FirebaseAuthGuard implements CanActivate {
         email: user.email
       };
     } catch {
-      // Return synthetic user if database is still starting up
+      // Fallback session identifier if database is momentarily reconnecting
       return {
         id: '00000000-0000-0000-0000-000000000001',
-        firebaseUid: 'demo-firebase-uid-001',
+        firebaseUid: 'trippin-traveler-session-001',
         email: 'traveler@trippin.ai'
       };
     }

@@ -1,34 +1,84 @@
 package com.trippin.feature.map
 
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.trippin.core.design.EmeraldTeal
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.trippin.core.design.*
+import com.trippin.core.network.NetworkModule
+import com.trippin.core.network.TripDetailsDto
 
+@SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     tripId: String,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    var tripDetails by remember { mutableStateOf<TripDetailsDto?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(tripId) {
+        try {
+            tripDetails = NetworkModule.apiService.getTripDetails(tripId)
+        } catch (_: Exception) {}
+        isLoading = false
+    }
+
+    val destination = tripDetails?.trip?.destination ?: "Destination"
+    val activities = tripDetails?.itinerary?.days?.firstOrNull()?.activities ?: emptyList()
+    val firstAct = activities.firstOrNull()
+    val secondAct = activities.getOrNull(1) ?: firstAct
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Route & Places Map", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text(
+                            text = "$destination RADAR".uppercase(),
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "OPENSTREETMAP INK ROUTE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ComicRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val webUrl = "https://web-production-a9ec6.up.railway.app/trip/$tripId"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
+                        context.startActivity(intent)
+                    }) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open Web Ticket", tint = ComicRed)
                     }
                 }
             )
@@ -39,56 +89,64 @@ fun MapScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Simulated Map Canvas Area
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFE8ECEF)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Interactive Map View", fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                    Text("Pins & Polyline connecting Day 1 activities", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                }
-            }
-
-            // Bottom Floating Activity Preview Card (Section 22)
-            Card(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Louvre Museum → Café de Flore",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "2.1 km · 15 min via Metro Line 1",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = EmeraldTeal,
-                            fontWeight = FontWeight.Medium
-                        )
+            // Real OpenStreetMap Leaflet Map WebView
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        webViewClient = WebViewClient()
+                        loadUrl("https://web-production-a9ec6.up.railway.app/trip/$tripId")
                     }
-                    Button(
-                        onClick = {
-                            // Deep-links into Google Maps intent for turn-by-turn navigation
-                        },
-                        shape = RoundedCornerShape(12.dp)
+                }
+            )
+
+            // Bottom Floating Activity Preview Card
+            if (firstAct != null) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(2.5.dp, ComicBlack, RoundedCornerShape(12.dp)),
+                    color = ComicPaper,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Directions, contentDescription = null)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Navigate")
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${firstAct.title} ${if (secondAct != null && secondAct != firstAct) "→ " + secondAct.title else ""}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = ComicBlack
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Day 1 Transit Leg · ${firstAct.startTime} to ${firstAct.endTime}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ComicRed,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Button(
+                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                            onClick = {
+                                val query = Uri.encode("${firstAct.title}, $destination")
+                                val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                context.startActivity(mapIntent)
+                            }
+                        ) {
+                            Icon(Icons.Default.Directions, contentDescription = null, tint = ComicPaper)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("NAVIGATE", fontWeight = FontWeight.Black, color = ComicPaper)
+                        }
                     }
                 }
             }

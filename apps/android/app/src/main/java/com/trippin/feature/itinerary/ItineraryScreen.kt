@@ -1,10 +1,12 @@
 package com.trippin.feature.itinerary
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,20 +15,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.design.*
-
-data class DisplayActivity(
-    val time: String,
-    val title: String,
-    val subtitle: String,
-    val duration: String,
-    val transitFromPrev: String? = null
-)
+import com.trippin.core.network.ActivityDto
+import com.trippin.core.network.NetworkModule
+import com.trippin.core.network.TripDetailsDto
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,27 +32,49 @@ fun ItineraryScreen(
     onNavigateBack: () -> Unit,
     onOpenMap: (String) -> Unit
 ) {
+    var tripDetails by remember { mutableStateOf<TripDetailsDto?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
     var selectedDayIndex by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
     var editInstruction by remember { mutableStateOf("") }
     var isModifying by remember { mutableStateOf(false) }
 
-    val days = listOf("Day 1 (10 Apr)", "Day 2 (11 Apr)", "Day 3 (12 Apr)")
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    val activitiesDay1 = listOf(
-        DisplayActivity("10:00 - 12:30", "Louvre Museum", "World landmark art museum", "2h 30m"),
-        DisplayActivity("13:00 - 14:15", "Café de Flore", "Authentic Parisian lunch & coffee", "1h 15m", transitFromPrev = "30m via Metro"),
-        DisplayActivity("14:45 - 17:00", "Musée d'Orsay", "Impressionist masterworks", "2h 15m", transitFromPrev = "25m via Walking"),
-        DisplayActivity("17:45 - 19:30", "Eiffel Tower", "Sunset views from Champ de Mars", "1h 45m", transitFromPrev = "40m via Transit")
-    )
+    LaunchedEffect(tripId) {
+        try {
+            isLoading = true
+            tripDetails = NetworkModule.apiService.getTripDetails(tripId)
+            isLoading = false
+        } catch (e: Exception) {
+            loadError = e.message ?: "Failed loading itinerary details"
+            isLoading = false
+        }
+    }
+
+    val days = tripDetails?.itinerary?.days ?: emptyList()
+    val activeDay = days.getOrNull(selectedDayIndex) ?: days.firstOrNull()
+    val activities = activeDay?.activities ?: emptyList()
+    val destinationName = tripDetails?.trip?.destination ?: "Trip"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Paris Cultural Escape", fontWeight = FontWeight.Bold)
-                        Text("v1 · Verified Schedule", style = MaterialTheme.typography.labelSmall, color = EmeraldTeal)
+                        Text(
+                            text = "$destinationName Field Ticket".uppercase(),
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "VERIFIED INK SCHEDULE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ComicRed,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 navigationIcon = {
@@ -68,7 +87,7 @@ fun ItineraryScreen(
                         Icon(Icons.Default.Map, contentDescription = "Map")
                     }
                     IconButton(onClick = { showEditDialog = true }) {
-                        Icon(Icons.Default.AutoFixHigh, contentDescription = "AI Edit", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.EditNote, contentDescription = "Edit", tint = ComicRed)
                     }
                 }
             )
@@ -76,171 +95,278 @@ fun ItineraryScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showEditDialog = true },
-                icon = { Icon(Icons.Default.AutoFixHigh, contentDescription = null) },
-                text = { Text("AI Edit") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                icon = { Icon(Icons.Default.EditNote, contentDescription = null) },
+                text = { Text("REFINE SCHEDULE", fontWeight = FontWeight.Bold) },
+                containerColor = ComicRed,
+                contentColor = ComicPaper
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            // Day selector tabs
-            PrimaryTabRow(selectedTabIndex = selectedDayIndex) {
-                days.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedDayIndex == index,
-                        onClick = { selectedDayIndex = index },
-                        text = { Text(title, fontWeight = if (selectedDayIndex == index) FontWeight.Bold else FontWeight.Normal) }
-                    )
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = ComicRed)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Fetching verified schedule from Railway...", fontWeight = FontWeight.Bold)
                 }
             }
-
-            // Weather header banner for selected day
-            Card(
+        } else if (loadError != null) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.WbSunny, contentDescription = null, tint = SunsetCoral)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("19°C · Sunny & Mild", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Optimal weather for walking between museums", style = MaterialTheme.typography.bodyMedium, fontSize = 12.sp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("UNABLE TO LOAD SCHEDULE", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(loadError!!, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = {
+                        scope.launch {
+                            try {
+                                isLoading = true
+                                loadError = null
+                                tripDetails = NetworkModule.apiService.getTripDetails(tripId)
+                                isLoading = false
+                            } catch (e: Exception) {
+                                loadError = e.message
+                                isLoading = false
+                            }
+                        }
+                    }) {
+                        Text("RETRY")
                     }
                 }
             }
-
-            // Timeline list of activities
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .background(ComicPaper)
             ) {
-                itemsIndexed(activitiesDay1) { index, act ->
-                    Column {
-                        // Transit buffer chip if present
-                        if (act.transitFromPrev != null) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(start = 24.dp, bottom = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(CategoryTransit)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = act.transitFromPrev,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = CategoryTransit,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                // Day selector tabs
+                if (days.isNotEmpty()) {
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedDayIndex.coerceIn(0, days.size - 1),
+                        edgePadding = 16.dp,
+                        containerColor = ComicPaper
+                    ) {
+                        days.forEachIndexed { index, day ->
+                            Tab(
+                                selected = selectedDayIndex == index,
+                                onClick = { selectedDayIndex = index },
+                                text = {
+                                    Text(
+                                        text = "DAY ${day.dayIndex}",
+                                        fontWeight = if (selectedDayIndex == index) FontWeight.Black else FontWeight.Normal,
+                                        color = if (selectedDayIndex == index) ComicRed else ComicBlack
+                                    )
+                                }
+                            )
                         }
+                    }
+                }
 
-                        // Activity card
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "${index + 1}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = act.time,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = act.title,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = act.subtitle,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(act.duration) }
+                // Summary / Day banner
+                if (activeDay != null) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                        color = ComicPaper,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                text = "FIELD LOG · ${activeDay.date}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = ComicRed
+                            )
+                            if (!activeDay.summary.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = activeDay.summary,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = ComicBlack
                                 )
                             }
                         }
+                    }
+                }
+
+                // Timeline list of activities
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    itemsIndexed(activities) { index, act ->
+                        ActivityComicCard(
+                            activity = act,
+                            index = index + 1,
+                            onNavigateClick = {
+                                val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(act.title)}")
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                context.startActivity(mapIntent)
+                            }
+                        )
                     }
                 }
             }
         }
 
-        // AI Conversational Edit Modal (Phase 15, TRP-042)
+        // Conversational Edit Modal
         if (showEditDialog) {
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
-                title = { Text("Modify with AI ✨") },
+                title = { Text("REFINE SCHEDULE", fontWeight = FontWeight.Black) },
                 text = {
                     Column {
                         Text(
-                            "Tell Trippin' AI what to adjust (e.g. \"Make Day 2 less busy\", \"Replace museum with outdoor walk\"):",
+                            "Enter modification directive (e.g. \"Shift museum to afternoon\", \"Add coffee break at 3pm\"):",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = editInstruction,
                             onValueChange = { editInstruction = it },
-                            placeholder = { Text("e.g. Move Musée d'Orsay to Day 3") },
+                            placeholder = { Text("e.g. Prioritize local bakeries") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(8.dp)
                         )
                     }
                 },
                 confirmButton = {
                     Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
                         onClick = {
-                            isModifying = true
                             showEditDialog = false
                         }
                     ) {
-                        Text("Apply Changes")
+                        Text("APPLY DIRECTIVE", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showEditDialog = false }) {
-                        Text("Cancel")
+                        Text("CANCEL")
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun ActivityComicCard(
+    activity: ActivityDto,
+    index: Int,
+    onNavigateClick: () -> Unit
+) {
+    Column {
+        if (activity.travelTimeFromPreviousMinutes > 0) {
+            Row(
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(ComicRed, RoundedCornerShape(2.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${activity.travelTimeFromPreviousMinutes}m transit transit trail",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ComicRed,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+            color = ComicPaper,
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = ComicRed,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                        ) {
+                            Text(
+                                text = String.format("%02d", index),
+                                color = ComicPaper,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${activity.startTime} — ${activity.endTime}",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicBlack
+                        )
+                    }
+
+                    if (activity.estimatedCost != null && activity.estimatedCost > 0) {
+                        Text(
+                            text = "$${activity.estimatedCost.toInt()}",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicRed
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = activity.title,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 17.sp,
+                    color = ComicBlack
+                )
+
+                if (!activity.reason.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = activity.reason,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ComicBlack.copy(alpha = 0.8f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onNavigateClick,
+                    modifier = Modifier.align(Alignment.End),
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed)
+                ) {
+                    Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("NAVIGATE", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                }
+            }
         }
     }
 }

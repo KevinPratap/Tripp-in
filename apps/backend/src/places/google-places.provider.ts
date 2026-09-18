@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PlaceProvider, PlaceSearchParams } from './place.interface';
 import { PlaceModel, GeoLocation, PlaceOpeningHours } from '@trippin/shared-types';
-import { MockPlaceProvider } from './mock-places.provider';
+import { OSMPlacesProvider } from './osm-places.provider';
 
 @Injectable()
 export class GooglePlacesProvider implements PlaceProvider {
@@ -12,7 +12,7 @@ export class GooglePlacesProvider implements PlaceProvider {
 
   constructor(
     private readonly config: ConfigService,
-    private readonly mockProvider: MockPlaceProvider
+    private readonly osmProvider: OSMPlacesProvider
   ) {
     this.apiKey = this.config.get<string>('GOOGLE_MAPS_API_KEY', '');
     this.isMockEnabled =
@@ -21,7 +21,7 @@ export class GooglePlacesProvider implements PlaceProvider {
 
   async search(params: PlaceSearchParams): Promise<PlaceModel[]> {
     if (this.isMockEnabled) {
-      return this.mockProvider.search(params);
+      return this.osmProvider.search(params);
     }
     // Real Google Places Text Search (New)
     try {
@@ -50,8 +50,8 @@ export class GooglePlacesProvider implements PlaceProvider {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Google Places search returned status ${response.status}. Using fallback.`);
-        return this.mockProvider.search(params);
+        this.logger.warn(`Google Places search returned status ${response.status}. Using OSM fallback.`);
+        return this.osmProvider.search(params);
       }
 
       const data = await response.json();
@@ -79,16 +79,16 @@ export class GooglePlacesProvider implements PlaceProvider {
         } : undefined
       }));
 
-      return places.length > 0 ? places : this.mockProvider.search(params);
+      return places.length > 0 ? places : this.osmProvider.search(params);
     } catch (err) {
       this.logger.error(`Error querying Google Places: ${(err as Error).message}`);
-      return this.mockProvider.search(params);
+      return this.osmProvider.search(params);
     }
   }
 
   async details(placeId: string): Promise<PlaceModel | null> {
     if (this.isMockEnabled) {
-      return this.mockProvider.details(placeId);
+      return this.osmProvider.details(placeId);
     }
     try {
       const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
@@ -99,7 +99,7 @@ export class GooglePlacesProvider implements PlaceProvider {
         }
       });
       if (!response.ok) {
-        return this.mockProvider.details(placeId);
+        return this.osmProvider.details(placeId);
       }
       const p = await response.json();
       return {
@@ -125,7 +125,7 @@ export class GooglePlacesProvider implements PlaceProvider {
         } : undefined
       };
     } catch {
-      return this.mockProvider.details(placeId);
+      return this.osmProvider.details(placeId);
     }
   }
 

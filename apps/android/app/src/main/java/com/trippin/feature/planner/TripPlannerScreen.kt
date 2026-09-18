@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.trippin.core.design.TrippinButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -148,11 +149,47 @@ fun TripPlannerScreen(
             // Generate CTA
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+                var isSubmitting by remember { mutableStateOf(false) }
+                var submitError by remember { mutableStateOf<String?>(null) }
+                val scope = rememberCoroutineScope()
+
+                if (submitError != null) {
+                    Text(
+                        text = submitError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
                 TrippinButton(
-                    text = "✨ Generate Itinerary with AI",
+                    text = if (isSubmitting) "DEPLOYING ENGINE..." else "BUILD FIELD SCHEDULE",
+                    enabled = !isSubmitting && destination.isNotBlank(),
                     onClick = {
-                        // Mock ID for navigation flow to Generating Screen
-                        onTripCreated("trip_${System.currentTimeMillis()}")
+                        isSubmitting = true
+                        submitError = null
+                        scope.launch {
+                            try {
+                                val today = java.time.LocalDate.now()
+                                val start = today.plusDays(7).toString()
+                                val end = today.plusDays(10).toString()
+                                val req = com.trippin.core.network.CreateTripDto(
+                                    destination = destination.trim(),
+                                    startDate = start,
+                                    endDate = end,
+                                    travelersCount = travelersCount,
+                                    budgetTotal = budget.toDoubleOrNull() ?: 1500.0,
+                                    pace = selectedPace,
+                                    interests = selectedInterests.toList()
+                                )
+                                val res = com.trippin.core.network.NetworkModule.apiService.createTrip(req)
+                                com.trippin.core.network.NetworkModule.apiService.triggerGeneration(res.tripId)
+                                onTripCreated(res.tripId)
+                            } catch (e: Exception) {
+                                submitError = "Connection error: ${e.message ?: "Failed to deploy"}"
+                                isSubmitting = false
+                            }
+                        }
                     }
                 )
             }

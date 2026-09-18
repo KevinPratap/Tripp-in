@@ -19,6 +19,10 @@ object NetworkModule {
 
     const val BASE_URL = "https://backend-production-011e.up.railway.app/"
 
+    val apiService: ApiService by lazy {
+        provideApiService(provideRetrofit(provideOkHttpClient(), provideJson()))
+    }
+
     @Provides
     @Singleton
     fun provideJson(): Json = Json {

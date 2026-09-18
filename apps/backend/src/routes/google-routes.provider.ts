@@ -83,6 +83,6 @@ export class GoogleRouteProvider implements RouteProvider {
   }
 
   async calculateMatrix(request: RouteMatrixRequest): Promise<RouteMatrixElement[]> {
-    return this.mockProvider.calculateMatrix(request);
+    return this.osrmProvider.calculateMatrix(request);
   }
 }

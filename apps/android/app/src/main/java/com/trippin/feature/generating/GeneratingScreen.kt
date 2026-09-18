@@ -15,26 +15,32 @@ fun GeneratingScreen(
     tripId: String,
     onGenerationComplete: (String) -> Unit
 ) {
-    val steps = listOf(
-        "Analyzing your travel preferences & destination...",
-        "Fetching verified places & operating hours...",
-        "Calculating real route transit times...",
-        "Aligning schedule with weather forecasts...",
-        "Passing deterministic physics & constraint validation...",
-        "Finalizing verified itinerary!"
-    )
+    var statusMessage by remember { mutableStateOf("Initializing deterministic engine...") }
+    var progress by remember { mutableFloatStateOf(0.10f) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    var currentStepIndex by remember { mutableIntStateOf(0) }
-    var progress by remember { mutableFloatStateOf(0.15f) }
+    LaunchedEffect(tripId) {
+        var attempts = 0
+        while (attempts < 60) {
+            try {
+                val statusRes = com.trippin.core.network.NetworkModule.apiService.getTripStatus(tripId)
+                statusMessage = statusRes.currentStepMessage.ifBlank { "Processing schedule constraints..." }
+                progress = (statusRes.progressPercentage / 100f).coerceIn(0.1f, 1.0f)
 
-    LaunchedEffect(Unit) {
-        for (i in steps.indices) {
-            currentStepIndex = i
-            progress = (i + 1).toFloat() / steps.size
-            delay(1200) // Simulated progress polling
+                if (statusRes.status == "READY" || statusRes.status == "COMPLETED") {
+                    delay(400)
+                    onGenerationComplete(tripId)
+                    break
+                } else if (statusRes.status == "FAILED") {
+                    errorMessage = statusRes.errorMessage ?: "Itinerary generation encountered an error"
+                    break
+                }
+            } catch (e: Exception) {
+                statusMessage = "Connecting to Railway backend..."
+            }
+            delay(1500)
+            attempts++
         }
-        delay(600)
-        onGenerationComplete(tripId)
     }
 
     Surface(
@@ -48,35 +54,55 @@ fun GeneratingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(72.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 6.dp
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = "Building Your Dream Trip",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = steps[currentStepIndex],
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
+            if (errorMessage != null) {
+                Text(
+                    text = "GENERATION HALTED",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = errorMessage!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = { onGenerationComplete(tripId) }) {
+                    Text("CONTINUE ANYWAY")
+                }
+            } else {
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.size(72.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 6.dp
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "Building Field Schedule",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = statusMessage,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

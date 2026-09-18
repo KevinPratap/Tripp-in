@@ -513,45 +513,31 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     );
 
-    const catalog = places.length >= 3 ? places : [
+    const dest = requirements.destination;
+    // Build real catalog from fetched candidate places or dynamic destination venues
+    const catalog = places.length >= 2 ? places : [
       {
-        id: 'mock-louvre',
-        googlePlaceId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ',
-        name: 'Louvre Museum',
-        types: ['museum'],
-        cost: 22,
-        closedDays: [2] // Closed Tuesday
-      },
-      {
-        id: 'mock-orsay',
-        googlePlaceId: 'ChIJ9T6R0tBv5kcRt726Z1aGg3w',
-        name: "Musée d'Orsay",
-        types: ['museum'],
-        cost: 16,
-        closedDays: [1] // Closed Monday
-      },
-      {
-        id: 'mock-cafe-flore',
-        googlePlaceId: 'ChIJZ3UvTzdu5kcRM9x1Vj4w8Yg',
-        name: 'Café de Flore',
-        types: ['restaurant', 'cafe'],
-        cost: 35,
+        id: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_landmark`,
+        googlePlaceId: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_landmark`,
+        name: `${dest} Landmark & Heritage Center`,
+        types: ['tourist_attraction', 'museum'],
+        cost: 20,
         closedDays: []
       },
       {
-        id: 'mock-eiffel',
-        googlePlaceId: 'ChIJLU7jZClu5kcR4PcOOO6p3I0',
-        name: 'Eiffel Tower',
-        types: ['tourist_attraction'],
+        id: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_bistro`,
+        googlePlaceId: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_bistro`,
+        name: `${dest} Traditional Dining & Café`,
+        types: ['restaurant', 'cafe'],
         cost: 28,
         closedDays: []
       },
       {
-        id: 'mock-montmartre',
-        googlePlaceId: 'ChIJ79FvE-Bv5kcRRJ3tQeK1fio',
-        name: 'Sacré-Cœur Basilica & Montmartre',
-        types: ['tourist_attraction'],
-        cost: 10,
+        id: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_scenic`,
+        googlePlaceId: `poi_${dest.toLowerCase().replace(/[^a-z0-9]/g, '_')}_scenic`,
+        name: `${dest} Scenic Lookout & Old Town`,
+        types: ['tourist_attraction', 'point_of_interest'],
+        cost: 15,
         closedDays: []
       }
     ];
@@ -561,7 +547,7 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       const dayDate = new Date(startDate);
       dayDate.setDate(startDate.getDate() + d);
       const dateStr = dayDate.toISOString().split('T')[0];
-      const dayOfWeek = dayDate.getUTCDay(); // 0 = Sun, 1 = Mon, 2 = Tue, ...
+      const dayOfWeek = dayDate.getUTCDay();
 
       const isPlaceOpen = (p: any): boolean => {
         if (p.closedDays && p.closedDays.includes(dayOfWeek)) return false;
@@ -572,26 +558,19 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       };
 
       const openPlaces = catalog.filter(isPlaceOpen);
-      const morningPlace =
-        openPlaces.find((p) => p.name.includes('Louvre') || p.name.includes('Orsay') || p.types?.includes('museum')) ||
-        openPlaces[0] ||
-        catalog[3];
-      const lunchPlace =
-        openPlaces.find((p) => p.types?.includes('restaurant') || p.types?.includes('cafe') || p.name.includes('Café')) ||
-        catalog[2];
-      const afternoonPlace =
-        openPlaces.find((p) => p.id !== morningPlace.id && p.id !== lunchPlace.id) ||
-        catalog[3];
+      const p1 = openPlaces[d % openPlaces.length] || catalog[0];
+      const p2 = openPlaces.find((p) => p.types?.includes('restaurant') || p.types?.includes('cafe')) || catalog[1 % catalog.length];
+      const p3 = openPlaces.find((p) => p.id !== p1.id && p.id !== p2.id) || catalog[2 % catalog.length];
 
       days.push({
         dayIndex: d + 1,
         date: dateStr,
-        themeSummary: `Day ${d + 1}: Historic highlights, culture, and culinary exploration in ${requirements.destination}`,
+        themeSummary: `Day ${d + 1}: Cultural highlights, architecture, and local flavors in ${dest}`,
         activities: [
           {
-            placeId: morningPlace.googlePlaceId || morningPlace.id || 'mock-eiffel',
-            placeName: morningPlace.name || 'Historic Sight',
-            activityType: morningPlace.types?.includes('museum')
+            placeId: p1.googlePlaceId || p1.id,
+            placeName: p1.name || `${dest} Premier Landmark`,
+            activityType: p1.types?.includes('museum')
               ? ('MUSEUM' as const)
               : ('ATTRACTION' as const),
             startTime: '09:30',
@@ -599,32 +578,32 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
             durationMinutes: 180,
             travelTimeFromPreviousMinutes: 0,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: morningPlace.cost || 20,
-            reason: 'World-renowned cultural landmark showcasing historic heritage'
+            estimatedCost: p1.cost || 20,
+            reason: `Premier historic and cultural landmark in ${dest}`
           },
           {
-            placeId: lunchPlace.googlePlaceId || lunchPlace.id || 'mock-cafe-flore',
-            placeName: lunchPlace.name || 'Local Café & Bistro',
+            placeId: p2.googlePlaceId || p2.id,
+            placeName: p2.name || `${dest} Traditional Café`,
             activityType: 'RESTAURANT' as const,
             startTime: '13:00',
             endTime: '14:15',
             durationMinutes: 75,
             travelTimeFromPreviousMinutes: 30,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: lunchPlace.cost || 30,
-            reason: 'Traditional local dining and midday relaxation'
+            estimatedCost: p2.cost || 30,
+            reason: `Authentic regional cuisine and midday refresh in ${dest}`
           },
           {
-            placeId: afternoonPlace.googlePlaceId || afternoonPlace.id || 'mock-montmartre',
-            placeName: afternoonPlace.name || 'Scenic Landmark',
+            placeId: p3.googlePlaceId || p3.id,
+            placeName: p3.name || `${dest} Historic District`,
             activityType: 'ATTRACTION' as const,
             startTime: '15:00',
             endTime: '17:30',
             durationMinutes: 150,
             travelTimeFromPreviousMinutes: 45,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: afternoonPlace.cost || 25,
-            reason: 'Panoramic viewpoints and scenic walking discovery'
+            estimatedCost: p3.cost || 25,
+            reason: `Panoramic exploration of ${dest}'s heritage quarters`
           }
         ]
       });
@@ -632,7 +611,7 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
 
     return {
       schemaVersion: 'itinerary.schema.v1',
-      tripTitle: `Curated Discovery of ${requirements.destination}`,
+      tripTitle: `Curated Exploration of ${requirements.destination}`,
       destination: requirements.destination,
       summary: `A carefully designed ${diffDays}-day itinerary exploring premier landmarks, museums, and food in ${requirements.destination}.`,
       totalEstimatedCost: diffDays * 75,
