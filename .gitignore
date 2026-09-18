@@ -30,6 +30,7 @@ Thumbs.db
 
 # Android / Gradle
 .gradle/
+.kotlin/
 local.properties
 captures/
 .externalNativeBuild/
