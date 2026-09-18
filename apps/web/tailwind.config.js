@@ -7,21 +7,29 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['var(--font-comic-display)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-comic-body)', 'system-ui', 'sans-serif']
+      },
       colors: {
-        primary: {
-          DEFAULT: '#0D6EFD',
-          light: '#E7F0FE',
-          dark: '#004785'
-        },
-        secondary: {
-          DEFAULT: '#00A86B',
-          light: '#D1F4E4'
-        },
-        tertiary: '#FF7A00',
-        charcoal: '#111315',
-        surface: '#FFFFFF',
-        surfaceDark: '#1A1C1E',
-        background: '#F8F9FA'
+        comic: {
+          red: 'var(--color-primary)',
+          'red-hover': 'var(--color-primary-hover)',
+          'red-light': 'var(--color-primary-light)',
+          ink: 'var(--color-ink)',
+          muted: 'var(--color-ink-muted)',
+          faint: 'var(--color-ink-faint)',
+          paper: 'var(--color-bg)',
+          panel: 'var(--color-surface)',
+          yellow: 'var(--color-accent-yellow)',
+          blue: 'var(--color-accent-blue)'
+        }
+      },
+      boxShadow: {
+        comic: '4px 4px 0px 0px #18181b',
+        'comic-sm': '2px 2px 0px 0px #18181b',
+        'comic-lg': '6px 6px 0px 0px #18181b',
+        'comic-red': '4px 4px 0px 0px #e11d48'
       }
     }
   },

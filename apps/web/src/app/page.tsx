@@ -6,219 +6,290 @@ import {
   Compass,
   MapPin,
   Search,
-  Sparkles,
-  Sun,
   Calendar,
   ArrowRight,
   ShieldCheck,
-  Plane
+  Navigation,
+  Clock,
+  Zap,
+  Flame
 } from 'lucide-react';
 
 export default function WebHomePage() {
   const destinations = [
     {
-      name: 'Paris',
-      country: 'France',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600',
-      tag: 'Art & Cuisine'
-    },
-    {
+      code: 'TYO',
       name: 'Tokyo',
       country: 'Japan',
+      tagline: 'Cyberpunk Temples & Alley Ramen',
+      issue: 'VOL. 01',
       rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600',
-      tag: 'Futuristic & Temples'
+      image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800',
+      tag: 'MEGA-CITY RUN'
     },
     {
+      code: 'PAR',
+      name: 'Paris',
+      country: 'France',
+      tagline: 'Impressionist Vaults & Sidewalk Cafes',
+      issue: 'VOL. 02',
+      rating: 4.9,
+      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+      tag: 'CULTURE CIRCUIT'
+    },
+    {
+      code: 'ROM',
       name: 'Rome',
       country: 'Italy',
+      tagline: 'Ancient Amphitheaters & Sunset Piazzas',
+      issue: 'VOL. 03',
       rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600',
-      tag: 'History & Architecture'
+      image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
+      tag: 'HISTORIC CORE'
     },
     {
+      code: 'LDN',
       name: 'London',
       country: 'United Kingdom',
+      tagline: 'West End Lights & Riverbank Fog',
+      issue: 'VOL. 04',
       rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600',
-      tag: 'Museums & Theater'
+      image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
+      tag: 'METROPOLIS'
     }
   ];
 
   return (
-    <div className="min-h-screen pb-20 md:pb-10">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-blue-500/20">
-              🧭
+    <div className="min-h-screen bg-[#FAF8F5] text-[#18181B] pb-16">
+      {/* 1. Graphic Novel Header */}
+      <header className="sticky top-0 z-40 bg-[#FAF8F5] border-b-[2.5px] border-[#18181B]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-10 h-10 bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B] flex items-center justify-center font-black text-xl tracking-tighter">
+              T!
             </div>
-            <div>
-              <span className="font-extrabold text-xl tracking-tight text-gray-900">
-                Trippin<span className="text-blue-600">' AI</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-display font-black text-2xl tracking-tighter uppercase text-[#18181B]">
+                TRIPPIN<span className="text-[#E11D48]">&apos;</span>
               </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
-                Blinkit-Style SDUI
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#52525B]">
+                Field Guide // v1.0
               </span>
             </div>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-3 sm:gap-6">
             <Link
               href="/planner"
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-sm shadow-sm hover:bg-blue-700 transition"
+              className="comic-btn-primary px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-2"
             >
-              Plan a Trip
+              <span>Build Route</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
-            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-              AR
-            </div>
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-8">
-        {/* 1. Header Greeting & Location */}
-        <section className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 text-sm font-medium">Welcome back, Alex 👋</p>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Where will you explore next?
-            </h1>
+      {/* 2. Hero Comic Panel */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 space-y-12">
+        <section className="relative comic-panel p-6 sm:p-12 rounded-2xl bg-white overflow-hidden">
+          {/* Halftone backdrop accent */}
+          <div className="absolute top-0 right-0 w-64 h-64 comic-halftone opacity-40 pointer-events-none" />
+
+          {/* Top Label Tag */}
+          <div className="inline-flex items-center gap-2 bg-[#E11D48] text-white comic-tag px-3 py-1 rounded-sm text-xs font-black uppercase mb-6">
+            <Flame className="w-3.5 h-3.5" />
+            <span>Issue #01 — Real-World Transit Engine</span>
           </div>
-        </section>
 
-        {/* 2. Interactive Search Bar */}
-        <section className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search landmarks, cities, museums, cafes..."
-            className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white border border-gray-200 text-gray-800 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-          />
-        </section>
+          <div className="max-w-3xl space-y-6 relative z-10">
+            <h1 className="font-display text-4xl sm:text-6xl font-black tracking-tight leading-[1.05] uppercase">
+              NO HALLUCINATIONS. <br />
+              <span className="text-[#E11D48] underline decoration-[#18181B] decoration-4 underline-offset-4">
+                NO DEAD ENDS.
+              </span>{' '}
+              <br />
+              JUST THE ROUTE.
+            </h1>
 
-        {/* 3. Hero AI Planner CTA Card (Blinkit Signature Banner) */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-6 sm:p-8 shadow-xl shadow-blue-600/15">
-          <div className="relative z-10 max-w-xl space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" /> AI Itinerary Engine
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black leading-tight">
-              Create a physically verified travel schedule in seconds.
-            </h2>
-            <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
-              No overlapping slots. Every activity is cross-referenced with real opening hours, transit buffers, and weather forecasts.
+            <p className="text-base sm:text-lg text-[#52525B] font-medium leading-relaxed max-w-xl">
+              Most travel apps schedule impossible schedules and closed museums. Trippin&apos; checks
+              real physical walking times, live operating hours, and local weather before you take a single step.
             </p>
-            <div className="pt-2">
+
+            <div className="pt-2 flex flex-wrap items-center gap-4">
               <Link
                 href="/planner"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 rounded-xl font-bold text-sm hover:bg-blue-50 transition shadow-md"
+                className="comic-btn-primary px-8 py-4 rounded-xl text-sm sm:text-base font-black uppercase tracking-wider flex items-center gap-2.5"
               >
-                Start AI Planning <ArrowRight className="w-4 h-4" />
+                <span>Draft Your Journey</span>
+                <ArrowRight className="w-5 h-5" />
               </Link>
+              <div className="flex items-center gap-2 text-xs font-bold text-[#52525B] px-3 py-2 border-2 border-[#18181B] rounded-lg bg-[#F4F2EE]">
+                <ShieldCheck className="w-4 h-4 text-[#E11D48]" />
+                <span>100% Conflict-Free Guarantee</span>
+              </div>
             </div>
-          </div>
-
-          <div className="absolute right-4 bottom-4 opacity-15 hidden sm:block pointer-events-none">
-            <Compass className="w-64 h-64 text-white" />
           </div>
         </section>
 
-        {/* 4. Quick Action Grid */}
-        <section className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center cursor-pointer hover:border-blue-200 transition">
-            <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-2">
-              <Sun className="w-6 h-6" />
-            </div>
-            <span className="text-sm font-semibold text-gray-800">Weather</span>
-            <span className="text-xs text-gray-400">Live Forecasts</span>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center cursor-pointer hover:border-blue-200 transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
-              <Compass className="w-6 h-6" />
-            </div>
-            <span className="text-sm font-semibold text-gray-800">Explore</span>
-            <span className="text-xs text-gray-400">PostGIS Places</span>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center cursor-pointer hover:border-blue-200 transition">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
-              <Plane className="w-6 h-6" />
-            </div>
-            <span className="text-sm font-semibold text-gray-800">My Trips</span>
-            <span className="text-xs text-gray-400">Saved Schedules</span>
-          </div>
-        </section>
-
-        {/* 5. Popular Destinations Horizontal Carousel */}
+        {/* 3. The Three Laws (Comic Panels Grid) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Popular Destinations</h3>
-              <p className="text-sm text-gray-500">Trending global hotspots verified for 2026</p>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
+              <h2 className="font-display text-lg font-black uppercase tracking-tight">
+                The Ground Rules
+              </h2>
             </div>
+            <span className="text-xs font-bold uppercase tracking-widest text-[#52525B]">
+              Physics-Checked
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <article className="comic-panel p-6 rounded-xl bg-white space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#FAF8F5] border-2 border-[#18181B] flex items-center justify-center font-black text-sm">
+                01
+              </div>
+              <h3 className="font-display font-black text-base uppercase text-[#18181B]">
+                Zero Overlaps
+              </h3>
+              <p className="text-xs text-[#52525B] leading-relaxed font-medium">
+                Every reservation and stop has strict timestamp boundaries. No scheduling a 2-hour lunch in a 30-minute window.
+              </p>
+            </article>
+
+            <article className="comic-panel p-6 rounded-xl bg-white space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#FAF8F5] border-2 border-[#18181B] flex items-center justify-center font-black text-sm">
+                02
+              </div>
+              <h3 className="font-display font-black text-base uppercase text-[#18181B]">
+                Verified Openings
+              </h3>
+              <p className="text-xs text-[#52525B] leading-relaxed font-medium">
+                The Louvre is closed on Tuesdays. Tokyo fish markets shut early. Our engine validates venue hours against calendar days.
+              </p>
+            </article>
+
+            <article className="comic-panel p-6 rounded-xl bg-white space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#FAF8F5] border-2 border-[#18181B] flex items-center justify-center font-black text-sm">
+                03
+              </div>
+              <h3 className="font-display font-black text-base uppercase text-[#18181B]">
+                Physical Transit
+              </h3>
+              <p className="text-xs text-[#52525B] leading-relaxed font-medium">
+                Walking and metro travel times are calculated using real road networks, giving you enough buffer to actually explore.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* 4. Curated Field Runs (Manga Issue Cards) */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
+              <h2 className="font-display text-xl font-black uppercase tracking-tight">
+                Featured Field Runs
+              </h2>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#52525B]">
+              Ready to Load
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {destinations.map((d) => (
               <div
-                key={d.name}
-                className="group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer bg-white border border-gray-100"
+                key={d.code}
+                className="comic-panel rounded-xl overflow-hidden bg-white group hover:-translate-y-1 transition-transform duration-150 flex flex-col justify-between"
               >
-                <div className="h-44 w-full relative overflow-hidden">
-                  <img
-                    src={d.image}
-                    alt={d.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  <span className="absolute top-3 right-3 px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-gray-900">
-                    ★ {d.rating}
-                  </span>
-                  <div className="absolute bottom-3 left-3 text-white">
-                    <h4 className="font-bold text-lg leading-tight">{d.name}</h4>
-                    <p className="text-xs text-white/80">{d.country}</p>
+                <div>
+                  <div className="relative h-44 border-b-2 border-[#18181B] overflow-hidden">
+                    <img
+                      src={d.image}
+                      alt={d.name}
+                      className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300"
+                    />
+                    <span className="absolute top-3 left-3 bg-[#E11D48] text-white comic-tag text-[10px] rounded-xs font-black">
+                      {d.issue}
+                    </span>
+                    <span className="absolute bottom-3 right-3 bg-white text-[#18181B] comic-tag text-[10px] rounded-xs font-black">
+                      {d.code}
+                    </span>
                   </div>
+
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="font-display font-black text-xl uppercase tracking-tight">
+                        {d.name}
+                      </h3>
+                      <span className="text-xs font-bold text-[#52525B]">{d.country}</span>
+                    </div>
+                    <p className="text-xs text-[#52525B] font-medium leading-normal">
+                      {d.tagline}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 pt-0">
+                  <Link
+                    href={`/planner?destination=${encodeURIComponent(d.name + ', ' + d.country)}`}
+                    className="comic-btn-secondary w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <span>Inspect Route</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 6. Recent Active Trip Section */}
-        <section className="space-y-3">
-          <h3 className="text-xl font-bold text-gray-900">Active Trip</h3>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-2xl">
-                🇫🇷
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-lg text-gray-900">Paris Cultural Escape</h4>
-                  <span className="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> VERIFIED v1
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">
-                  10 Apr - 14 Apr · 3 Days · 9 Places · 18°C Sunny
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/planner"
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 transition"
-            >
-              View Itinerary →
-            </Link>
+        {/* 5. Bottom Callout Banner */}
+        <section className="comic-panel-red p-8 sm:p-10 rounded-2xl bg-[#18181B] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center sm:text-left">
+            <span className="text-xs font-extrabold tracking-widest text-[#E11D48] uppercase">
+              Field Tested &amp; Certified
+            </span>
+            <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight">
+              Ready to map your next run?
+            </h2>
+            <p className="text-xs sm:text-sm text-[#A1A1AA] max-w-md font-medium">
+              Plug in your city, pick your dates, and get an immutable, conflict-free travel log in seconds.
+            </p>
           </div>
+          <Link
+            href="/planner"
+            className="comic-btn-primary px-8 py-4 rounded-xl text-sm font-black uppercase tracking-wider shrink-0"
+          >
+            Launch Planner &rarr;
+          </Link>
         </section>
       </main>
+
+      {/* 6. Colophon Footer */}
+      <footer className="max-w-5xl mx-auto px-4 sm:px-6 pt-16 text-center sm:text-left border-t-2 border-[#18181B] mt-16 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-[#52525B] uppercase">
+        <div>
+          <span>TRIPPIN&apos; GRAPHIC ITINERARY ENGINE</span> // &copy; {new Date().getFullYear()}
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/planner" className="hover:text-[#E11D48] transition">
+            Planner
+          </Link>
+          <span>·</span>
+          <a
+            href="https://backend-production-011e.up.railway.app/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#E11D48] transition"
+          >
+            API Protocol
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
