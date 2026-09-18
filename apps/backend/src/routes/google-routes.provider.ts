@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { RouteProvider, RouteMatrixRequest, RouteMatrixElement } from './route.interface';
 import { GeoLocation, RouteMode, RouteSegment } from '@trippin/shared-types';
 import { MockRouteProvider } from './mock-routes.provider';
+import { OSRMRouteProvider } from './osrm-routes.provider';
 
 @Injectable()
 export class GoogleRouteProvider implements RouteProvider {
@@ -12,7 +13,8 @@ export class GoogleRouteProvider implements RouteProvider {
 
   constructor(
     private readonly config: ConfigService,
-    private readonly mockProvider: MockRouteProvider
+    private readonly mockProvider: MockRouteProvider,
+    private readonly osrmProvider: OSRMRouteProvider
   ) {
     this.apiKey = this.config.get<string>('GOOGLE_MAPS_API_KEY', '');
     this.isMockEnabled =
@@ -25,7 +27,8 @@ export class GoogleRouteProvider implements RouteProvider {
     mode: RouteMode = 'TRANSIT'
   ): Promise<RouteSegment> {
     if (this.isMockEnabled) {
-      return this.mockProvider.calculateRoute(origin, destination, mode);
+      // 100% Free OSRM OpenStreetMap routing
+      return this.osrmProvider.calculateRoute(origin, destination, mode);
     }
 
     try {
@@ -56,13 +59,13 @@ export class GoogleRouteProvider implements RouteProvider {
       );
 
       if (!response.ok) {
-        return this.mockProvider.calculateRoute(origin, destination, mode);
+        return this.osrmProvider.calculateRoute(origin, destination, mode);
       }
 
       const data = await response.json();
       const route = data.routes?.[0];
       if (!route) {
-        return this.mockProvider.calculateRoute(origin, destination, mode);
+        return this.osrmProvider.calculateRoute(origin, destination, mode);
       }
 
       const durationSeconds = parseInt(route.duration?.replace('s', '') || '600', 10);
@@ -75,7 +78,7 @@ export class GoogleRouteProvider implements RouteProvider {
         encodedPolyline: route.polyline?.encodedPolyline
       };
     } catch {
-      return this.mockProvider.calculateRoute(origin, destination, mode);
+      return this.osrmProvider.calculateRoute(origin, destination, mode);
     }
   }
 

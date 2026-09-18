@@ -35,10 +35,15 @@ export class AIPlannerService {
     private readonly validator: ItineraryValidator
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY', '');
+    const baseURL = this.config.get<string>('OPENAI_BASE_URL');
     this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o');
 
     if (apiKey && !apiKey.includes('placeholder')) {
-      this.openai = new OpenAI({ apiKey });
+      this.openai = new OpenAI({
+        apiKey,
+        baseURL: baseURL || undefined
+      });
+      this.logger.log(`Initialized AI client with model ${this.model}${baseURL ? ` via custom endpoint: ${baseURL}` : ''}`);
     }
   }
 
