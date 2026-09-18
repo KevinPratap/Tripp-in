@@ -18,8 +18,11 @@ import {
   Printer,
   Check,
   Flame,
-  AlertCircle
+  AlertCircle,
+  Download,
+  MessageSquare
 } from 'lucide-react';
+import { downloadTripCalendar } from '@/lib/calendar-generator';
 
 // Dynamic import for Leaflet map to prevent SSR issues
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
@@ -42,6 +45,7 @@ export default function PublicTripPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [calendarDownloaded, setCalendarDownloaded] = useState(false);
   const [activeDayIndex, setActiveDayIndex] = useState(1);
 
   useEffect(() => {
@@ -69,6 +73,13 @@ export default function PublicTripPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleSyncCalendar = () => {
+    if (!tripData || !tripData.itinerary) return;
+    downloadTripCalendar(tripData, tripData.itinerary);
+    setCalendarDownloaded(true);
+    setTimeout(() => setCalendarDownloaded(false), 2500);
   };
 
   const handlePrint = () => {
@@ -133,22 +144,45 @@ export default function PublicTripPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <Link
+              href={`/trip/${tripId}/collab`}
+              className="comic-btn-secondary px-3 sm:px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
+            >
+              <Users className="w-3.5 h-3.5 text-[#E11D48]" />
+              <span className="hidden md:inline">Squad</span>
+              <span>Collab</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleSyncCalendar}
+              className="comic-btn-secondary px-3 sm:px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              title="Export verified schedule to Apple, Google, or Outlook Calendar (.ics)"
+            >
+              {calendarDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Calendar className="w-3.5 h-3.5 text-[#18181B]" />}
+              <span className="hidden md:inline">{calendarDownloaded ? 'Synced!' : 'Calendar'}</span>
+              <span className="text-[10px] font-black opacity-70">.ics</span>
+            </button>
+
             <button
               type="button"
               onClick={handleCopyLink}
-              className="comic-btn-secondary px-3 sm:px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              className="comic-btn-secondary px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              title="Copy shareable trip link"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied' : 'Share'}</span>
+              <span className="hidden sm:inline">{copied ? 'Copied' : 'Share'}</span>
             </button>
+
             <button
               type="button"
               onClick={handlePrint}
               className="comic-btn-primary px-3 sm:px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              title="Export high-contrast printable Comic Field Dossier PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Print Ticket</span>
+              <span className="hidden sm:inline">Dossier PDF</span>
             </button>
           </div>
         </div>
@@ -244,13 +278,13 @@ export default function PublicTripPage() {
 
         {/* Day Schedule Cards */}
         <section className="space-y-6">
-          {days
-            .filter((d: any) => typeof window !== 'undefined' && window.matchMedia('print').matches ? true : d.dayIndex === activeDayIndex)
-            .map((d: any) => (
-              <div
-                key={d.dayIndex}
-                className="comic-panel p-6 sm:p-8 rounded-2xl bg-white space-y-6"
-              >
+          {days.map((d: any) => (
+            <div
+              key={d.dayIndex}
+              className={`comic-panel p-6 sm:p-8 rounded-2xl bg-white space-y-6 print:border-2 print:border-black print:mb-8 print:break-inside-avoid ${
+                d.dayIndex === activeDayIndex ? 'block' : 'hidden print:block'
+              }`}
+            >
                 <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4">
                   <div className="flex items-center gap-2.5">
                     <span className="w-3.5 h-3.5 bg-[#E11D48] border-2 border-[#18181B]" />
