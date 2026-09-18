@@ -11,6 +11,8 @@
     "backend:dev": "pnpm --filter @trippin/backend run start:dev",
     "backend:build": "pnpm --filter @trippin/backend run build",
     "backend:test": "pnpm --filter @trippin/backend run test",
+    "web:dev": "pnpm --filter @trippin/web run dev",
+    "web:build": "pnpm --filter @trippin/web run build",
     "db:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
     "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "db:migrate": "pnpm --filter @trippin/backend run prisma:migrate",

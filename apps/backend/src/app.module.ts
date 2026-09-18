@@ -8,6 +8,7 @@ import { EngineModule } from './engine/engine.module';
 import { AIModule } from './ai/ai.module';
 import { ItinerariesModule } from './itineraries/itineraries.module';
 import { DestinationsModule } from './destinations/destinations.module';
+import { SDUIModule } from './sdui/sdui.module';
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisService } from './common/redis/redis.service';
 
@@ -24,7 +25,8 @@ import { RedisService } from './common/redis/redis.service';
     EngineModule,
     AIModule,
     ItinerariesModule,
-    DestinationsModule
+    DestinationsModule,
+    SDUIModule
   ],
   providers: [PrismaService, RedisService]
 })

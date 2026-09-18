@@ -1,10 +1,14 @@
 package com.trippin.core.network
 
+import com.trippin.core.sdui.SDUIScreenDto
 import retrofit2.http.*
 
 interface ApiService {
     @GET("api/v1/home")
     suspend fun getHome(): HomeFeedDto
+
+    @GET("api/v1/sdui/screens/{screenId}")
+    suspend fun getSDUIScreen(@Path("screenId") screenId: String): SDUIScreenDto
 
     @POST("api/v1/trips")
     suspend fun createTrip(@Body body: CreateTripDto): CreateTripResponseDto

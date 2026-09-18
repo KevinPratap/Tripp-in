@@ -104,3 +104,40 @@ export interface ExploreResponse {
   trendingPlaces: PlaceModel[];
   recommendedPlaces: PlaceModel[];
 }
+
+// 8. Server-Driven UI (SDUI) Specifications (Blinkit / Swiggy Pattern)
+export type SDUIType =
+  | 'HEADER_GREETING'
+  | 'SEARCH_BAR'
+  | 'HERO_BANNER'
+  | 'QUICK_ACTIONS'
+  | 'HORIZONTAL_CAROUSEL'
+  | 'RECENT_TRIPS_LIST'
+  | 'WEATHER_BANNER'
+  | 'TIMELINE_DAY'
+  | 'ACTIVITY_CARD'
+  | 'CATEGORY_CHIPS'
+  | 'CALL_TO_ACTION';
+
+export interface SDUIAction {
+  type: 'NAVIGATE' | 'DEEP_LINK' | 'API_CALL' | 'OPEN_MODAL';
+  target: string;
+  params?: Record<string, any>;
+}
+
+export interface SDUISection<T = any> {
+  id: string;
+  type: SDUIType;
+  orderIndex: number;
+  title?: string;
+  subtitle?: string;
+  action?: SDUIAction;
+  payload: T;
+}
+
+export interface SDUIScreenResponse {
+  screenId: string;
+  title: string;
+  sections: SDUISection[];
+  metadata?: Record<string, any>;
+}
