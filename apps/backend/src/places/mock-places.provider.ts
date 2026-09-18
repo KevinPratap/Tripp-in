@@ -118,21 +118,27 @@ export class MockPlaceProvider implements PlaceProvider {
   ];
 
   async search(params: PlaceSearchParams): Promise<PlaceModel[]> {
-    const q = (params.query || '').toLowerCase();
+    const q = (params.query || '').toLowerCase().trim();
     if (!q) return this.mockPlaces;
-    return this.mockPlaces.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.types.some((t) => t.toLowerCase().includes(q)) ||
-        p.formattedAddress.toLowerCase().includes(q)
-    );
+    const tokens = q.split(/\s+/).filter((t) => t.length > 2);
+    const matched = this.mockPlaces.filter((p) => {
+      const haystack = `${p.name} ${p.description || ''} ${p.types.join(' ')} ${p.formattedAddress}`.toLowerCase();
+      return tokens.some((t) => haystack.includes(t));
+    });
+    return matched.length > 0 ? matched : this.mockPlaces;
   }
 
   async details(placeId: string): Promise<PlaceModel | null> {
+    const pId = (placeId || '').toLowerCase().trim();
     const place = this.mockPlaces.find(
-      (p) => p.id === placeId || p.googlePlaceId === placeId
+      (p) =>
+        p.id.toLowerCase() === pId ||
+        p.googlePlaceId.toLowerCase() === pId ||
+        p.name.toLowerCase() === pId ||
+        p.name.toLowerCase().includes(pId) ||
+        pId.includes(p.name.toLowerCase())
     );
-    return place || this.mockPlaces[0];
+    return place || null;
   }
 
   async nearby(location: GeoLocation, radiusMeters = 5000, type?: string): Promise<PlaceModel[]> {

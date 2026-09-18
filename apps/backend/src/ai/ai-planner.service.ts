@@ -26,6 +26,9 @@ export class AIPlannerService {
   private readonly logger = new Logger(AIPlannerService.name);
   private openai: OpenAI | null = null;
   private readonly model: string;
+  private readonly isNativeGemini: boolean;
+  private readonly geminiApiKey: string;
+  private readonly isJsonSchemaSupported: boolean;
 
   constructor(
     private readonly config: ConfigService,
@@ -36,14 +39,13 @@ export class AIPlannerService {
   ) {
     let apiKey = this.config.get<string>('OPENAI_API_KEY', '');
     let baseURL = this.config.get<string>('OPENAI_BASE_URL');
-    let model = this.config.get<string>('OPENAI_MODEL', 'gemini-3.6-flash');
+    let model = this.config.get<string>('OPENAI_MODEL', 'gemini-2.5-flash');
 
     // Auto-detect Gemini from environment if OPENAI_API_KEY is missing or placeholder
     const geminiKey = this.config.get<string>('GEMINI_API_KEY');
     if ((!apiKey || apiKey.includes('placeholder')) && geminiKey) {
       apiKey = geminiKey;
-      baseURL = baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai/';
-      model = 'gemini-3.6-flash';
+      model = 'gemini-2.5-flash';
     }
 
     // Auto-detect Groq from environment if still placeholder
@@ -54,14 +56,31 @@ export class AIPlannerService {
       model = 'llama-3.3-70b-versatile';
     }
 
-    this.model = model;
+    const isGoogle =
+      (baseURL && baseURL.includes('generativelanguage.googleapis.com')) ||
+      model.toLowerCase().includes('gemini') ||
+      Boolean(geminiKey && apiKey === geminiKey);
 
-    if (apiKey && !apiKey.includes('placeholder')) {
+    this.isNativeGemini = Boolean(isGoogle && apiKey && !apiKey.includes('placeholder'));
+    this.geminiApiKey = this.isNativeGemini ? apiKey : '';
+    this.model =
+      isGoogle && (model === 'gemini-flash-latest' || model.includes('3.6'))
+        ? 'gemini-2.5-flash'
+        : model;
+    this.isJsonSchemaSupported = !isGoogle;
+
+    if (apiKey && !apiKey.includes('placeholder') && !this.isNativeGemini) {
       this.openai = new OpenAI({
         apiKey,
         baseURL: baseURL || undefined
       });
-      this.logger.log(`Initialized AI client with model ${this.model}${baseURL ? ` via custom endpoint: ${baseURL}` : ''}`);
+      this.logger.log(
+        `Initialized OpenAI client with model ${this.model}${baseURL ? ` via custom endpoint: ${baseURL}` : ''}`
+      );
+    } else if (this.isNativeGemini) {
+      this.logger.log(
+        `Initialized Native Google Generative AI client with model ${this.model} (Free Tier Zero-Cost)`
+      );
     }
   }
 
@@ -82,12 +101,32 @@ export class AIPlannerService {
     let validationResult: ValidationResult | null = null;
 
     while (repairIterations <= maxRepairs) {
+      if (repairIterations > 0) {
+        // Delay between repair iterations to respect free tier rate limits
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
       this.logger.log(
         `AI planning iteration ${repairIterations} for destination "${requirements.destination}"...`
       );
 
       // 1. Generate candidate from LLM or deterministic fallback generator
-      if (this.openai) {
+      if (this.isNativeGemini) {
+        try {
+          candidateItinerary = await this.callGeminiNative(
+            requirements,
+            weather,
+            candidatePlaces,
+            lastViolations
+          );
+        } catch (err) {
+          this.logger.warn(`Native Gemini call failed: ${(err as Error).message}. Using smart fallback.`);
+          candidateItinerary = this.generateDeterministicCandidate(
+            requirements,
+            candidatePlaces
+          );
+        }
+      } else if (this.openai) {
         try {
           candidateItinerary = await this.callOpenAI(
             requirements,
@@ -131,7 +170,7 @@ export class AIPlannerService {
           itinerary: candidateItinerary,
           validationResult,
           repairIterations,
-          modelUsed: this.openai ? this.model : 'heuristic-deterministic-engine'
+          modelUsed: this.isNativeGemini ? this.model : (this.openai ? this.model : 'heuristic-deterministic-engine')
         };
       }
 
@@ -149,8 +188,165 @@ export class AIPlannerService {
       itinerary: candidateItinerary || undefined,
       validationResult: validationResult || undefined,
       repairIterations,
-      modelUsed: this.openai ? this.model : 'heuristic-deterministic-engine'
+      modelUsed: this.isNativeGemini ? this.model : (this.openai ? this.model : 'heuristic-deterministic-engine')
     };
+  }
+
+  /**
+   * Google Generative AI Native generation with strict responseSchema enforcement
+   */
+  private async callGeminiNative(
+    requirements: TripRequirement,
+    weather: any[],
+    places: any[],
+    previousViolations: string[]
+  ): Promise<ItineraryV1> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.geminiApiKey}`;
+
+    const prompt = `
+You are the expert Trippin' AI Travel Planner.
+Plan an optimal, feasible daily itinerary for:
+- Destination: ${requirements.destination}
+- Dates: ${requirements.startDate} to ${requirements.endDate}
+- Travelers: ${requirements.travelersCount}
+- Pace: ${requirements.pace || 'MODERATE'}
+- Budget: ${requirements.budgetTotal || 'Flexible'} ${requirements.currency || 'USD'}
+- Travel Styles: ${(requirements.travelStyles || ['Cultural']).join(', ')}
+- Interests: ${(requirements.interests || ['Sightseeing', 'Food']).join(', ')}
+
+Available Verified Places in ${requirements.destination}:
+${places.map((p) => `- PlaceID: "${p.id || p.googlePlaceId}", Name: "${p.name}", Hours: ${JSON.stringify(p.openingHours?.weekdayDescriptions || 'Open daily 09:00 - 18:00')}`).join('\n')}
+
+Weather Forecast:
+${weather.map((w) => `- ${w.date}: ${w.condition}, ${w.temperatureCelsius}°C (${w.advisoryNote})`).join('\n')}
+
+${
+  previousViolations.length > 0
+    ? `CRITICAL FIXES REQUIRED FROM PREVIOUS VALIDATION FAILURE:
+The previous candidate was rejected by our physics and constraints engine with these errors:
+${previousViolations.map((v) => `* ${v}`).join('\n')}
+You MUST adjust times, order, or replace closed venues to resolve all the above errors completely!`
+    : ''
+}
+
+Rules:
+1. Every activity MUST have realistic start and end times in HH:mm format between 08:00 and 23:00.
+2. Allocate realistic transit time (at least 20-30 minutes between distant venues).
+3. Do NOT schedule activities when the venue is closed on that day of the week!
+4. Ensure activities do not overlap.
+5. Use the exact placeId and placeName from the Available Places list above.
+`;
+
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        schemaVersion: { type: 'STRING', enum: ['itinerary.schema.v1'] },
+        tripTitle: { type: 'STRING' },
+        destination: { type: 'STRING' },
+        summary: { type: 'STRING' },
+        totalEstimatedCost: { type: 'NUMBER' },
+        currency: { type: 'STRING' },
+        days: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              dayIndex: { type: 'INTEGER' },
+              date: { type: 'STRING' },
+              themeSummary: { type: 'STRING' },
+              activities: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    placeId: { type: 'STRING' },
+                    placeName: { type: 'STRING' },
+                    activityType: {
+                      type: 'STRING',
+                      enum: [
+                        'ATTRACTION',
+                        'MUSEUM',
+                        'RESTAURANT',
+                        'CAFE',
+                        'PARK',
+                        'TRANSIT',
+                        'HOTEL_CHECKIN',
+                        'FREE_TIME',
+                        'NIGHTLIFE'
+                      ]
+                    },
+                    startTime: { type: 'STRING' },
+                    endTime: { type: 'STRING' },
+                    durationMinutes: { type: 'INTEGER' },
+                    travelTimeFromPreviousMinutes: { type: 'INTEGER' },
+                    transitModeFromPrevious: {
+                      type: 'STRING',
+                      enum: ['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING']
+                    },
+                    estimatedCost: { type: 'NUMBER' },
+                    reason: { type: 'STRING' }
+                  },
+                  required: [
+                    'placeId',
+                    'placeName',
+                    'activityType',
+                    'startTime',
+                    'endTime',
+                    'durationMinutes',
+                    'reason'
+                  ]
+                }
+              }
+            },
+            required: ['dayIndex', 'date', 'themeSummary', 'activities']
+          }
+        }
+      },
+      required: ['schemaVersion', 'tripTitle', 'destination', 'summary', 'days']
+    };
+
+    const modelsToTry = [this.model, 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite'];
+    let lastErr: any = null;
+
+    for (const currentModel of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${this.geminiApiKey}`;
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema
+            }
+          })
+        });
+
+        if (res.status === 503 || res.status === 429) {
+          this.logger.warn(`Model ${currentModel} returned ${res.status}. Falling over to next free model...`);
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
+        }
+
+        const data: any = await res.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const itinerary = JSON.parse(rawText);
+        if (!itinerary.schemaVersion) itinerary.schemaVersion = 'itinerary.schema.v1';
+        return itinerary;
+      } catch (err) {
+        lastErr = err;
+        this.logger.warn(`Call with ${currentModel} failed: ${(err as Error).message}. Trying next fallback...`);
+      }
+    }
+
+    throw lastErr || new Error('All Gemini models failed');
   }
 
   /**
@@ -174,7 +370,7 @@ Trip Requirements:
 - Interests: ${(requirements.interests || ['Sightseeing', 'Food']).join(', ')}
 
 Available Verified Places in ${requirements.destination}:
-${places.map((p) => `- PlaceID: "${p.id || p.googlePlaceId}", Name: "${p.name}", Hours: ${JSON.stringify(p.openingHours?.weekdayDescriptions || 'Open daily 9-18')}`).join('\n')}
+${places.map((p) => `- PlaceID: "${p.id || p.googlePlaceId}", Name: "${p.name}", Hours: ${JSON.stringify(p.openingHours?.weekdayDescriptions || 'Open daily 09:00 - 18:00')}`).join('\n')}
 
 Weather Forecast:
 ${weather.map((w) => `- ${w.date}: ${w.condition}, ${w.temperatureCelsius}°C (${w.advisoryNote})`).join('\n')}
@@ -189,56 +385,118 @@ You MUST adjust times, order, or replace closed venues to resolve all the above 
 }
 
 Rules:
-1. Every activity MUST have realistic start and end times in HH:mm format.
+1. Every activity MUST have realistic start and end times in HH:mm format between 08:00 and 23:00.
 2. Allocate realistic transit time (at least 20-30 minutes between distant venues).
-3. Do NOT schedule activities when the venue is closed.
+3. Do NOT schedule activities when the venue is closed on that day of the week!
 4. Ensure activities do not overlap.
+5. Use the exact placeId and placeName from the Available Places list above.
 `;
 
+    const systemPrompt = `You are the expert Trippin' AI Travel Planner.
+You MUST output ONLY a valid JSON object strictly matching this schema:
+{
+  "schemaVersion": "itinerary.schema.v1",
+  "tripTitle": "Concise exciting trip title",
+  "destination": "${requirements.destination}",
+  "summary": "Detailed overview of the trip experience (minimum 10 characters)",
+  "totalEstimatedCost": 150,
+  "currency": "${requirements.currency || 'USD'}",
+  "days": [
+    {
+      "dayIndex": 1,
+      "date": "YYYY-MM-DD",
+      "themeSummary": "Theme summary for day 1",
+      "activities": [
+        {
+          "placeId": "Exact placeId from available places",
+          "placeName": "Exact name from available places",
+          "activityType": "MUSEUM",
+          "startTime": "09:30",
+          "endTime": "12:30",
+          "durationMinutes": 180,
+          "travelTimeFromPreviousMinutes": 0,
+          "transitModeFromPrevious": "TRANSIT",
+          "estimatedCost": 25,
+          "reason": "Compelling reason matching traveler interests"
+        }
+      ]
+    }
+  ]
+}
+activityType MUST be one of: "ATTRACTION", "MUSEUM", "RESTAURANT", "CAFE", "PARK", "TRANSIT", "HOTEL_CHECKIN", "FREE_TIME", "NIGHTLIFE".
+transitModeFromPrevious MUST be one of: "DRIVING", "WALKING", "TRANSIT", "BICYCLING".
+Respond strictly with valid JSON. Do not include markdown code block syntax.`;
+
+    const makeCall = async (format: any) => {
+      let lastErr: any = null;
+      const modelsToTry = [this.model];
+      if (this.model === 'gemini-flash-latest') {
+        modelsToTry.push('gemini-2.5-flash');
+      } else if (this.model === 'gemini-2.5-flash') {
+        modelsToTry.push('gemini-flash-latest');
+      }
+
+      for (const currentModel of modelsToTry) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            return await this.openai!.chat.completions.create({
+              model: currentModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt }
+              ],
+              response_format: format,
+              temperature: 0.2
+            });
+          } catch (err: any) {
+            lastErr = err;
+            const status = err?.status || err?.statusCode;
+            if ((status === 429 || status === 503) && attempt < 1) {
+              const delayMs = 1500;
+              this.logger.warn(`Model ${currentModel} returned ${status}. Retrying in ${delayMs}ms...`);
+              await new Promise((r) => setTimeout(r, delayMs));
+              continue;
+            }
+            this.logger.warn(`Model ${currentModel} failed with ${status || (err as Error).message}. Trying fallback if available.`);
+            break;
+          }
+        }
+      }
+      throw lastErr;
+    };
+
     let raw = '';
-    try {
-      const response = await this.openai!.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are Trippin AI planner. Respond strictly with valid JSON conforming to the requested schema.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        response_format: {
+    if (this.isJsonSchemaSupported) {
+      try {
+        const response = await makeCall({
           type: 'json_schema',
           json_schema: {
             name: 'ItineraryV1',
             schema: ItineraryJsonSchemaV1 as any,
             strict: true
           }
-        },
-        temperature: 0.2
-      });
-      raw = response.choices[0]?.message?.content || '{}';
-    } catch (schemaErr) {
-      this.logger.debug(
-        `Structured outputs json_schema not supported by endpoint: ${(schemaErr as Error).message}. Falling back to json_object.`
-      );
-      const response = await this.openai!.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are Trippin AI planner. Respond strictly with valid JSON matching ItineraryV1 format.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.2
-      });
+        });
+        raw = response.choices[0]?.message?.content || '{}';
+      } catch (schemaErr) {
+        this.logger.debug(
+          `Structured outputs json_schema not supported: ${(schemaErr as Error).message}. Falling back to json_object.`
+        );
+        const response = await makeCall({ type: 'json_object' });
+        raw = response.choices[0]?.message?.content || '{}';
+      }
+    } else {
+      const response = await makeCall({ type: 'json_object' });
       raw = response.choices[0]?.message?.content || '{}';
     }
 
-    return JSON.parse(raw);
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '').replace(/```\s*$/, '');
+    }
+
+    return JSON.parse(cleaned.trim());
   }
 
   /**
@@ -248,18 +506,54 @@ Rules:
     requirements: TripRequirement,
     places: any[]
   ): ItineraryV1 {
-    const startDate = new Date(requirements.startDate || '2026-05-10');
-    const endDate = new Date(requirements.endDate || '2026-05-13');
+    const startDate = new Date(requirements.startDate || '2026-06-01');
+    const endDate = new Date(requirements.endDate || '2026-06-03');
     const diffDays = Math.max(
       1,
       Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     );
 
-    const safePlaces = places.length >= 3 ? places : [
-      { id: 'mock-louvre', name: 'Louvre Museum', type: 'MUSEUM', cost: 22 },
-      { id: 'mock-cafe-flore', name: 'Café de Flore', type: 'RESTAURANT', cost: 35 },
-      { id: 'mock-orsay', name: "Musée d'Orsay", type: 'MUSEUM', cost: 16 },
-      { id: 'mock-eiffel', name: 'Eiffel Tower', type: 'ATTRACTION', cost: 28 }
+    const catalog = places.length >= 3 ? places : [
+      {
+        id: 'mock-louvre',
+        googlePlaceId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ',
+        name: 'Louvre Museum',
+        types: ['museum'],
+        cost: 22,
+        closedDays: [2] // Closed Tuesday
+      },
+      {
+        id: 'mock-orsay',
+        googlePlaceId: 'ChIJ9T6R0tBv5kcRt726Z1aGg3w',
+        name: "Musée d'Orsay",
+        types: ['museum'],
+        cost: 16,
+        closedDays: [1] // Closed Monday
+      },
+      {
+        id: 'mock-cafe-flore',
+        googlePlaceId: 'ChIJZ3UvTzdu5kcRM9x1Vj4w8Yg',
+        name: 'Café de Flore',
+        types: ['restaurant', 'cafe'],
+        cost: 35,
+        closedDays: []
+      },
+      {
+        id: 'mock-eiffel',
+        googlePlaceId: 'ChIJLU7jZClu5kcR4PcOOO6p3I0',
+        name: 'Eiffel Tower',
+        types: ['tourist_attraction'],
+        cost: 28,
+        closedDays: []
+      },
+      {
+        id: 'mock-montmartre',
+        googlePlaceId: 'ChIJ79FvE-Bv5kcRRJ3tQeK1fio',
+        name: 'Sacré-Cœur Basilica & Montmartre',
+        types: ['tourist_attraction'],
+        cost: 10,
+        closedDays: []
+      }
     ];
 
     const days = [];
@@ -267,47 +561,70 @@ Rules:
       const dayDate = new Date(startDate);
       dayDate.setDate(startDate.getDate() + d);
       const dateStr = dayDate.toISOString().split('T')[0];
+      const dayOfWeek = dayDate.getUTCDay(); // 0 = Sun, 1 = Mon, 2 = Tue, ...
+
+      const isPlaceOpen = (p: any): boolean => {
+        if (p.closedDays && p.closedDays.includes(dayOfWeek)) return false;
+        if (p.openingHours?.periods && p.openingHours.periods.length > 0) {
+          return p.openingHours.periods.some((per: any) => per.open?.day === dayOfWeek);
+        }
+        return true;
+      };
+
+      const openPlaces = catalog.filter(isPlaceOpen);
+      const morningPlace =
+        openPlaces.find((p) => p.name.includes('Louvre') || p.name.includes('Orsay') || p.types?.includes('museum')) ||
+        openPlaces[0] ||
+        catalog[3];
+      const lunchPlace =
+        openPlaces.find((p) => p.types?.includes('restaurant') || p.types?.includes('cafe') || p.name.includes('Café')) ||
+        catalog[2];
+      const afternoonPlace =
+        openPlaces.find((p) => p.id !== morningPlace.id && p.id !== lunchPlace.id) ||
+        catalog[3];
 
       days.push({
         dayIndex: d + 1,
         date: dateStr,
-        themeSummary: `Day ${d + 1}: Iconic sights & local gastronomy in ${requirements.destination}`,
+        themeSummary: `Day ${d + 1}: Historic highlights, culture, and culinary exploration in ${requirements.destination}`,
         activities: [
           {
-            placeId: safePlaces[0].googlePlaceId || safePlaces[0].id || 'mock-louvre',
-            placeName: safePlaces[0].name || 'Louvre Museum',
-            activityType: 'MUSEUM' as const,
-            startTime: '10:00',
+            placeId: morningPlace.googlePlaceId || morningPlace.id || 'mock-eiffel',
+            placeName: morningPlace.name || 'Historic Sight',
+            activityType: morningPlace.types?.includes('museum')
+              ? ('MUSEUM' as const)
+              : ('ATTRACTION' as const),
+            startTime: '09:30',
             endTime: '12:30',
-            durationMinutes: 150,
+            durationMinutes: 180,
             travelTimeFromPreviousMinutes: 0,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: 25,
-            reason: 'World-famous museum central to the historic district'
+            estimatedCost: morningPlace.cost || 20,
+            reason: 'World-renowned cultural landmark showcasing historic heritage'
           },
           {
-            placeId: safePlaces[1].googlePlaceId || safePlaces[1].id || 'mock-cafe-flore',
-            placeName: safePlaces[1].name || 'Café & Lunch',
+            placeId: lunchPlace.googlePlaceId || lunchPlace.id || 'mock-cafe-flore',
+            placeName: lunchPlace.name || 'Local Café & Bistro',
             activityType: 'RESTAURANT' as const,
             startTime: '13:00',
             endTime: '14:15',
             durationMinutes: 75,
             travelTimeFromPreviousMinutes: 30,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: 35,
-            reason: 'Authentic local cuisine and relaxing midday recharge'
+            estimatedCost: lunchPlace.cost || 30,
+            reason: 'Traditional local dining and midday relaxation'
           },
           {
-            placeId: safePlaces[2].googlePlaceId || safePlaces[2].id || 'mock-eiffel',
-            placeName: safePlaces[2].name || 'Eiffel Tower',
+            placeId: afternoonPlace.googlePlaceId || afternoonPlace.id || 'mock-montmartre',
+            placeName: afternoonPlace.name || 'Scenic Landmark',
             activityType: 'ATTRACTION' as const,
             startTime: '15:00',
             endTime: '17:30',
             durationMinutes: 150,
             travelTimeFromPreviousMinutes: 45,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: 30,
-            reason: 'Panoramic viewpoints and leisurely walking'
+            estimatedCost: afternoonPlace.cost || 25,
+            reason: 'Panoramic viewpoints and scenic walking discovery'
           }
         ]
       });
@@ -315,10 +632,10 @@ Rules:
 
     return {
       schemaVersion: 'itinerary.schema.v1',
-      tripTitle: `Unforgettable Journey to ${requirements.destination}`,
+      tripTitle: `Curated Discovery of ${requirements.destination}`,
       destination: requirements.destination,
-      summary: `A carefully curated ${diffDays}-day trip exploring premier landmarks, museums, and food in ${requirements.destination}.`,
-      totalEstimatedCost: diffDays * 90,
+      summary: `A carefully designed ${diffDays}-day itinerary exploring premier landmarks, museums, and food in ${requirements.destination}.`,
+      totalEstimatedCost: diffDays * 75,
       currency: requirements.currency || 'USD',
       days
     };

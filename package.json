@@ -4,8 +4,9 @@
   "private": true,
   "description": "Trippin' AI — AI-Powered travel planning application monorepo",
   "scripts": {
-    "build": "pnpm -r --filter=./packages/* --filter=apps/backend run build",
+    "build": "pnpm -r --filter=./packages/* --filter=@trippin/backend run build",
     "test": "pnpm -r run test",
+    "test:gemini": "node test-cases/test-live-gemini.js",
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "backend:dev": "pnpm --filter @trippin/backend run start:dev",
