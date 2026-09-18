@@ -9,6 +9,7 @@ import { AIModule } from './ai/ai.module';
 import { ItinerariesModule } from './itineraries/itineraries.module';
 import { DestinationsModule } from './destinations/destinations.module';
 import { SDUIModule } from './sdui/sdui.module';
+import { HealthModule } from './health/health.module';
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisService } from './common/redis/redis.service';
 
@@ -26,7 +27,8 @@ import { RedisService } from './common/redis/redis.service';
     AIModule,
     ItinerariesModule,
     DestinationsModule,
-    SDUIModule
+    SDUIModule,
+    HealthModule
   ],
   providers: [PrismaService, RedisService]
 })

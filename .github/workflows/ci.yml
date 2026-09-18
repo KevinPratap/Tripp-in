@@ -41,6 +41,34 @@ jobs:
       - name: Run Backend Tests
         run: pnpm --filter @trippin/backend run test
 
+  web-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.3
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Shared Packages
+        run: |
+          pnpm --filter @trippin/shared-types run build
+          pnpm --filter @trippin/itinerary-schema run build
+          pnpm --filter @trippin/api-contracts run build
+
+      - name: Build Next.js Web App
+        run: pnpm --filter @trippin/web run build
+
   android-check:
     runs-on: ubuntu-latest
     steps:
