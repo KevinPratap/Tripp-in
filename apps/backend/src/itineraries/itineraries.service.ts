@@ -33,7 +33,38 @@ export class ItinerariesService {
       data: { isCurrent: false }
     });
 
-    // 2. Create new Itinerary record with days and activities
+    // 2. Ensure all referenced places exist in database so foreign key never fails
+    for (const d of verified.days) {
+      for (const a of d.activities) {
+        let place = await this.prisma.place.findFirst({
+          where: {
+            OR: [
+              { id: a.placeId },
+              { googlePlaceId: a.placeId },
+              { name: a.placeName }
+            ]
+          }
+        });
+
+        if (!place) {
+          place = await this.prisma.place.create({
+            data: {
+              googlePlaceId: a.placeId && a.placeId.length > 5 ? a.placeId : `gen_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              name: a.placeName || 'Attraction',
+              formattedAddress: a.placeName || 'Local Landmark',
+              latitude: 0,
+              longitude: 0,
+              types: [a.activityType || 'ATTRACTION']
+            }
+          });
+        }
+
+        // Map to DB UUID
+        a.placeId = place.id;
+      }
+    }
+
+    // 3. Create new Itinerary record with days and activities
     const itinerary = await this.prisma.itinerary.create({
       data: {
         tripId,

@@ -21,10 +21,12 @@ export class PlaceService {
 
     const places = await this.provider.search({ query, location });
 
-    // Cache in PostgreSQL & Redis asynchronously
-    this.persistPlaces(places).catch((err) =>
-      this.logger.warn(`Failed persisting places to DB: ${err.message}`)
-    );
+    // Cache in PostgreSQL & Redis
+    try {
+      await this.persistPlaces(places);
+    } catch (err) {
+      this.logger.warn(`Failed persisting places to DB: ${(err as Error).message}`);
+    }
     await this.redis.set(cacheKey, places, 3600); // 1 hour cache
 
     return places;
