@@ -10,7 +10,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/backend/ ./apps/backend/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 RUN pnpm --filter @trippin/shared-types run build
 RUN pnpm --filter @trippin/itinerary-schema run build
 RUN pnpm --filter @trippin/api-contracts run build
@@ -22,9 +22,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
-COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+COPY --from=builder /app/apps/backend ./apps/backend
 
 EXPOSE 4000
-CMD ["node", "apps/backend/dist/main.js"]
+CMD ["sh", "-c", "cd apps/backend && npx prisma db push --skip-generate && cd /app && node apps/backend/dist/src/main.js"]
