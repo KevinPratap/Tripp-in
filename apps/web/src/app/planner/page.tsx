@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   ArrowLeft,
   MapPin,
@@ -16,8 +17,20 @@ import {
   AlertCircle,
   Flame,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Share2,
+  ExternalLink,
+  Check
 } from 'lucide-react';
+
+const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="comic-panel rounded-2xl h-56 flex items-center justify-center text-xs font-bold uppercase text-[#52525B]">
+      Loading Route Radar...
+    </div>
+  )
+});
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-011e.up.railway.app';
@@ -450,11 +463,18 @@ function PlannerContent() {
                     )}
                   </div>
 
-                  <div className="text-right shrink-0">
+                  <div className="flex flex-col sm:flex-row items-end gap-2 shrink-0">
                     <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-900 border-2 border-[#18181B] px-2 py-0.5 text-[10px] font-black uppercase rounded-xs">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                       VERIFIED
                     </span>
+                    <Link
+                      href={`/trip/${tripData.id}`}
+                      className="comic-btn-primary px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1"
+                    >
+                      <span>Field Ticket</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </Link>
                   </div>
                 </div>
 
@@ -473,6 +493,9 @@ function PlannerContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Interactive Route Radar Map */}
+              <ComicRouteMap activities={itinerary.days?.flatMap((d: any) => d.activities || []) || []} height="300px" />
 
               {/* Day Panels */}
               {itinerary.days?.map((d: any) => (
@@ -533,14 +556,32 @@ function PlannerContent() {
                           </p>
                         )}
 
-                        {a.travelTimeFromPreviousMinutes > 0 && (
-                          <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#18181B] bg-amber-100 border border-[#18181B] px-2 py-0.5 rounded-xs">
+                        {/* Activity Action Buttons */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <a
+                            href={
+                              a.place?.location?.latitude && a.place?.location?.longitude
+                                ? `https://www.google.com/maps/dir/?api=1&destination=${a.place.location.latitude},${a.place.location.longitude}`
+                                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((a.title || a.name) + ' ' + destination)}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="comic-btn-secondary px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 hover:text-[#E11D48]"
+                          >
                             <Navigation className="w-3 h-3 text-[#E11D48]" />
-                            <span>
-                              {a.travelTimeFromPreviousMinutes}m transit ({a.transitModeFromPrevious || 'TRANSIT'})
-                            </span>
-                          </div>
-                        )}
+                            <span>Navigate</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+
+                          {a.travelTimeFromPreviousMinutes > 0 && (
+                            <div className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#18181B] bg-amber-100 border border-[#18181B] px-2 py-1 rounded-xs">
+                              <Navigation className="w-3 h-3 text-[#E11D48]" />
+                              <span>
+                                {a.travelTimeFromPreviousMinutes}m transit ({a.transitModeFromPrevious || 'TRANSIT'})
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
