@@ -2,9 +2,11 @@ package com.trippin.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.trippin.feature.home.HomeScreen
 import com.trippin.feature.planner.TripPlannerScreen
 import com.trippin.feature.generating.GeneratingScreen
@@ -13,6 +15,7 @@ import com.trippin.feature.explore.ExploreScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.profile.ProfileScreen
 import com.trippin.feature.today.TodayScreen
+import com.trippin.feature.trips.TripsScreen
 
 @Composable
 fun TrippinNavHost(
@@ -24,19 +27,56 @@ fun TrippinNavHost(
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToPlanner = { navController.navigate(Screen.Planner.route) },
-                onNavigateToTrip = { tripId -> navController.navigate(Screen.Itinerary.createRoute(tripId)) },
-                onNavigateToExplore = { navController.navigate(Screen.Explore.route) },
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToPlanner = { city ->
+                    navController.navigate(Screen.Planner.createRoute(city))
+                },
+                onNavigateToTrip = { tripId ->
+                    navController.navigate(Screen.Itinerary.createRoute(tripId))
+                },
+                onNavigateToTrips = {
+                    navController.navigate(Screen.Trips.route)
+                },
+                onNavigateToExplore = {
+                    navController.navigate(Screen.Explore.route)
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Profile.route)
+                }
             )
         }
 
-        composable(Screen.Planner.route) {
+        composable(Screen.Trips.route) {
+            TripsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTrip = { tripId ->
+                    navController.navigate(Screen.Itinerary.createRoute(tripId))
+                },
+                onNavigateToToday = { tripId ->
+                    navController.navigate(Screen.Today.createRoute(tripId))
+                },
+                onNavigateToPlanner = {
+                    navController.navigate(Screen.Planner.createRoute())
+                }
+            )
+        }
+
+        composable(
+            route = Screen.Planner.route,
+            arguments = listOf(
+                navArgument("destination") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val initialCity = backStackEntry.arguments?.getString("destination") ?: ""
             TripPlannerScreen(
+                initialDestination = initialCity,
                 onNavigateBack = { navController.popBackStack() },
                 onTripCreated = { tripId ->
                     navController.navigate(Screen.Generating.createRoute(tripId)) {
-                        popUpTo(Screen.Planner.route) { inclusive = true }
+                        popUpTo(Screen.Home.route)
                     }
                 }
             )
@@ -48,7 +88,7 @@ fun TrippinNavHost(
                 tripId = tripId,
                 onGenerationComplete = {
                     navController.navigate(Screen.Itinerary.createRoute(tripId)) {
-                        popUpTo(Screen.Generating.route) { inclusive = true }
+                        popUpTo(Screen.Home.route)
                     }
                 }
             )
@@ -74,7 +114,12 @@ fun TrippinNavHost(
         }
 
         composable(Screen.Explore.route) {
-            ExploreScreen(onNavigateBack = { navController.popBackStack() })
+            ExploreScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onPlanCity = { city ->
+                    navController.navigate(Screen.Planner.createRoute(city))
+                }
+            )
         }
 
         composable(Screen.Map.route) { backStackEntry ->
@@ -86,7 +131,10 @@ fun TrippinNavHost(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen(onNavigateBack = { navController.popBackStack() })
+            ProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTrips = { navController.navigate(Screen.Trips.route) }
+            )
         }
     }
 }

@@ -1,27 +1,33 @@
 package com.trippin.feature.planner
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.trippin.core.design.TrippinButton
+import com.trippin.core.design.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TripPlannerScreen(
+    initialDestination: String = "",
     onNavigateBack: () -> Unit,
     onTripCreated: (String) -> Unit
 ) {
-    var destination by remember { mutableStateOf("Paris") }
+    var destination by remember {
+        mutableStateOf(if (initialDestination.isNotBlank()) initialDestination else "Tokyo")
+    }
     var travelersCount by remember { mutableIntStateOf(2) }
     var budget by remember { mutableStateOf("1500") }
     var selectedPace by remember { mutableStateOf("MODERATE") }
@@ -31,7 +37,22 @@ fun TripPlannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Plan New Trip", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text(
+                            text = "PLAN FIELD TICKET",
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            text = "DETERMINISTIC VERIFICATION",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ComicRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -44,111 +65,194 @@ fun TripPlannerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background),
+                .background(ComicPaper),
             contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Destination input
             item {
-                Text(
-                    text = "Where are you heading?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = destination,
-                    onValueChange = { destination = it },
-                    label = { Text("Destination city") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            // Dates & Travelers
-            item {
-                Text(
-                    text = "Travelers & Budget",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OutlinedTextField(
-                        value = "$travelersCount travelers",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Travelers") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        trailingIcon = {
-                            Row {
-                                TextButton(onClick = { if (travelersCount > 1) travelersCount-- }) { Text("-") }
-                                TextButton(onClick = { travelersCount++ }) { Text("+") }
-                            }
-                        }
-                    )
-                    OutlinedTextField(
-                        value = budget,
-                        onValueChange = { budget = it },
-                        label = { Text("Budget (USD)") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    color = ComicPanel,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "TARGET DESTINATION",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicBlack
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = destination,
+                            onValueChange = { destination = it },
+                            placeholder = { Text("e.g. Lisbon, Tokyo, Rome") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true
+                        )
+                    }
                 }
             }
 
-            // Pace selector
+            // Dates & Travelers & Budget
             item {
-                Text(
-                    text = "Travel Pace",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    color = ComicPanel,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    listOf("RELAXED", "MODERATE", "FAST").forEach { pace ->
-                        FilterChip(
-                            selected = selectedPace == pace,
-                            onClick = { selectedPace = pace },
-                            label = { Text(pace) }
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "CREW SIZE & BUDGET",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicBlack
                         )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = "$travelersCount travelers",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Travelers") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                trailingIcon = {
+                                    Row {
+                                        IconButton(
+                                            onClick = { if (travelersCount > 1) travelersCount-- },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                                        }
+                                        IconButton(
+                                            onClick = { travelersCount++ },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = "Increase")
+                                        }
+                                    }
+                                }
+                            )
+                            OutlinedTextField(
+                                value = budget,
+                                onValueChange = { budget = it },
+                                label = { Text("Budget (USD)") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Travel Pace selector
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    color = ComicPanel,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "ITINERARY TEMPO",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicBlack
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("RELAXED", "MODERATE", "FAST").forEach { pace ->
+                                val isSelected = selectedPace == pace
+                                Surface(
+                                    onClick = { selectedPace = pace },
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSelected) ComicBlack else ComicPaper,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                ) {
+                                    Box(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = pace,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) ComicPaper else ComicBlack
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             // Interests chips
             item {
-                Text(
-                    text = "Interests & Themes",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    color = ComicPanel,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    availableInterests.forEach { interest ->
-                        val isSelected = selectedInterests.contains(interest)
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                if (isSelected) selectedInterests.remove(interest)
-                                else selectedInterests.add(interest)
-                            },
-                            label = { Text(interest) }
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "INTERESTS & FOCUS",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicBlack
                         )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            availableInterests.forEach { interest ->
+                                val isSelected = selectedInterests.contains(interest)
+                                Surface(
+                                    onClick = {
+                                        if (isSelected) selectedInterests.remove(interest)
+                                        else selectedInterests.add(interest)
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSelected) ComicRed else ComicPaper,
+                                    modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                ) {
+                                    Text(
+                                        text = interest.uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) ComicPaper else ComicBlack,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             // Generate CTA
             item {
-                Spacer(modifier = Modifier.height(16.dp))
                 var isSubmitting by remember { mutableStateOf(false) }
                 var submitError by remember { mutableStateOf<String?>(null) }
                 val scope = rememberCoroutineScope()
@@ -162,9 +266,7 @@ fun TripPlannerScreen(
                     )
                 }
 
-                TrippinButton(
-                    text = if (isSubmitting) "DEPLOYING ENGINE..." else "BUILD FIELD SCHEDULE",
-                    enabled = !isSubmitting && destination.isNotBlank(),
+                Button(
                     onClick = {
                         isSubmitting = true
                         submitError = null
@@ -190,8 +292,40 @@ fun TripPlannerScreen(
                                 isSubmitting = false
                             }
                         }
+                    },
+                    enabled = !isSubmitting && destination.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .border(2.5.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            color = ComicPaper,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "DEPLOYING VERIFICATION ENGINE...",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            color = ComicPaper
+                        )
+                    } else {
+                        Icon(Icons.Default.Bolt, contentDescription = null, tint = ComicPaper)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "BUILD FIELD SCHEDULE",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp,
+                            letterSpacing = 1.sp,
+                            color = ComicPaper
+                        )
                     }
-                )
+                }
             }
         }
     }

@@ -1,35 +1,38 @@
 package com.trippin.feature.explore
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.trippin.core.design.*
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PlaceSearchResultDto
 import kotlinx.coroutines.launch
 
-/**
- * Place search over the real places API, which is backed by OpenStreetMap.
- *
- * Deliberately shows only what the API can prove: the venue name, its address and its
- * category. There are no ratings, no review counts and no stock photography, because
- * the API does not return them and inventing them would break the product's one
- * promise. Empty states say so instead of filling the screen with sample data.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExploreScreen(onNavigateBack: () -> Unit) {
+fun ExploreScreen(
+    onNavigateBack: () -> Unit,
+    onPlanCity: (String) -> Unit = {}
+) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
@@ -39,8 +42,8 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val categories = listOf("All", "Food", "Attractions", "Nature", "Nightlife", "Shopping")
+    val curatedQueries = listOf("Tokyo Ramen", "Paris Art", "Rome Colosseum", "Kyoto Temples", "Lisbon Cafes", "London Pubs")
 
-    // Category keywords are matched against the place types OpenStreetMap returns.
     val categoryKeywords = mapOf(
         "Food" to listOf("restaurant", "cafe", "bar", "food", "bakery", "pub"),
         "Attractions" to listOf("museum", "attraction", "monument", "gallery", "theatre", "temple", "church"),
@@ -56,8 +59,8 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
         return keywords.any { haystack.contains(it) }
     }
 
-    fun runSearch() {
-        val query = searchQuery.trim()
+    fun executeSearch(queryToRun: String) {
+        val query = queryToRun.trim()
         if (query.length < 2) {
             errorMessage = "Type at least two characters to search."
             return
@@ -71,7 +74,7 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
             } catch (e: Exception) {
                 results = emptyList()
                 hasSearched = true
-                errorMessage = e.message ?: "The places lookup failed. Check your connection and try again."
+                errorMessage = e.message ?: "The places lookup failed. Check your connection."
             } finally {
                 isSearching = false
             }
@@ -83,10 +86,25 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Explore Places", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text(
+                            text = "EXPLORE VENUES",
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            text = "VERIFIED OPENSTREETMAP DATA",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ComicRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -96,51 +114,106 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background),
+                .background(ComicPaper),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Search Input Box
             item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search a city, museum or restaurant") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { runSearch() }) {
-                            Icon(Icons.Default.ArrowForward, contentDescription = "Search")
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
-
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(categories) { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat) }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(2.5.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                    color = ComicPanel,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Search city, museum or restaurant...") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
                         )
+                        Button(
+                            onClick = { executeSearch(searchQuery) },
+                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = "Search", tint = ComicPaper)
+                        }
                     }
                 }
             }
 
+            // Curated Quick-Search Pills
             item {
-                Text(
-                    text = "Real venues from OpenStreetMap",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Names, addresses and categories come straight from the map data. " +
-                        "No ratings and no stock photos, because we cannot verify them.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column {
+                    Text(
+                        text = "POPULAR DISPATCH QUERIES",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        color = ComicMuted,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(curatedQueries) { query ->
+                            Surface(
+                                onClick = {
+                                    searchQuery = query
+                                    executeSearch(query)
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                color = ComicPanel,
+                                modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                            ) {
+                                Text(
+                                    text = query,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ComicBlack,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Category Filter Pills
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(categories) { cat ->
+                        val isSelected = selectedCategory == cat
+                        Surface(
+                            onClick = { selectedCategory = cat },
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isSelected) ComicBlack else ComicPanel,
+                            modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                        ) {
+                            Text(
+                                text = cat,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) ComicPaper else ComicBlack,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             when {
@@ -148,59 +221,119 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = ComicRed)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = ComicRed)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text("Querying OpenStreetMap Photon...", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
                 errorMessage != null -> item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(2.dp, ComicRed, RoundedCornerShape(10.dp)),
+                        color = ComicPanel,
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
                             text = errorMessage ?: "",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
+                            color = ComicRed,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
                 visibleResults.isNotEmpty() -> items(visibleResults) { place ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(2.5.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                        color = ComicPanel,
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = place.name.ifBlank { "Unnamed place" },
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium
+                                    text = place.name.ifBlank { "Unnamed Venue" },
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 17.sp,
+                                    color = ComicBlack,
+                                    modifier = Modifier.weight(1f)
                                 )
-                                if (place.formattedAddress.isNotBlank()) {
-                                    Text(
-                                        text = place.formattedAddress,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
                                 val typeLabel = place.types.firstOrNull()
                                 if (!typeLabel.isNullOrBlank()) {
-                                    Text(
-                                        text = typeLabel.replace('_', ' ').uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
+                                    Surface(
                                         color = ComicRed,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.border(1.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                    ) {
+                                        Text(
+                                            text = typeLabel.replace('_', ' ').uppercase(),
+                                            color = ComicPaper,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 9.sp,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (place.formattedAddress.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = place.formattedAddress,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ComicMuted
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val query = Uri.encode("${place.name}, ${place.formattedAddress}")
+                                        val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicBlack)
+                                ) {
+                                    Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("MAP", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = { onPlanCity(place.name) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp)
+                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp)),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Icon(Icons.Default.Bolt, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("PLAN HERE", fontWeight = FontWeight.Black, fontSize = 11.sp, color = ComicPaper)
                                 }
                             }
                         }
@@ -208,32 +341,51 @@ fun ExploreScreen(onNavigateBack: () -> Unit) {
                 }
 
                 hasSearched -> item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                        color = ComicPanel,
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            text = "No places matched that search for this category.",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "No places matched this category query.",
+                                fontWeight = FontWeight.Bold,
+                                color = ComicBlack
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Try selecting \"All\" category or checking the spelling of the location.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ComicMuted
+                            )
+                        }
                     }
                 }
 
                 else -> item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
+                        color = ComicPanel,
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            text = "Search for a place to see real venues, or open a trip to browse the ones already in it.",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Text(
+                                "LIVE OSM LOOKUP",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp,
+                                color = ComicRed
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Search any city or venue to explore real physical locations, or tap one of the popular queries above.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ComicBlack
+                            )
+                        }
                     }
                 }
             }

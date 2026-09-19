@@ -243,7 +243,7 @@ export default function PublicTripPage() {
     <div className="min-h-screen bg-[#FAF8F5] text-[#18181B] pb-24">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-[#FAF8F5] border-b-[2.5px] border-[#18181B] print:hidden">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2 sm:py-0 sm:h-18 flex flex-wrap items-center justify-between gap-y-2">
           <div className="flex items-center gap-3">
             <Link
               href="/"

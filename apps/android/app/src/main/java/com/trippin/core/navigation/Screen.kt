@@ -2,7 +2,11 @@ package com.trippin.core.navigation
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
-    object Planner : Screen("planner")
+    object Trips : Screen("trips")
+    object Planner : Screen("planner?destination={destination}") {
+        fun createRoute(destination: String? = null): String =
+            if (destination.isNullOrBlank()) "planner?destination=" else "planner?destination=${destination.trim()}"
+    }
     object Generating : Screen("generating/{tripId}") {
         fun createRoute(tripId: String) = "generating/$tripId"
     }
