@@ -295,38 +295,50 @@ fun HomeScreen(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         recentList.forEach { trip ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onNavigateToTrip(trip.id) },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .offset(x = 3.dp, y = 3.dp)
+                                        .background(ComicInk, RoundedCornerShape(12.dp))
                                 )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onNavigateToTrip(trip.id) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(2.dp, ComicInk),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    )
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(ComicRed.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicRed)
-                                    }
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${trip.destination} Field Issue",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = "${trip.startDate} - ${trip.endDate} · ${trip.travelersCount} Travelers",
-                                            style = MaterialTheme.typography.bodyMedium,
+                                        Box(
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(ComicRed.copy(alpha = 0.15f))
+                                                .border(2.dp, ComicInk, RoundedCornerShape(8.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicRed)
+                                        }
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = trip.destination,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "${trip.startDate} - ${trip.endDate} · ${trip.travelersCount} Travelers",
+                                                style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -337,6 +349,7 @@ fun HomeScreen(
                                             labelColor = ComicRed
                                         )
                                     )
+                                }
                                 }
                             }
                         }
