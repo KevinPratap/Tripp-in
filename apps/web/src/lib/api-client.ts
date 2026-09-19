@@ -8,6 +8,7 @@
  */
 
 const SESSION_STORAGE_KEY = 'trippin.guest.session';
+const AUTH_TOKEN_KEY = 'trippin.auth.token';
 
 export function guestSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -28,6 +29,37 @@ export function guestSessionId(): string {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-011e.up.railway.app';
 
+/**
+ * The signed in session token, when the browser has one. Kept in localStorage because
+ * there is no cookie session on the API: the token is sent as a Bearer header.
+ */
+export function sessionToken(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(AUTH_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setSessionToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    /* storage unavailable, the request still goes out anonymously */
+  }
+}
+
+export function clearSessionToken(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 export function apiUrl(path: string): string {
   return path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
 }
@@ -37,8 +69,11 @@ export async function apiFetch(
   init: RequestInit = {}
 ): Promise<Response> {
   const sessionId = guestSessionId();
+  const token = sessionToken();
   const headers = new Headers(init.headers || {});
   if (sessionId) headers.set('X-Guest-Session', sessionId);
+  // A signed in session takes precedence over the guest identity.
+  if (token) headers.set('Authorization', `Bearer ${token}`);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }

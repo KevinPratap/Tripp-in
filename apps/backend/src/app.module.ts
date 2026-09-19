@@ -12,6 +12,7 @@ import { ItinerariesModule } from './itineraries/itineraries.module';
 import { DestinationsModule } from './destinations/destinations.module';
 import { SDUIModule } from './sdui/sdui.module';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisService } from './common/redis/redis.service';
 
@@ -30,7 +31,8 @@ import { RedisService } from './common/redis/redis.service';
     ItinerariesModule,
     DestinationsModule,
     SDUIModule,
-    HealthModule
+    HealthModule,
+    AuthModule
   ],
   providers: [
     PrismaService,

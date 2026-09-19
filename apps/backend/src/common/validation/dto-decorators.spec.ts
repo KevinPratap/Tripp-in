@@ -11,9 +11,13 @@
 import { getMetadataStorage } from 'class-validator';
 import { VoteActivityDto } from '../../trips/collab.controller';
 import { CreateTripRequestDto } from '../../trips/dto/create-trip.dto';
+import { RequestMagicLinkDto } from '../../auth/dto/request-link.dto';
+import { VerifyMagicLinkDto } from '../../auth/dto/verify-link.dto';
 
 const DTO_FIELDS: Array<[any, string[]]> = [
   [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']],
+  [RequestMagicLinkDto, ['email']],
+  [VerifyMagicLinkDto, ['token', 'email', 'guestSessionId']],
   [
     CreateTripRequestDto,
     [

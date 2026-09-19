@@ -6,7 +6,10 @@ import {
   Logger
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../prisma/prisma.service';
+import { hashToken } from '../auth/token-hash';
+import { REQUIRE_IDENTITY_KEY } from '../decorators/require-identity.decorator';
 
 export interface AuthenticatedUser {
   id: string;
@@ -35,7 +38,8 @@ export class FirebaseAuthGuard implements CanActivate {
 
   constructor(
     private readonly config: ConfigService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly reflector: Reflector
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,6 +47,12 @@ export class FirebaseAuthGuard implements CanActivate {
     const method = String(request.method || 'GET').toUpperCase();
     const isRead = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
     const allowBypass = this.config.get<string>('AUTH_BYPASS_DEV') === 'true';
+    const requireIdentity = Boolean(
+      this.reflector.getAllAndOverride<boolean>(REQUIRE_IDENTITY_KEY, [
+        context.getHandler(),
+        context.getClass()
+      ])
+    );
 
     const authHeader: string | undefined = request.headers?.authorization;
     const guestHeaderRaw = request.headers?.[GUEST_SESSION_HEADER] as string | undefined;
@@ -64,6 +74,19 @@ export class FirebaseAuthGuard implements CanActivate {
         return true;
       }
 
+      // 1b. A session token issued by POST /auth/verify after a magic link.
+      const session = await this.prisma.authSession
+        .findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } })
+        .catch(() => null);
+
+      if (session && !session.revokedAt && session.expiresAt.getTime() >= Date.now()) {
+        request.user = this.toAuthUser(session.user);
+        void this.prisma.authSession
+          .update({ where: { id: session.id }, data: { lastUsedAt: new Date() } })
+          .catch(() => undefined);
+        return true;
+      }
+
       if (allowBypass && token.startsWith('dev_')) {
         request.user = await this.getOrCreateGuest(token);
         return true;
@@ -71,6 +94,9 @@ export class FirebaseAuthGuard implements CanActivate {
 
       if (isRead) {
         // A stale token should not break a public trip page.
+        if (requireIdentity) {
+          throw new UnauthorizedException('Sign in to open this.');
+        }
         request.user = await this.getDemoUser();
         return true;
       }
@@ -85,6 +111,10 @@ export class FirebaseAuthGuard implements CanActivate {
     }
 
     // 3. No identity supplied
+    if (requireIdentity) {
+      throw new UnauthorizedException('Sign in to open this.');
+    }
+
     if (isRead) {
       request.user = await this.getDemoUser();
       return true;
