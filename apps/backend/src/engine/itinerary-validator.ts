@@ -79,7 +79,6 @@ export class ItineraryValidator {
     const violations: ValidationViolation[] = [];
     let totalActiveMinutes = 0;
     let totalTransitMinutes = 0;
-    let estimatedCostTotal = 0;
     let totalActivities = 0;
 
     const tripCurrency = requirements.currency || 'USD';
@@ -246,22 +245,6 @@ export class ItineraryValidator {
             dayIndex: day.dayIndex,
             activityIndices: [i]
           });
-        }
-
-        // 7a. Cost accumulation, trip currency only
-        if (current.estimatedCost) {
-          const activityCurrency = (current as any).currency || tripCurrency;
-          if (activityCurrency !== tripCurrency) {
-            violations.push({
-              code: 'CURRENCY_MISMATCH',
-              message: `Activity "${current.placeName}" is priced in ${activityCurrency} but the trip is budgeted in ${tripCurrency}.`,
-              dayIndex: day.dayIndex,
-              activityIndices: [i],
-              details: { activityCurrency, tripCurrency }
-            });
-          } else {
-            estimatedCostTotal += current.estimatedCost;
-          }
         }
 
         dayActiveMinutes += duration;
@@ -438,17 +421,6 @@ export class ItineraryValidator {
       }
     }
 
-    // 7c. Overall budget check
-    if (requirements.budgetTotal && estimatedCostTotal > requirements.budgetTotal) {
-      violations.push({
-        code: 'EXCEEDS_BUDGET',
-        message: `Total estimated cost (${estimatedCostTotal} ${tripCurrency}) exceeds total trip budget (${requirements.budgetTotal} ${tripCurrency}).`,
-        dayIndex: 0,
-        activityIndices: [],
-        details: { budget: requirements.budgetTotal, cost: estimatedCostTotal }
-      });
-    }
-
     // 8. Build verification receipts per activity
     const activityChecks: Record<string, VerificationCheck[]> = {};
     for (const day of candidate.days) {
@@ -584,8 +556,7 @@ export class ItineraryValidator {
       metrics: {
         totalActivities,
         totalActiveMinutes,
-        totalTransitMinutes,
-        estimatedCostTotal
+        totalTransitMinutes
       },
       activityChecks
     };

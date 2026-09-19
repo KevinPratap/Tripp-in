@@ -9,7 +9,6 @@ import {
   MapPin,
   Calendar,
   Users,
-  DollarSign,
   Clock,
   ShieldCheck,
   Navigation,
@@ -242,7 +241,14 @@ function PlannerContent() {
       }
     } catch (err: any) {
       console.error('Route error:', err);
-      setErrorMsg(err.message || 'Error occurred while computing route');
+      // The traveller sees what to try, not a status code. The technical detail stays in the console.
+      const detail = String(err?.message || '');
+      const looksLikeServer = /HTTP|Failed to execute route engine|Failed to load final itinerary/.test(detail);
+      setErrorMsg(
+        looksLikeServer
+          ? `We could not build a plan for ${destination || 'that destination'}. Check the city name is spelled as a place you would type into a map, try a shorter date range, or try again in a minute.`
+          : 'Something went wrong while building this plan. Try again, or change the destination or the dates.'
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -467,6 +473,7 @@ function PlannerContent() {
                     : inferredCurrency
                       ? `Inferred ${inferredCurrency} for ${destination.split(',')[0].trim()}. Override above if needed.`
                       : `Currency not recognised for this destination, pick one above.`}
+                  {' '}Your budget guides the plan. We do not estimate prices.
                 </p>
               </div>
             </div>
@@ -615,10 +622,6 @@ function PlannerContent() {
                     <Users className="w-4 h-4 text-[#E11D48]" />
                     <span>{travelers} Travelers</span>
                   </div>
-                  <div className="bg-[#FAF8F5] p-2.5 border-2 border-[#18181B] rounded-lg flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#E11D48]" />
-                    <span>~{itinerary.totalEstimatedCost} {itinerary.currency}</span>
-                  </div>
                 </div>
               </div>
 
@@ -658,13 +661,6 @@ function PlannerContent() {
                             <Clock className="w-3.5 h-3.5 text-[#18181B]" />
                             {a.startTime} – {a.endTime} ({a.durationMinutes}m)
                           </span>
-                          {a.estimatedCost ? (
-                            <span className="font-black text-xs text-[#18181B]">
-                              ~{a.estimatedCost} {a.currency || itinerary.currency}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-[#52525B]">INCLUDED</span>
-                          )}
                         </div>
 
                         <h4 className="font-display font-black text-base uppercase text-[#18181B]">

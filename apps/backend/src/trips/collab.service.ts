@@ -205,10 +205,7 @@ export class CollabService {
           const cleanTitle = (act.title || 'Trip Activity').replace(/[,;\\]/g, ' ');
           const address = act.place?.formattedAddress || trip.destinationName;
           const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${act.title}, ${trip.destinationName}`)}`;
-          const costLabel = act.estimatedCost
-            ? `${act.estimatedCost} ${act.currency || ''}`.trim()
-            : 'not priced';
-          const description = `${act.reason || 'Verified Field Leg'}\\nCost: ${costLabel}\\nTransit leg: ${act.travelTimeToNextMin || 0}m\\nNavigation: ${navUrl}`;
+          const description = `${act.reason || 'Planned itinerary stop'}\\nPrices are not estimated\\nTransit leg: ${act.travelTimeToNextMin || 0}m\\nNavigation: ${navUrl}`;
 
           events.push([
             'BEGIN:VEVENT',

@@ -321,7 +321,6 @@ ${
         tripTitle: { type: 'STRING' },
         destination: { type: 'STRING' },
         summary: { type: 'STRING' },
-        totalEstimatedCost: { type: 'NUMBER' },
         currency: { type: 'STRING' },
         days: {
           type: 'ARRAY',
@@ -360,7 +359,6 @@ ${
                       type: 'STRING',
                       enum: ['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING']
                     },
-                    estimatedCost: { type: 'NUMBER' },
                     reason: { type: 'STRING' }
                   },
                   required: [
@@ -416,7 +414,7 @@ ${
         const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         const itinerary = JSON.parse(rawText);
         if (!itinerary.schemaVersion) itinerary.schemaVersion = 'itinerary.schema.v1';
-        return itinerary;
+        return this.stripCostEstimates(itinerary);
       } catch (err) {
         lastErr = err;
         this.logger.warn(`Call with ${currentModel} failed: ${(err as Error).message}. Trying next fallback...`);
@@ -424,6 +422,21 @@ ${
     }
 
     throw lastErr || new Error('All Gemini models failed');
+  }
+
+  /**
+   * The product does not estimate prices: a model that volunteers a cost field must not
+   * get one into storage. Removed at the boundary so no downstream check can be built on it.
+   */
+  private stripCostEstimates(itinerary: any): any {
+    if (!itinerary || typeof itinerary !== 'object') return itinerary;
+    delete itinerary.totalEstimatedCost;
+    for (const day of itinerary.days || []) {
+      for (const act of day.activities || []) {
+        delete act.estimatedCost;
+      }
+    }
+    return itinerary;
   }
 
   /**
@@ -487,7 +500,6 @@ You MUST output ONLY a valid JSON object strictly matching this schema:
   "tripTitle": "Concise exciting trip title",
   "destination": "${requirements.destination}",
   "summary": "Detailed overview of the trip experience (minimum 10 characters)",
-  "totalEstimatedCost": 150,
   "currency": "${requirements.currency || 'USD'}",
   "days": [
     {
@@ -703,7 +715,6 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
             durationMinutes: 180,
             travelTimeFromPreviousMinutes: 0,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: p1.cost || 20,
             reason: `Premier historic and cultural landmark in ${dest}`
           },
           {
@@ -715,7 +726,6 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
             durationMinutes: 75,
             travelTimeFromPreviousMinutes: 30,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: p2.cost || 30,
             reason: `Authentic regional cuisine and midday refresh in ${dest}`
           },
           {
@@ -727,7 +737,6 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
             durationMinutes: 150,
             travelTimeFromPreviousMinutes: 45,
             transitModeFromPrevious: 'TRANSIT' as const,
-            estimatedCost: p3.cost || 25,
             reason: `Panoramic exploration of ${dest}'s heritage quarters`
           }
         ]
@@ -739,7 +748,6 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       tripTitle: `Curated Exploration of ${requirements.destination}`,
       destination: requirements.destination,
       summary: `A carefully designed ${diffDays}-day itinerary exploring premier landmarks, museums, and food in ${requirements.destination}.`,
-      totalEstimatedCost: diffDays * 75,
       currency: requirements.currency || 'USD',
       days
     };

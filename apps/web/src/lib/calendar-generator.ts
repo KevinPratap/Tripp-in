@@ -27,11 +27,10 @@ export function generateIcsContent(trip: any, itinerary: any): string {
       const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${title}, ${destination}`)}`;
       
       const description = [
-        act.reason || 'Verified Field Itinerary Leg',
-        `Estimated Cost: $${act.estimatedCost || 0} ${act.currency || 'USD'}`,
+        act.reason || 'Planned itinerary stop',
         `Transit leg: ${act.travelTimeFromPreviousMinutes || act.travelTimeToNextMin || 0}m`,
         `Turn-by-turn Navigation: ${navUrl}`
-      ].join('\\n');
+      ].join('\n');
 
       events.push([
         'BEGIN:VEVENT',

@@ -139,11 +139,6 @@ export default function TripsPage() {
                   <span className="border border-[#18181B] rounded px-1.5 py-0.5">
                     {trip.stopCount} stops
                   </span>
-                  {trip.totalEstimatedCost !== null && (
-                    <span className="border border-[#18181B] rounded px-1.5 py-0.5">
-                      {trip.totalEstimatedCost} {trip.currency || ''}
-                    </span>
-                  )}
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">

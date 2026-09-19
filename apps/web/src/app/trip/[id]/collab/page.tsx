@@ -468,11 +468,6 @@ export default function TripCollabPage({
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    {act.estimatedCost ? (
-                      <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-xs">
-                        ${act.estimatedCost} {act.currency || 'USD'}
-                      </span>
-                    ) : null}
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${act.title}, ${trip?.destination || ''}`)}`}
                       target="_blank"

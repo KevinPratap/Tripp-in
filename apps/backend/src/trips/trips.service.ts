@@ -553,22 +553,16 @@ export class TripsService {
       }
 
       case 'budget-cut': {
+        // The product does not estimate prices, so "spend less" can only mean "do less".
+        // This trims the last stop of each targeted day rather than inventing a free venue.
         for (const day of candidateDays) {
           if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
-
-          let highest = day.activities[0];
-          for (const act of day.activities) {
-            if (act.estimatedCost > highest.estimatedCost) {
-              highest = act;
-            }
-          }
-          if (highest && highest.estimatedCost > 0) {
-            highest.estimatedCost = 0;
-            highest.reason = 'Selected free admission civic landmark to minimize itinerary costs.';
+          if (day.activities.length > 1) {
+            day.activities.pop();
             changedActivitiesCount++;
           }
         }
-        appliedChangesSummary = 'Replaced high-admission venues with free civic monuments to reduce overall trip budget.';
+        appliedChangesSummary = 'Trimmed the last stop of each day. Prices are not estimated, so spending less here means doing less.';
         break;
       }
 

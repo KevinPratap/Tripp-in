@@ -529,7 +529,7 @@ export default function PublicTripPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold text-[#18181B] relative z-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-bold text-[#18181B] relative z-10">
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Timeframe</span>
               <span className="block font-black text-[12px] sm:text-xs leading-snug break-words">
@@ -539,14 +539,6 @@ export default function PublicTripPage() {
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Travellers</span>
               <span className="font-black">{tripData.travelersCount} Travelers</span>
-            </div>
-            <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
-              <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Cost, engine estimate</span>
-              <span className="font-black text-[#E11D48]">
-                {itinerary?.totalEstimatedCost
-                  ? `about ${itinerary.totalEstimatedCost} ${itinerary?.currency || tripData.currency}`
-                  : 'not estimated'}
-              </span>
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Pace</span>
@@ -742,16 +734,6 @@ export default function PublicTripPage() {
                             <Clock className="w-3.5 h-3.5 text-[#18181B]" />
                             {a.startTime} to {a.endTime} ({a.durationMinutes}m)
                           </span>
-                          {a.estimatedCost ? (
-                            <span
-                              className="font-black text-xs text-[#18181B]"
-                              title="Engine estimate for this stop, not a booked price from the venue"
-                            >
-                              engine est. {a.estimatedCost} {a.currency || itinerary.currency}
-                            </span>
-                          ) : (
-                            <span className="text-[12px] font-bold text-[#52525B]">COST NOT LISTED</span>
-                          )}
                         </div>
 
                         <h4 className="font-display font-black text-lg uppercase text-[#18181B] mt-0.5">

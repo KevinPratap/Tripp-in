@@ -249,16 +249,18 @@ describe('TripsService - One-Tap Replanning (Phase 6)', () => {
     expect(result.updatedItinerary.days[0].activities.length).toBe(2);
   });
 
-  it('replans for "budget-cut" by zeroing out the highest-cost stop', async () => {
+  it('replans for "budget-cut" by trimming the last stop, since prices are not estimated', async () => {
     const result = await tripsService.replanTrip(sampleTripId, { intent: 'budget-cut' });
 
     expect(result.newVersion).toBe(2);
     expect(result.intent).toBe('budget-cut');
-    // Dining cost (100) should be zeroed
-    const dining = result.updatedItinerary.days[0].activities.find(
-      (a: any) => a.placeName === 'Ginza Dining'
-    );
-    expect(dining?.estimatedCost).toBe(0);
+    // The day had 3 stops; the honest cost lever is doing less.
+    expect(result.updatedItinerary.days[0].activities.length).toBe(2);
+    // Prices are not ours to rewrite: the replan trims the plan, it never zeroes a stored cost.
+    const storedCosts = (result.updatedItinerary.days[0].activities as any[])
+      .map((a) => a.estimatedCost)
+      .filter((c) => c !== undefined);
+    expect(storedCosts.length).toBeGreaterThan(0);
   });
 
   it('preserves and retrieves previous version v1 when requested', async () => {

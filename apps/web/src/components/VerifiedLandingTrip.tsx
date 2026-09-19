@@ -366,13 +366,6 @@ export default function VerifiedLandingTrip() {
                             {a.startTime} to {a.endTime} ({a.durationMinutes}m)
                           </span>
                         </div>
-                        {a.estimatedCost ? (
-                          <span className="font-black text-xs text-[#18181B]">
-                            ~{a.estimatedCost} {a.currency || itinerary.currency}
-                          </span>
-                        ) : (
-                          <span className="text-[12px] font-bold text-[#52525B]">INCLUDED</span>
-                        )}
                       </div>
 
                       <div>

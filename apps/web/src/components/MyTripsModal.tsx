@@ -114,11 +114,6 @@ export default function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                           {t.travelersCount} Travelers
                         </span>
                       )}
-                      {t.estimatedCost && (
-                        <span className="font-black text-[#18181B]">
-                          ~{t.estimatedCost} {t.currency}
-                        </span>
-                      )}
                     </div>
                   </div>
 

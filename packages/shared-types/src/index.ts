@@ -281,7 +281,6 @@ export interface ValidationResult {
     totalActivities: number;
     totalActiveMinutes: number;
     totalTransitMinutes: number;
-    estimatedCostTotal: number;
   };
   activityChecks?: Record<string, VerificationCheck[]>;
 }

@@ -157,11 +157,6 @@ export default async function SharedTripPage({ params }: PageProps) {
                             {activity.travelTimeFromPreviousMinutes}m transit
                           </span>
                         )}
-                      <span className="border border-[#18181B] rounded px-1.5 py-0.5">
-                        {activity.estimatedCost
-                          ? `${activity.estimatedCost} ${activity.currency || ''}`.trim()
-                          : 'not priced'}
-                      </span>
                     </div>
                   </li>
                 ))}

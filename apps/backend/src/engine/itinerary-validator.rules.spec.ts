@@ -286,34 +286,31 @@ describe('ItineraryValidator opening hour honesty', () => {
 });
 
 describe('ItineraryValidator money and cross-day continuity', () => {
-  it('flags costs priced in another currency and keeps them out of the total', async () => {
+  it('does not police prices, and reports no cost metric', async () => {
     const validator = buildValidator({
       'lisbon-a': makePlace('lisbon-a', LISBON),
       'lisbon-b': makePlace('lisbon-b', { latitude: 38.72, longitude: -9.15 })
     });
 
+    // A legacy record or a model that volunteers prices must not resurrect cost checks:
+    // the product does not estimate prices, so nothing may be asserted about them.
     const candidate = itinerary([
       {
         dayIndex: 1,
         date: '2026-06-01',
-        themeSummary: 'Mixed currency',
+        themeSummary: 'Prices the product does not own',
         activities: [
-          activity('lisbon-a', '09:00', '10:30', 'MUSEUM', {
-            estimatedCost: 100,
-            currency: 'JPY'
-          }),
-          activity('lisbon-b', '11:30', '13:00', 'RESTAURANT', {
-            estimatedCost: 50,
-            currency: 'USD'
-          })
+          activity('lisbon-a', '09:00', '10:30', 'MUSEUM', { estimatedCost: 100 }),
+          activity('lisbon-b', '11:30', '13:00', 'RESTAURANT', { estimatedCost: 999999 })
         ]
       }
     ]);
 
     const result = await validator.validate(candidate, baseRequirements);
     const codes = result.violations.map((v) => v.code);
-    expect(codes).toContain('CURRENCY_MISMATCH');
-    expect(result.metrics.estimatedCostTotal).toBe(50);
+    expect(codes).not.toContain('EXCEEDS_BUDGET');
+    expect(codes).not.toContain('CURRENCY_MISMATCH');
+    expect((result.metrics as any).estimatedCostTotal).toBeUndefined();
   });
 
   it('flags a day-to-day hop that no ground transport covers', async () => {

@@ -233,7 +233,6 @@ export default function TripPrintPage() {
                           <th className="p-2.5 w-28">Time</th>
                           <th className="p-2.5">Activity &amp; Location</th>
                           <th className="p-2.5 w-24 text-right">Transit Trail</th>
-                          <th className="p-2.5 w-20 text-right">Est. Cost</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-200">
@@ -255,9 +254,6 @@ export default function TripPrintPage() {
                               {act.travelTimeFromPreviousMinutes > 0
                                 ? `${act.travelTimeFromPreviousMinutes} min`
                                 : '-'}
-                            </td>
-                            <td className="p-2.5 text-right font-black text-[#E11D48]">
-                              {act.estimatedCost ? `${tripData.currency || '$'}${act.estimatedCost}` : 'Free'}
                             </td>
                           </tr>
                         ))}
