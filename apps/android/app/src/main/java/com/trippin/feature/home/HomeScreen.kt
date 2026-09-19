@@ -343,11 +343,19 @@ fun HomeScreen(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = "${trip.startDate} - ${trip.endDate} · ${trip.travelersCount} Travelers",
+                                                text = "${trip.startDate} - ${trip.endDate}",
                                                 style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = if (trip.travelersCount == 1) "1 TRAVELER" else "${trip.travelersCount} TRAVELERS",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     AssistChip(
                                         onClick = { onNavigateToTrip(trip.id) },
                                         label = { Text(trip.status, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
