@@ -33,7 +33,8 @@ import {
   RefreshCw,
   History,
   Lock,
-  Unlock
+  Unlock,
+  Copy
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
@@ -358,7 +359,7 @@ export default function PublicTripPage() {
             >
               {calendarDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Calendar className="w-3.5 h-3.5 text-[#18181B]" />}
               <span className="hidden md:inline">{calendarDownloaded ? 'Synced!' : 'Calendar'}</span>
-              <span className="text-[10px] font-black opacity-70">.ics</span>
+              <span className="text-[12px] font-black opacity-70">.ics</span>
             </button>
 
             <button
@@ -430,7 +431,7 @@ export default function PublicTripPage() {
                 {availableVersions.length > 1 && (
                   <div className="flex items-center gap-1.5 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg px-2 py-0.5 text-xs font-black">
                     <History className="w-3.5 h-3.5 text-[#52525B]" />
-                    <span className="text-[#52525B] text-[10px] uppercase tracking-wider">
+                    <span className="text-[#52525B] text-[12px] uppercase tracking-wider">
                       History:
                     </span>
                     <div className="flex items-center gap-1">
@@ -441,7 +442,7 @@ export default function PublicTripPage() {
                             key={v.version}
                             type="button"
                             onClick={() => loadTrip(v.version)}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-colors ${
+                            className={`px-1.5 py-0.5 rounded text-[12px] font-black transition-colors ${
                               isCurrentDisplay
                                 ? 'bg-[#18181B] text-white'
                                 : 'text-[#52525B] hover:bg-zinc-200'
@@ -490,7 +491,7 @@ export default function PublicTripPage() {
                   </span>
                 </span>
               )}
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#52525B]">
+              <span className="text-[12px] font-extrabold uppercase tracking-widest text-[#52525B]">
                 ID: {tripData.id.slice(0, 8)}...
               </span>
             </div>
@@ -498,7 +499,7 @@ export default function PublicTripPage() {
 
           {!isVerifiedPlan && (
             <div className="mt-4 bg-amber-50 border-2 border-[#18181B] rounded-lg p-3 sm:p-4 print:block">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block mb-1">
+              <span className="text-[12px] font-black uppercase tracking-wider text-amber-900 block mb-1">
                 This plan is a draft
               </span>
               <p className="text-xs font-bold text-[#18181B] leading-relaxed">
@@ -508,17 +509,17 @@ export default function PublicTripPage() {
               </p>
               {unresolvedChecks.length > 0 && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer min-h-11 flex items-center text-[11px] font-black uppercase tracking-wider text-amber-900 select-none">
+                  <summary className="cursor-pointer min-h-11 flex items-center text-[12px] font-black uppercase tracking-wider text-amber-900 select-none">
                     Show the {unresolvedChecks.length} check{unresolvedChecks.length === 1 ? '' : 's'} that need attention
                   </summary>
                   <ul className="mt-1 space-y-1">
                     {unresolvedChecks.slice(0, 6).map((c: any, i: number) => (
-                      <li key={i} className="text-[11px] font-bold text-[#52525B] leading-snug break-words">
+                      <li key={i} className="text-[12px] font-bold text-[#52525B] leading-snug break-words">
                         Day 0{c.day}, {c.stop}: {c.label}
                       </li>
                     ))}
                     {unresolvedChecks.length > 6 && (
-                      <li className="text-[11px] font-black uppercase text-[#52525B]">
+                      <li className="text-[12px] font-black uppercase text-[#52525B]">
                         and {unresolvedChecks.length - 6} more
                       </li>
                     )}
@@ -530,23 +531,25 @@ export default function PublicTripPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold text-[#18181B] relative z-10">
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
-              <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Timeframe</span>
-              <span className="block font-black text-[11px] sm:text-xs leading-snug break-words">
+              <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Timeframe</span>
+              <span className="block font-black text-[12px] sm:text-xs leading-snug break-words">
                 {formatDateRange(tripData.startDate, tripData.endDate)}
               </span>
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
-              <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Travellers</span>
+              <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Travellers</span>
               <span className="font-black">{tripData.travelersCount} Travelers</span>
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
-              <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Estimated cost</span>
+              <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Cost, engine estimate</span>
               <span className="font-black text-[#E11D48]">
-                ~{itinerary?.totalEstimatedCost || 0} {itinerary?.currency || tripData.currency}
+                {itinerary?.totalEstimatedCost
+                  ? `about ${itinerary.totalEstimatedCost} ${itinerary?.currency || tripData.currency}`
+                  : 'not estimated'}
               </span>
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
-              <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Pace</span>
+              <span className="text-[12px] uppercase text-[#52525B] font-black block mb-0.5">Pace</span>
               <span className="font-black capitalize">{tripData.pace || 'moderate'}</span>
             </div>
           </div>
@@ -625,7 +628,7 @@ export default function PublicTripPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-3.5 h-3.5 bg-[#E11D48] border-2 border-[#18181B]" />
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#E11D48]">
+                      <span className="text-[12px] font-black uppercase tracking-widest text-[#E11D48]">
                         Day {d.dayIndex}
                       </span>
                       <h3 className="font-display font-black text-xl uppercase tracking-tight text-[#18181B]">
@@ -641,7 +644,7 @@ export default function PublicTripPage() {
                       if (!dayWeather) return null;
                       return (
                         <span
-                          className={`comic-tag text-[10px] font-black border-2 border-[#18181B] ${
+                          className={`comic-tag text-[12px] font-black border-2 border-[#18181B] ${
                             dayWeather.isRainy
                               ? 'bg-amber-100 text-amber-950 border-amber-900'
                               : 'bg-[#FAF8F5] text-[#18181B]'
@@ -653,7 +656,7 @@ export default function PublicTripPage() {
                     })()}
 
                     {d.weatherSummary && (
-                      <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[10px] hidden sm:inline-block">
+                      <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[12px] hidden sm:inline-block">
                         {d.weatherSummary}
                       </span>
                     )}
@@ -670,10 +673,10 @@ export default function PublicTripPage() {
                       <div className="bg-amber-50 border-2 border-[#18181B] rounded-xl p-3 flex items-start gap-2 text-xs font-bold text-amber-900 print:hidden">
                         <CloudRain className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                         <div>
-                          <span className="font-black uppercase tracking-wider block text-[11px]">
+                          <span className="font-black uppercase tracking-wider block text-[12px]">
                             Rain Contingency Radar ({dayWeather.precipitationProbability}% chance)
                           </span>
-                          <span className="text-[11px] font-medium">
+                          <span className="text-[12px] font-medium">
                             {dayWeather.advisoryNote || 'Precipitation expected. Carry rain gear or consider covered museum circuits.'}
                           </span>
                         </div>
@@ -697,7 +700,7 @@ export default function PublicTripPage() {
                         key={a.id || idx}
                         className="relative pl-8 pb-4 border-l-[2.5px] border-[#18181B] last:border-l-transparent last:pb-0"
                       >
-                        <div className="absolute -left-[9px] top-1 w-4 h-4 bg-[#E11D48] border-2 border-[#18181B] flex items-center justify-center text-[9px] text-white font-black">
+                        <div className="absolute -left-[9px] top-1 w-4 h-4 bg-[#E11D48] border-2 border-[#18181B] flex items-center justify-center text-[12px] text-white font-black">
                           {idx + 1}
                         </div>
 
@@ -705,7 +708,7 @@ export default function PublicTripPage() {
                           const photo = a.place?.photoUrls?.[0];
                           if (!photo) {
                             return (
-                              <p className="mb-2 text-[9px] font-bold uppercase tracking-widest text-[#A1A1AA]">
+                              <p className="mb-2 text-[12px] font-bold uppercase tracking-widest text-[#A1A1AA]">
                                 No public photo of this place yet. We only show real photos.
                               </p>
                             );
@@ -725,7 +728,7 @@ export default function PublicTripPage() {
                                   href={creditHref}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[10px] font-bold uppercase tracking-wider text-[#52525B] underline decoration-dotted hover:text-[#E11D48]"
+                                  className="text-[12px] font-bold uppercase tracking-wider text-[#52525B] underline decoration-dotted hover:text-[#E11D48]"
                                 >
                                   {isCommons ? 'Photo: Wikimedia Commons' : 'Photo: Wikipedia'}
                                 </a>
@@ -744,10 +747,10 @@ export default function PublicTripPage() {
                               className="font-black text-xs text-[#18181B]"
                               title="Engine estimate for this stop, not a booked price from the venue"
                             >
-                              est. {a.estimatedCost} {a.currency || itinerary.currency}
+                              engine est. {a.estimatedCost} {a.currency || itinerary.currency}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold text-[#52525B]">COST NOT LISTED</span>
+                            <span className="text-[12px] font-bold text-[#52525B]">COST NOT LISTED</span>
                           )}
                         </div>
 
@@ -775,7 +778,7 @@ export default function PublicTripPage() {
                               href={a.place.websiteUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[12px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
                               title="Opens the venue's own page"
                             >
                               <Globe className="w-3 h-3 text-[#E11D48]" />
@@ -787,7 +790,7 @@ export default function PublicTripPage() {
                           {a.place?.phoneNumber && (
                             <a
                               href={`tel:${String(a.place.phoneNumber).replace(/\s+/g, '')}`}
-                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[12px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
                               title="Call the venue"
                             >
                               <Phone className="w-3 h-3 text-[#E11D48]" />
@@ -799,12 +802,27 @@ export default function PublicTripPage() {
                             href={navUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                            className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[12px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
                           >
                             <Navigation className="w-3 h-3 text-[#E11D48]" />
                             <span>Open Navigation</span>
                             <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                           </a>
+
+                          {a.place?.formattedAddress && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(a.place!.formattedAddress);
+                                alert('Venue address copied to clipboard');
+                              }}
+                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[12px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                              title="Copy exact venue address"
+                            >
+                              <Copy className="w-3 h-3 text-[#E11D48]" />
+                              <span>Copy Address</span>
+                            </button>
+                          )}
 
                           <button
                             type="button"
@@ -816,7 +834,7 @@ export default function PublicTripPage() {
                               startTime: a.startTime,
                               endTime: a.endTime,
                             })}
-                            className={`comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                            className={`comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[12px] font-black uppercase tracking-wider flex items-center gap-1 ${
                               isPlanLocked ? 'opacity-40 cursor-not-allowed' : 'hover:text-[#E11D48]'
                             }`}
                             title={isPlanLocked ? 'Itinerary is locked by the organizer' : 'Swap this venue for an alternative in the city'}
@@ -826,7 +844,7 @@ export default function PublicTripPage() {
                           </button>
 
                           {a.travelTimeFromPreviousMinutes > 0 && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#18181B] bg-amber-100 border border-[#18181B] px-2 py-1 rounded-xs">
+                            <span className="inline-flex items-center gap-1 text-[12px] font-black uppercase text-[#18181B] bg-amber-100 border border-[#18181B] px-2 py-1 rounded-xs">
                               {a.travelTimeFromPreviousMinutes}m transit ({a.transitModeFromPrevious || 'TRANSIT'})
                             </span>
                           )}
@@ -877,18 +895,18 @@ export default function PublicTripPage() {
 
                           return (
                             <details className="mt-3 group border-2 border-[#18181B] bg-[#FAF8F5] rounded-lg p-2.5 text-xs">
-                              <summary className="font-black text-[11px] uppercase tracking-wider text-[#18181B] cursor-pointer list-none flex items-center justify-between select-none">
+                              <summary className="font-black text-[12px] uppercase tracking-wider text-[#18181B] cursor-pointer list-none flex items-center justify-between select-none">
                                 <span className="flex items-center gap-1.5">
                                   <ShieldCheck className="w-3.5 h-3.5 text-[#E11D48]" />
-                                  <span>Why we trust this ({checks.length} checks)</span>
+                                  <span>Where this came from ({checks.length} checks)</span>
                                 </span>
                                 <ChevronDown className="w-3.5 h-3.5 text-[#52525B] transition-transform group-open:rotate-180" />
                               </summary>
-                              <div className="mt-2.5 pt-2 border-t border-[#18181B]/20 space-y-1.5 font-mono text-[11px]">
+                              <div className="mt-2.5 pt-2 border-t border-[#18181B]/20 space-y-1.5 font-mono text-[12px]">
                                 {checks.map((c: any, cIdx: number) => (
                                   <div key={cIdx} className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="px-1.5 py-0.5 text-[9px] font-black border border-[#18181B] rounded bg-white text-[#18181B] uppercase shrink-0">
+                                      <span className="px-1.5 py-0.5 text-[12px] font-black border border-[#18181B] rounded bg-white text-[#18181B] uppercase shrink-0">
                                         {c.source}
                                       </span>
                                       <span className={c.status === 'confirmed' ? 'text-[#18181B] font-bold truncate' : 'text-[#71717A] truncate'}>
@@ -896,7 +914,7 @@ export default function PublicTripPage() {
                                       </span>
                                     </div>
                                     <span
-                                      className={`text-[10px] font-bold uppercase shrink-0 ${
+                                      className={`text-[12px] font-bold uppercase shrink-0 ${
                                         c.status === 'confirmed'
                                           ? 'text-[#18181B]'
                                           : c.status === 'estimated'

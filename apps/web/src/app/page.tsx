@@ -17,9 +17,14 @@ import {
 } from 'lucide-react';
 import MyTripsModal from '@/components/MyTripsModal';
 import VerifiedLandingTrip from '@/components/VerifiedLandingTrip';
+import { API_BASE_URL } from '@/lib/api-client';
+import { itineraryOf } from '@/lib/trip-contract';
 
 export default function WebHomePage() {
   const [showMyTrips, setShowMyTrips] = React.useState(false);
+  // The status chip on each example card is read from the trip record, never written by hand.
+  // Until the record answers, the card says it is checking rather than claiming a status.
+  const [runInfo, setRunInfo] = React.useState<Record<string, { status?: string; stops?: number }>>({});
   const featuredRuns = [
     {
       tripId: '3fbd9dd1-38d3-4127-acd7-a3d3bbd3dd56',
@@ -30,8 +35,7 @@ export default function WebHomePage() {
       stopsCount: 9,
       currency: 'USD',
       issue: 'RUN 01',
-      highlights: 'Tokyo Tower, Alte Liebe, Small Worlds, Kasai Aquarium',
-      status: 'VERIFIED'
+      highlights: 'Tokyo Tower, Alte Liebe, Small Worlds, Kasai Aquarium'
     },
     {
       tripId: '28610d13-c776-47b0-a6a6-6f8c26dcb654',
@@ -42,8 +46,7 @@ export default function WebHomePage() {
       stopsCount: 6,
       currency: 'EUR',
       issue: 'RUN 02',
-      highlights: 'Picasso Museum, Catacombs, Carnavalet, Galliera',
-      status: 'VERIFIED'
+      highlights: 'Picasso Museum, Catacombs, Carnavalet, Galliera'
     },
     {
       tripId: '79576b46-4eea-40b0-8d66-93ab733d6e97',
@@ -54,8 +57,7 @@ export default function WebHomePage() {
       stopsCount: 6,
       currency: 'USD',
       issue: 'RUN 03',
-      highlights: 'Imperial Palace, National Museum, Samurai Museum',
-      status: 'VERIFIED'
+      highlights: 'Imperial Palace, National Museum, Samurai Museum'
     },
     {
       tripId: '7b1f67a3-5b6b-4db8-9a1f-d2e4c2460747',
@@ -66,10 +68,36 @@ export default function WebHomePage() {
       stopsCount: 3,
       currency: 'USD',
       issue: 'RUN 04',
-      highlights: 'Geographical Society, Quake 1755 Centre',
-      status: 'VERIFIED'
+      highlights: 'Geographical Society, Quake 1755 Centre'
     }
   ];
+
+  React.useEffect(() => {
+    let cancelled = false;
+    featuredRuns.forEach((run) => {
+      fetch(`${API_BASE_URL}/api/v1/trips/${run.tripId}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+        .then((data) => {
+          if (cancelled) return;
+          const itinerary = itineraryOf(data);
+          if (!itinerary) return;
+          const stops = (itinerary.days || []).reduce(
+            (sum: number, day: any) => sum + ((day.activities || []).length || 0),
+            0
+          );
+          setRunInfo((prev) => ({
+            ...prev,
+            [run.tripId]: { status: itinerary.status, stops: stops || undefined }
+          }));
+        })
+        .catch(() => {
+          // No record, no claim: the card keeps saying it is checking.
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#18181B] pb-16">
@@ -165,11 +193,11 @@ export default function WebHomePage() {
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
               <h2 className="font-display text-lg font-black uppercase tracking-tight">
-                Why you can trust this
+                What we check before you go
               </h2>
             </div>
             <span className="text-xs font-bold uppercase tracking-widest text-[#52525B]">
-              Physics-Checked
+              Timings checked
             </span>
           </div>
 
@@ -191,7 +219,7 @@ export default function WebHomePage() {
                 02
               </div>
               <h3 className="font-display font-black text-base uppercase text-[#18181B]">
-                Verified Openings
+                Opening hours checked
               </h3>
               <p className="text-xs text-[#52525B] leading-relaxed font-medium">
                 The Louvre is closed on Tuesdays. Tokyo fish markets shut early. Our engine validates venue hours against calendar days.
@@ -218,11 +246,11 @@ export default function WebHomePage() {
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
               <h2 className="font-display text-xl font-black uppercase tracking-tight">
-                Featured Field Runs
+                Example trips, open to anyone
               </h2>
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#52525B]">
-              Ready to Load
+              Open one
             </span>
           </div>
 
@@ -246,15 +274,29 @@ export default function WebHomePage() {
                     </div>
 
                     <div className="relative z-10 space-y-1">
-                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                        <span>{r.status} ROUTE</span>
-                      </div>
+                      {runInfo[r.tripId]?.status ? (
+                        <div
+                          className={`text-[12px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                            runInfo[r.tripId].status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              runInfo[r.tripId].status === 'VERIFIED' ? 'bg-emerald-400' : 'bg-amber-400'
+                            }`}
+                          />
+                          <span>{runInfo[r.tripId].status} route</span>
+                        </div>
+                      ) : (
+                        <div className="text-[12px] font-bold uppercase tracking-wider text-zinc-400">
+                          Checking status
+                        </div>
+                      )}
                       <div className="font-display font-black text-3xl tracking-tight text-white uppercase">
                         {r.code}
                       </div>
-                      <div className="text-[11px] font-bold text-zinc-300">
-                        {r.stopsCount} OSM Stops · {r.circuit}
+                      <div className="text-[12px] font-bold text-zinc-300">
+                        {runInfo[r.tripId]?.stops ? `${runInfo[r.tripId].stops} stops, all from open map data` : r.circuit}
                       </div>
                     </div>
                   </div>
@@ -277,7 +319,7 @@ export default function WebHomePage() {
                     href={`/trip/${r.tripId}`}
                     className="comic-btn-secondary w-full py-2.5 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 hover:text-[#E11D48]"
                   >
-                    <span>Inspect Route</span>
+                    <span>See the plan</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link
@@ -285,7 +327,7 @@ export default function WebHomePage() {
                     className="w-full py-1.5 text-[11px] font-black uppercase tracking-wider text-center text-[#52525B] hover:text-[#E11D48] flex items-center justify-center gap-1"
                   >
                     <Navigation className="w-3 h-3 text-[#E11D48]" />
-                    <span>Launch Today Mode</span>
+                    <span>Open today mode</span>
                   </Link>
                 </div>
               </article>
@@ -297,7 +339,7 @@ export default function WebHomePage() {
         <section className="comic-panel-red p-8 sm:p-10 rounded-2xl bg-[#18181B] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center sm:text-left">
             <span className="text-xs font-extrabold tracking-widest text-[#E11D48] uppercase">
-              Deterministic &amp; Feasible
+              Checked before you go
             </span>
             <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight">
               Ready to map your next run?

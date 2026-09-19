@@ -218,7 +218,7 @@ export default function SwapActivityModal({
         {/* Current Activity Box */}
         <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-xl text-xs">
           <span className="text-[10px] font-black uppercase text-[#E11D48] block mb-0.5">
-            REPLACING ON STAGE 0{activity.dayIndex}
+            Replacing day {activity.dayIndex}
           </span>
           <span className="font-display font-black text-sm text-[#18181B] block">
             {activity.title}

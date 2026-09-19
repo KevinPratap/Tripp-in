@@ -131,7 +131,7 @@ export class OSMPlacesProvider implements PlaceProvider {
           id: osmId,
           googlePlaceId: osmId,
           name,
-          description: `${name} — ${category.replace('_', ' ')} in ${props.city || props.country || 'the region'}`,
+          description: `${name} to ${category.replace('_', ' ')} in ${props.city || props.country || 'the region'}`,
           formattedAddress: address,
           location: { latitude: lat, longitude: lon },
           types: [category, props.osm_key || 'point_of_interest'].filter(Boolean),
@@ -142,11 +142,22 @@ export class OSMPlacesProvider implements PlaceProvider {
         } as PlaceModel;
       });
 
-    return this.filterByDistance(mapped, location);
+    const filtered = this.filterByDistance(mapped, location);
+    await Promise.all(
+      filtered.slice(0, 10).map(async (place: PlaceModel, i: number) => {
+        const prop = features[i]?.properties;
+        const photo = await this.resolveRealPhoto(
+          prop?.extra || { wikidata: prop?.wikidata, wikipedia: prop?.wikipedia },
+          place.name
+        );
+        if (photo) place.photoUrls = [photo];
+      })
+    );
+    return filtered;
   }
 
   private async searchNominatim(query: string, location?: GeoLocation): Promise<PlaceModel[]> {
-    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&extratags=1&limit=10`;
+    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&extratags=1&namedetails=1&limit=10`;
     if (location) {
       const delta = 0.6; // roughly 65 km around the destination centre
       url += `&viewbox=${location.longitude - delta},${location.latitude + delta},${location.longitude + delta},${location.latitude - delta}&bounded=1`;
@@ -167,7 +178,7 @@ export class OSMPlacesProvider implements PlaceProvider {
       const lat = parseFloat(item.lat);
       const lon = parseFloat(item.lon);
       const osmId = `osm_${item.osm_type?.[0]?.toUpperCase() || 'N'}_${item.osm_id || item.place_id}`;
-      const name = item.namedetails?.name || item.name || item.display_name.split(',')[0];
+      const name = item.namedetails?.['name:en'] || item.namedetails?.name || item.name || item.display_name.split(',')[0];
       const category = item.type || item.class || 'attraction';
       const realHours: string | undefined = item.extratags?.opening_hours;
 
@@ -186,12 +197,10 @@ export class OSMPlacesProvider implements PlaceProvider {
       } as PlaceModel;
     });
 
-    // Attach a real photograph of each venue where OpenStreetMap points at one. The tags below
-    // name the venue's own Wikidata item or Wikipedia article, so the picture is of that place and
-    // of nothing else. If a venue has no such record it keeps no photo and the interface says so.
+    // Attach a real photograph of each venue where OpenStreetMap or Wikipedia records one.
     await Promise.all(
       places.map(async (place: PlaceModel, i: number) => {
-        const photo = await this.resolveRealPhoto(list[i]?.extratags);
+        const photo = await this.resolveRealPhoto(list[i]?.extratags, place.name);
         if (photo) place.photoUrls = [photo];
       })
     );
@@ -204,16 +213,17 @@ export class OSMPlacesProvider implements PlaceProvider {
   private static readonly photoUserAgent = 'TrippinAI-Production/1.0 (contact@trippin.ai)';
 
   /**
-   * Resolves a photograph of the venue itself from its own open record. Two sources, both exact:
-   * the Wikidata item referenced by the OSM wikidata tag (property P18), then the Wikipedia article
-   * referenced by the OSM wikipedia tag. No name matching, no guessing, no stock imagery: when
-   * neither record exists this returns undefined and the caller stores no photo at all.
+   * Resolves a photograph of the venue itself from its own open record.
+   * Checks Wikidata property P18, then Wikipedia page image.
+   * If not in OSM tags, checks Wikipedia for the exact venue name.
    */
-  private async resolveRealPhoto(extratags?: Record<string, string>): Promise<string | undefined> {
-    if (!extratags) return undefined;
-    const wikidata = extratags.wikidata?.trim();
-    const wikipedia = extratags.wikipedia?.trim();
-    const cacheKey = wikidata || wikipedia;
+  private async resolveRealPhoto(
+    extratags?: Record<string, any>,
+    fallbackTitle?: string
+  ): Promise<string | undefined> {
+    const wikidata = extratags?.wikidata ? String(extratags.wikidata).trim() : undefined;
+    const wikipedia = extratags?.wikipedia ? String(extratags.wikipedia).trim() : undefined;
+    const cacheKey = wikidata || wikipedia || (fallbackTitle ? `title:${fallbackTitle.toLowerCase()}` : undefined);
     if (!cacheKey) return undefined;
 
     const cached = OSMPlacesProvider.photoCache.get(cacheKey);
@@ -226,6 +236,9 @@ export class OSMPlacesProvider implements PlaceProvider {
       }
       if (!url && wikipedia) {
         url = await this.wikipediaPhoto(wikipedia);
+      }
+      if (!url && fallbackTitle && fallbackTitle.length > 3) {
+        url = await this.wikipediaPhoto(fallbackTitle);
       }
     } catch {
       url = undefined;

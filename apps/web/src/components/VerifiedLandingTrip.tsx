@@ -121,10 +121,10 @@ export default function VerifiedLandingTrip() {
           <span className="w-3.5 h-3.5 bg-[#E11D48] border-2 border-[#18181B]" />
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-[#E11D48] block">
-              Direct Engine Output
+              Straight from the engine
             </span>
             <h2 className="font-display text-xl sm:text-2xl font-black uppercase tracking-tight text-[#18181B]">
-              Real Verified Route Dispatch
+              A real route, checked stop by stop
             </h2>
           </div>
         </div>
@@ -180,11 +180,17 @@ export default function VerifiedLandingTrip() {
                 <span className="comic-tag bg-[#18181B] text-white text-[10px] font-black">
                   {tripData.destinationName}
                 </span>
-                <span className="comic-tag bg-emerald-100 text-emerald-950 border-emerald-900 text-[10px] font-black">
-                  STATUS: {itinerary.status || 'VERIFIED'}
+                <span
+                  className={`comic-tag border-2 text-[12px] font-black ${
+                    itinerary.status === 'VERIFIED'
+                      ? 'bg-emerald-100 text-emerald-950 border-emerald-900'
+                      : 'bg-amber-100 text-amber-950 border-amber-900'
+                  }`}
+                >
+                  STATUS: {itinerary.status || 'NOT CHECKED'}
                 </span>
-                <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[10px] font-bold">
-                  {days.length} Days · {tripData.totalActivitiesCount || dayActivities.length} Stops
+                <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[12px] font-bold">
+                  {days.length} Days · {tripData.totalActivitiesCount || dayActivities.length} Stops in total
                 </span>
               </div>
               <h3 className="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-[#18181B]">
@@ -202,7 +208,7 @@ export default function VerifiedLandingTrip() {
                 href={`/trip/${selectedTripId}`}
                 className="comic-btn-primary px-4 py-2.5 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
               >
-                <span>Full Dossier</span>
+                <span>See the full plan</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link
@@ -230,7 +236,7 @@ export default function VerifiedLandingTrip() {
                       : 'bg-[#FAF8F5] text-[#18181B] border-2 border-[#18181B] hover:bg-white'
                   }`}
                 >
-                  Stage 0{d.dayIndex}
+                  Day {d.dayIndex}
                 </button>
               ))}
             </div>
@@ -240,18 +246,18 @@ export default function VerifiedLandingTrip() {
           <div className="bg-[#FAF8F5] border-2 border-[#18181B] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#E11D48]">
-                Active Circuit · Day 0{activeDay?.dayIndex || 1}
+                Day {activeDay?.dayIndex || 1}, stop by stop
               </span>
               <h4 className="font-display font-black text-lg uppercase tracking-tight text-[#18181B]">
                 {activeDay?.summary || activeDay?.themeSummary || 'City Exploration Route'}
               </h4>
             </div>
             <div className="flex items-center gap-2">
-              <span className="comic-tag bg-white text-[#18181B] text-[10px] font-bold">
-                {dayActivities.length} OSM Stops
+              <span className="comic-tag bg-white text-[#18181B] text-[12px] font-bold">
+                {dayActivities.length} stops from open map data
               </span>
-              <span className="comic-tag bg-[#18181B] text-white text-[10px] font-bold">
-                Physics Verified
+              <span className="comic-tag bg-[#18181B] text-white text-[12px] font-bold">
+                Timings checked
               </span>
             </div>
           </div>
@@ -265,15 +271,15 @@ export default function VerifiedLandingTrip() {
                   <Compass className="w-3.5 h-3.5 text-[#E11D48]" />
                   <span>Route map</span>
                 </span>
-                <span className="text-[10px] font-bold text-[#52525B] uppercase">
-                  OSRM Walking / Transit
+                <span className="text-[12px] font-bold text-[#52525B] uppercase">
+                  Walking and transit times
                 </span>
               </div>
               <div className="border-2 border-[#18181B] rounded-xl overflow-hidden">
                 <ComicRouteMap activities={dayActivities} height="380px" />
               </div>
-              <p className="text-[10px] text-[#52525B] font-medium leading-normal">
-                Numbered markers correspond to scheduled itinerary stops. Dashed red line reflects physical transit route calculated by OSRM.
+              <p className="text-[12px] text-[#52525B] font-medium leading-normal">
+                The numbered markers match the stops. The dashed line is the walking and transit route between them.
               </p>
             </div>
 
@@ -281,10 +287,10 @@ export default function VerifiedLandingTrip() {
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-[#18181B]">
-                  Timeline Schedule &amp; Proof Receipts
+                  The plan, and where each part came from
                 </span>
-                <span className="text-[10px] font-bold text-[#52525B] uppercase">
-                  Day 0{activeDay?.dayIndex || 1} Sequence
+                <span className="text-[12px] font-bold text-[#52525B] uppercase">
+                  Day {activeDay?.dayIndex || 1}
                 </span>
               </div>
 

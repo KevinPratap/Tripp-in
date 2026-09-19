@@ -50,7 +50,7 @@ export default function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                 DISPATCH ARCHIVES
               </span>
               <h2 className="font-display font-black text-xl uppercase text-[#18181B]">
-                Your Saved Field Runs ({trips.length})
+                Your saved trips ({trips.length})
               </h2>
             </div>
           </div>
