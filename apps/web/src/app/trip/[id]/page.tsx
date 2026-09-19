@@ -91,7 +91,10 @@ export default function PublicTripPage() {
         }
 
         if (unwrapped?.destinationName) {
-          fetchTripWeather(unwrapped.destinationName)
+          const tripDates = (unwrapped.itinerary?.days || [])
+            .map((day: { date?: string }) => (day.date || '').slice(0, 10))
+            .filter(Boolean);
+          fetchTripWeather(unwrapped.destinationName, tripDates)
             .then((forecast) => setWeatherList(forecast))
             .catch(() => {});
         }
@@ -410,7 +413,9 @@ export default function PublicTripPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const dayWeather = weatherList[d.dayIndex - 1] || weatherList[0];
+                      const dayWeather = weatherList.find(
+                        (w) => w.date === (d.date || '').slice(0, 10)
+                      );
                       if (!dayWeather) return null;
                       return (
                         <span
@@ -435,7 +440,9 @@ export default function PublicTripPage() {
 
                 {/* Rain Contingency Warning */}
                 {(() => {
-                  const dayWeather = weatherList[d.dayIndex - 1] || weatherList[0];
+                  const dayWeather = weatherList.find(
+                    (w) => w.date === (d.date || '').slice(0, 10)
+                  );
                   if (dayWeather && dayWeather.isRainy) {
                     return (
                       <div className="bg-amber-50 border-2 border-[#18181B] rounded-xl p-3 flex items-start gap-2 text-xs font-bold text-amber-900 shadow-[2px_2px_0px_#18181B] print:hidden">

@@ -71,8 +71,8 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port, '0.0.0.0');
-  logger.log(`🚀 Trippin' AI Backend running on http://0.0.0.0:${port}/api/v1`);
-  logger.log(`📖 Swagger API documentation available at http://0.0.0.0:${port}/api/docs`);
+  logger.log(`Trippin' AI Backend running on http://0.0.0.0:${port}/api/v1`);
+  logger.log(`Swagger API documentation available at http://0.0.0.0:${port}/api/docs`);
 }
 
 bootstrap();

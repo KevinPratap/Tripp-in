@@ -19,8 +19,9 @@ You are working on Tripp'in AI, an honest, verified travel planning engine. Read
 8. **Copy standards**: Zero em dashes (`—`) or en dashes (`–`) in user-facing copy (use 'to' or plain hyphens). Zero emojis anywhere in code, user copy, or system logs.
 9. **No marketing buzzwords**: Never use `CERTIFIED`, `FACTORY-GRADED`, or `FIELD TESTED & CERTIFIED`. State verified facts plainly.
 10. **Zero-cost stack & model guardrails**:
-    - Strictly prohibited: DeepSeek. Never call or configure DeepSeek.
-    - Zero-cost tier: Google Gemini 2.5 Flash Free Tier, Open-Meteo, OSRM, OpenStreetMap Photon / Nominatim.
+    - The product's runtime providers stay free tier: Google Gemini 2.5 Flash, Open-Meteo, OSRM, OpenStreetMap Photon / Nominatim.
+    - Do not introduce a paid model dependency into the app's code, config or deployment. In particular, DeepSeek must not appear anywhere in this product's stack.
+    - Scope note: this rule governs the product. It does not govern the configuration of the assistants that edit this repo. Their own model and provider settings are dev tooling, not part of the shipped stack, and are out of scope for this rule.
 11. **Git discipline**:
     - Commit with explicit file paths only.
     - Never run `git add -A` or `git add .` (prevents sweeping untracked artifacts).

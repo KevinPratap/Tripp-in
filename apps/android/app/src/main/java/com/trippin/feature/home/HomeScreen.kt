@@ -141,7 +141,7 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "✨ AI Travel Planner",
+                                text = "AI Travel Planner",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary

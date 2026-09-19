@@ -284,7 +284,7 @@ export default function TripCollabPage({
                 : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
             }`}
           >
-            🗳️ Activity Voting ({allActivities.length})
+            Activity Voting ({allActivities.length})
           </button>
           <button
             type="button"
@@ -295,7 +295,7 @@ export default function TripCollabPage({
                 : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
             }`}
           >
-            🧾 Squad Expense Splitter
+            Squad Expense Splitter
           </button>
         </nav>
 

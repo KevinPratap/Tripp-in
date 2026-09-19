@@ -42,9 +42,15 @@ export interface DebtSettlement {
 export interface ExpenseOverview {
   tripId: string;
   expenses: TripExpense[];
+  /** Total for the dominant currency only. Never a sum across currencies. */
   totalSpent: number;
+  /** The currency the totals and settlements below are expressed in. */
   currency: string;
   settlements: DebtSettlement[];
+  /** Every currency present in the ledger, with its own total. */
+  totalsByCurrency: Array<{ currency: string; amount: number }>;
+  /** True when the ledger holds more than one currency, so totals are not comparable. */
+  mixedCurrencies: boolean;
 }
 
 @Injectable()
@@ -179,7 +185,10 @@ export class CollabService {
           const cleanTitle = (act.title || 'Trip Activity').replace(/[,;\\]/g, ' ');
           const address = act.place?.formattedAddress || trip.destinationName;
           const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${act.title}, ${trip.destinationName}`)}`;
-          const description = `${act.reason || 'Verified Field Leg'}\\nCost: $${act.estimatedCost || 0} ${act.currency || 'USD'}\\nTransit leg: ${act.travelTimeToNextMin || 0}m\\nNavigation: ${navUrl}`;
+          const costLabel = act.estimatedCost
+            ? `${act.estimatedCost} ${act.currency || ''}`.trim()
+            : 'not priced';
+          const description = `${act.reason || 'Verified Field Leg'}\\nCost: ${costLabel}\\nTransit leg: ${act.travelTimeToNextMin || 0}m\\nNavigation: ${navUrl}`;
 
           events.push([
             'BEGIN:VEVENT',
@@ -228,7 +237,9 @@ export class CollabService {
       id: Math.random().toString(36).substring(2, 10),
       title: expenseData.title.trim(),
       amount: Math.max(0, expenseData.amount),
-      currency: (expenseData.currency || 'USD').toUpperCase(),
+      currency: (
+        expenseData.currency || expenses.find((e) => e.currency)?.currency || ''
+      ).toUpperCase(),
       paidBy: expenseData.paidBy.trim(),
       splitBetween: (expenseData.splitBetween && expenseData.splitBetween.length > 0)
         ? expenseData.splitBetween.map((s) => s.trim())
@@ -269,16 +280,36 @@ export class CollabService {
   }
 
   private buildExpenseOverview(tripId: string, expenses: TripExpense[]): ExpenseOverview {
-    const defaultCurrency = expenses[0]?.currency || 'USD';
-    const totalSpent = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
-    const settlements = this.calculateSettlements(expenses, defaultCurrency);
+    // Amounts in different currencies cannot be added together, so totals and
+    // settlements are computed per currency and the dominant one is reported as
+    // the headline figure.
+    const totals = new Map<string, number>();
+    for (const expense of expenses) {
+      const code = (expense.currency || '').toUpperCase() || 'UNSPECIFIED';
+      totals.set(code, (totals.get(code) || 0) + (expense.amount || 0));
+    }
+
+    const totalsByCurrency = Array.from(totals.entries())
+      .map(([currency, amount]) => ({ currency, amount: Math.round(amount * 100) / 100 }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const dominant = totalsByCurrency[0];
+    const defaultCurrency = dominant?.currency ?? 'UNSPECIFIED';
+
+    const sameCurrency = expenses.filter(
+      (expense) => ((expense.currency || '').toUpperCase() || 'UNSPECIFIED') === defaultCurrency
+    );
+
+    const settlements = this.calculateSettlements(sameCurrency, defaultCurrency);
 
     return {
       tripId,
       expenses,
-      totalSpent: Math.round(totalSpent * 100) / 100,
+      totalSpent: dominant?.amount ?? 0,
       currency: defaultCurrency,
       settlements,
+      totalsByCurrency,
+      mixedCurrencies: totalsByCurrency.length > 1,
     };
   }
 

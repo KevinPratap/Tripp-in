@@ -130,3 +130,22 @@ data class ModifyItineraryResponseDto(
     val appliedChangesSummary: String? = null,
     val updatedItinerary: ItineraryDto? = null
 )
+
+/**
+ * A real place from the API (OpenStreetMap backed). The API deliberately returns no
+ * ratings or review counts, so none are modelled here and none may be invented.
+ */
+@Serializable
+data class PlaceSearchResultDto(
+    val id: String = "",
+    val name: String = "",
+    val formattedAddress: String = "",
+    val types: List<String> = emptyList(),
+    val location: GeoPointDto? = null
+)
+
+@Serializable
+data class GeoPointDto(
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)

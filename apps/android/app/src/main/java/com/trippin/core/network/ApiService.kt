@@ -27,4 +27,7 @@ interface ApiService {
         @Path("id") itineraryId: String,
         @Body body: ModifyItineraryRequestDto
     ): ModifyItineraryResponseDto
+
+    @GET("api/v1/places/search")
+    suspend fun searchPlaces(@Query("q") query: String): List<PlaceSearchResultDto>
 }

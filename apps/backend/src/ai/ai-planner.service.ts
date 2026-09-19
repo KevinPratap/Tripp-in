@@ -179,7 +179,7 @@ export class AIPlannerService {
       );
 
       if (validationResult.isValid) {
-        this.logger.log(`✅ Candidate itinerary passed all deterministic constraints at iteration ${repairIterations}!`);
+        this.logger.log(`Candidate itinerary passed all deterministic constraints at iteration ${repairIterations}!`);
         this.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
         return {
           success: true,

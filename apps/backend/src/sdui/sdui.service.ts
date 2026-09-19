@@ -27,7 +27,7 @@ export class SDUIService {
       type: 'HEADER_GREETING',
       orderIndex: 0,
       payload: {
-        greeting: `Hi, ${feed.user.displayName} 👋`,
+        greeting: `Hi, ${feed.user.displayName}`,
         headline: 'Where will you go?',
         userAvatarUrl: feed.user.photoUrl,
         userInitials: feed.user.displayName.split(' ').map((n) => n[0]).join('')
@@ -52,7 +52,7 @@ export class SDUIService {
       orderIndex: 2,
       action: { type: 'NAVIGATE', target: 'planner' },
       payload: {
-        badge: '✨ AI POWERED',
+        badge: 'AI POWERED',
         title: 'Generate Your Custom Itinerary',
         description: 'Physics-checked schedule with opening hours, transit matrix, and weather adaptation in seconds.',
         ctaText: 'Plan a Trip',
@@ -180,7 +180,7 @@ export class SDUIService {
       orderIndex: 99,
       action: { type: 'OPEN_MODAL', target: 'ai_modify_dialog' },
       payload: {
-        title: 'Modify with AI ✨',
+        title: 'Modify with AI',
         subtitle: 'Tap to adapt pace, change venues, or shift days conversationally.'
       }
     });

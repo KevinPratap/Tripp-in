@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import {
   DollarSign,
   Plus,
@@ -57,6 +58,10 @@ export default function SquadLedger({
   const [paidBy, setPaidBy] = useState(currentMember || squadMembers[0]);
   const [selectedSplit, setSelectedSplit] = useState<string[]>(squadMembers);
   const [copied, setCopied] = useState(false);
+  const [totalsByCurrency, setTotalsByCurrency] = useState<
+    Array<{ currency: string; amount: number }>
+  >([]);
+  const [mixedCurrencies, setMixedCurrencies] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -65,14 +70,14 @@ export default function SquadLedger({
 
   const fetchExpenses = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/v1/trips/${tripId}/expenses`, {
-        headers: { 'x-guest-session': 'squad-companion' },
-      });
+      const res = await apiFetch(`/api/v1/trips/${tripId}/expenses`);
       if (res.ok) {
         const data = await res.json();
         setExpenses(data.expenses || []);
         setSettlements(data.settlements || []);
         setTotalSpent(data.totalSpent || 0);
+        setTotalsByCurrency(data.totalsByCurrency || []);
+        setMixedCurrencies(Boolean(data.mixedCurrencies));
         if (data.currency) setCurrency(data.currency);
       }
     } catch (err) {
@@ -89,12 +94,8 @@ export default function SquadLedger({
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${apiUrl}/api/v1/trips/${tripId}/expenses`, {
+      const res = await apiFetch(`/api/v1/trips/${tripId}/expenses`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-guest-session': 'squad-companion',
-        },
         body: JSON.stringify({
           title: title.trim(),
           amount: numAmount,
@@ -109,6 +110,8 @@ export default function SquadLedger({
         setExpenses(data.expenses || []);
         setSettlements(data.settlements || []);
         setTotalSpent(data.totalSpent || 0);
+        setTotalsByCurrency(data.totalsByCurrency || []);
+        setMixedCurrencies(Boolean(data.mixedCurrencies));
         setTitle('');
         setAmount('');
       }
@@ -127,14 +130,17 @@ export default function SquadLedger({
 
   const copySettlementSummary = () => {
     if (settlements.length === 0) return;
-    const text = [
-      `🧾 TRIPPIN' SQUAD SETTLEMENT REPORT`,
-      `Total Group Damage: ${totalSpent} ${currency}`,
-      `---------------------------------`,
-      ...settlements.map((s) => `• ${s.from} ➔ ${s.to}: ${s.amount} ${s.currency}`),
-      `---------------------------------`,
-      `Generated via Tripp'in Collab Ledger`,
-    ].join('\n');
+    const lines = [
+      "TRIPPIN' SQUAD SETTLEMENT REPORT",
+      mixedCurrencies
+        ? `Totals by currency: ${totalsByCurrency.map((t) => `${t.amount} ${t.currency}`).join(', ')}`
+        : `Total group spend: ${totalSpent} ${currency}`,
+      '---------------------------------',
+      ...settlements.map((s) => `${s.from} owes ${s.to}: ${s.amount} ${s.currency}`),
+      '---------------------------------',
+      "Generated via Tripp'in Collab Ledger",
+    ];
+    const text = lines.join('\n');
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -150,8 +156,15 @@ export default function SquadLedger({
             Total Squad Spend
           </span>
           <span className="font-display font-black text-2xl text-[#E11D48]">
-            {totalSpent} {currency}
+            {mixedCurrencies && totalsByCurrency.length > 0
+              ? totalsByCurrency.map((t) => `${t.amount} ${t.currency}`).join(' + ')
+              : `${totalSpent} ${currency}`}
           </span>
+          {mixedCurrencies && (
+            <span className="block text-[10px] font-bold text-[#52525B] mt-1">
+              Separate currencies, not converted
+            </span>
+          )}
         </div>
         <div className="comic-panel p-4 bg-white rounded-xl">
           <span className="text-[10px] uppercase font-black tracking-widest text-[#52525B] block">
@@ -290,7 +303,7 @@ export default function SquadLedger({
 
         {settlements.length === 0 ? (
           <div className="p-6 text-center text-xs font-bold text-[#52525B] bg-white border-2 border-[#18181B] rounded-xl">
-            🎉 Everyone is squared away! No pending debts in the squad.
+            Everyone is squared away. No pending debts in the squad.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
