@@ -48,15 +48,24 @@ fun HomeScreen(
 
     Scaffold(
         bottomBar = {
+            val navItemColors = NavigationBarItemDefaults.colors(
+                selectedIconColor = ComicRed,
+                selectedTextColor = ComicInk,
+                indicatorColor = ComicRed.copy(alpha = 0.15f),
+                unselectedIconColor = ComicInk.copy(alpha = 0.55f),
+                unselectedTextColor = ComicInk.copy(alpha = 0.55f)
+            )
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                     label = { Text("Home") },
                     selected = true,
-                    onClick = {}
+                    onClick = {},
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.CardTravel, contentDescription = "Trips") },
+                    colors = navItemColors,
                     label = { Text("Trips") },
                     selected = false,
                     onClick = {
@@ -70,12 +79,14 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Explore, contentDescription = "Explore") },
+                    colors = navItemColors,
                     label = { Text("Explore") },
                     selected = false,
                     onClick = onNavigateToExplore
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    colors = navItemColors,
                     label = { Text("Profile") },
                     selected = false,
                     onClick = onNavigateToProfile
@@ -259,7 +270,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onNavigateToPlanner() },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(2.dp, ComicInk),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
@@ -271,8 +283,9 @@ fun HomeScreen(
                             Box(
                                 modifier = Modifier
                                     .size(56.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(ComicRed.copy(alpha = 0.15f)),
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(ComicRed.copy(alpha = 0.15f))
+                                    .border(2.dp, ComicInk, RoundedCornerShape(8.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.AddLocationAlt, contentDescription = null, tint = ComicRed)
@@ -295,13 +308,6 @@ fun HomeScreen(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         recentList.forEach { trip ->
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .offset(x = 3.dp, y = 3.dp)
-                                        .background(ComicInk, RoundedCornerShape(12.dp))
-                                )
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -349,7 +355,6 @@ fun HomeScreen(
                                             labelColor = ComicRed
                                         )
                                     )
-                                }
                                 }
                             }
                         }
