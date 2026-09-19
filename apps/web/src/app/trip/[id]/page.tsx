@@ -19,6 +19,8 @@ import {
   Check,
   Flame,
   AlertCircle,
+  Globe,
+  Phone,
   Download,
   MessageSquare,
   Luggage,
@@ -214,6 +216,21 @@ export default function PublicTripPage() {
 
   const itinerary = tripData.itinerary;
   const days = itinerary?.days || [];
+
+  // A draft plan has to say what is unresolved, otherwise the label is just anxiety. These are the
+  // checks the engine could not confirm, per stop.
+  const unresolvedChecks = days.flatMap((d: any) =>
+    (d.activities || []).flatMap((a: any) =>
+      (a.checks || [])
+        .filter((c: any) => c?.status === 'unchecked')
+        .map((c: any) => ({
+          day: d.dayIndex,
+          stop: a.title || a.name || 'Stop',
+          label: c?.label || c?.detail || c?.source || 'unresolved check'
+        }))
+    )
+  );
+  const isVerifiedPlan = itinerary?.status === 'VERIFIED';
   const activeDay = days.find((d: any) => d.dayIndex === activeDayIndex) || days[0];
 
   // Search bias for the swap modal: coordinates of the first located stop on the shown day.
@@ -449,12 +466,21 @@ export default function PublicTripPage() {
             </div>
 
             <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
-              <span className="animate-stamp inline-flex">
-                <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[-2deg] shadow-[4px_4px_0px_#18181B]">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  VERIFIED PASS
+              {itinerary?.status === 'VERIFIED' ? (
+                <span className="animate-stamp inline-flex">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[-2deg] shadow-[4px_4px_0px_#18181B]">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    VERIFIED PASS
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <span className="animate-stamp inline-flex">
+                  <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[-2deg] shadow-[4px_4px_0px_#18181B]">
+                    <AlertCircle className="w-4 h-4 text-amber-800" />
+                    DRAFT // NOT FULLY CHECKED
+                  </span>
+                </span>
+              )}
               {isPlanLocked && (
                 <span className="animate-stamp inline-flex">
                   <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[1.5deg] shadow-[4px_4px_0px_#18181B]">
@@ -468,6 +494,33 @@ export default function PublicTripPage() {
               </span>
             </div>
           </div>
+
+          {!isVerifiedPlan && (
+            <div className="mt-4 bg-amber-50 border-2 border-[#18181B] rounded-lg p-3 sm:p-4 print:block">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block mb-1">
+                This plan is a draft
+              </span>
+              <p className="text-xs font-bold text-[#18181B] leading-relaxed">
+                {unresolvedChecks.length > 0
+                  ? `The engine could not confirm ${unresolvedChecks.length} check${unresolvedChecks.length === 1 ? '' : 's'} below. Fix or swap those stops, or run the replan, and it will be re-verified.`
+                  : 'The engine left one or more rules unresolved for this plan, so treat the times as a draft until it passes again.'}
+              </p>
+              {unresolvedChecks.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {unresolvedChecks.slice(0, 6).map((c: any, i: number) => (
+                    <li key={i} className="text-[11px] font-bold text-[#52525B] leading-snug break-words">
+                      Day 0{c.day}, {c.stop}: {c.label}
+                    </li>
+                  ))}
+                  {unresolvedChecks.length > 6 && (
+                    <li className="text-[11px] font-black uppercase text-[#52525B]">
+                      and {unresolvedChecks.length - 6} more
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold text-[#18181B] relative z-10">
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
@@ -648,11 +701,14 @@ export default function PublicTripPage() {
                             {a.startTime} to {a.endTime} ({a.durationMinutes}m)
                           </span>
                           {a.estimatedCost ? (
-                            <span className="font-black text-xs text-[#18181B]">
-                              ~{a.estimatedCost} {a.currency || itinerary.currency}
+                            <span
+                              className="font-black text-xs text-[#18181B]"
+                              title="Engine estimate for this stop, not a booked price from the venue"
+                            >
+                              est. {a.estimatedCost} {a.currency || itinerary.currency}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold text-[#52525B]">INCLUDED</span>
+                            <span className="text-[10px] font-bold text-[#52525B]">COST NOT LISTED</span>
                           )}
                         </div>
 
@@ -675,6 +731,31 @@ export default function PublicTripPage() {
 
                         {/* Action Buttons */}
                         <div className="mt-3 flex flex-wrap items-center gap-2 print:hidden">
+                          {a.place?.websiteUrl && (
+                            <a
+                              href={a.place.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                              title="Opens the venue's own page"
+                            >
+                              <Globe className="w-3 h-3 text-[#E11D48]" />
+                              <span>Venue page</span>
+                              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                            </a>
+                          )}
+
+                          {a.place?.phoneNumber && (
+                            <a
+                              href={`tel:${String(a.place.phoneNumber).replace(/\s+/g, '')}`}
+                              className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                              title="Call the venue"
+                            >
+                              <Phone className="w-3 h-3 text-[#E11D48]" />
+                              <span>Call</span>
+                            </a>
+                          )}
+
                           <a
                             href={navUrl}
                             target="_blank"

@@ -541,6 +541,10 @@ function PlannerContent() {
               <span>{isGenerating ? 'Compiling Route...' : 'Lock In Route'}</span>
             </button>
 
+            <p className="text-[11px] font-medium text-[#52525B] text-center leading-relaxed">
+              Planning is free. No card, no fees, nothing to cancel.
+            </p>
+
             {errorMsg && (
               <div className="p-3 bg-red-50 border-2 border-red-500 rounded-lg text-red-900 text-xs font-bold flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
