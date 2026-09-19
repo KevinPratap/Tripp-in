@@ -27,7 +27,9 @@ import {
   Shuffle,
   Sparkles,
   Edit3,
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  History
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
@@ -36,6 +38,7 @@ import { saveTripToHistory } from '@/lib/saved-trips';
 import PackingDocket from '@/components/PackingDocket';
 import MyTripsModal from '@/components/MyTripsModal';
 import RefineRouteModal from '@/components/RefineRouteModal';
+import ReplanRouteModal from '@/components/ReplanRouteModal';
 import SwapActivityModal from '@/components/SwapActivityModal';
 
 // Dynamic import for Leaflet map to prevent SSR issues
@@ -65,6 +68,8 @@ export default function PublicTripPage() {
   const [showPackingDocket, setShowPackingDocket] = useState(false);
   const [showMyTrips, setShowMyTrips] = useState(false);
   const [showRefineModal, setShowRefineModal] = useState(false);
+  const [showReplanModal, setShowReplanModal] = useState(false);
+  const [availableVersions, setAvailableVersions] = useState<any[]>([]);
   const [swappingActivity, setSwappingActivity] = useState<{
     id: string;
     title: string;
@@ -73,10 +78,24 @@ export default function PublicTripPage() {
     endTime?: string;
   } | null>(null);
 
-  useEffect(() => {
-    if (!tripId) return;
+  const fetchVersions = (id: string) => {
+    fetch(`${API_BASE_URL}/api/v1/trips/${id}/versions`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => {
+        if (Array.isArray(list)) {
+          setAvailableVersions(list);
+        }
+      })
+      .catch(() => {});
+  };
 
-    fetch(`${API_BASE_URL}/api/v1/trips/${tripId}`)
+  const loadTrip = (version?: number) => {
+    if (!tripId) return;
+    const url = version
+      ? `${API_BASE_URL}/api/v1/trips/${tripId}?version=${version}`
+      : `${API_BASE_URL}/api/v1/trips/${tripId}`;
+
+    fetch(url)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Trip not found (HTTP ${res.status})`);
         return res.json();
@@ -88,6 +107,7 @@ export default function PublicTripPage() {
 
         if (unwrapped?.id) {
           saveTripToHistory(unwrapped);
+          fetchVersions(unwrapped.id);
         }
 
         if (unwrapped?.destinationName) {
@@ -104,6 +124,10 @@ export default function PublicTripPage() {
         setErrorMsg(err.message);
         setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadTrip();
   }, [tripId]);
 
   const handleCopyLink = () => {
@@ -186,11 +210,22 @@ export default function PublicTripPage() {
           <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               type="button"
+              onClick={() => setShowReplanModal(true)}
+              className="comic-btn-primary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#18181B] bg-[#E11D48] text-white hover:bg-[#be123c]"
+              title="One-Tap Replanning: Rain, Running Late, Tired, Budget"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Replan</span>
+              <span className="sm:hidden">Replan</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowRefineModal(true)}
-              className="comic-btn-primary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#18181B]"
+              className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
               title="Chat with AI Planner to adjust pace, swap meals, or re-route"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-[#E11D48]" />
               <span className="hidden sm:inline">Refine</span>
               <span>Route</span>
             </button>
@@ -278,13 +313,41 @@ export default function PublicTripPage() {
 
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-[#18181B] pb-6 relative z-10">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="comic-tag bg-[#E11D48] text-white">
                   {tripData.destinationName}
                 </span>
                 <span className="comic-tag bg-[#FAF8F5] text-[#18181B]">
                   ISSUE #{itinerary?.version || 1}
                 </span>
+                {availableVersions.length > 1 && (
+                  <div className="flex items-center gap-1.5 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg px-2 py-0.5 text-xs font-black">
+                    <History className="w-3.5 h-3.5 text-[#52525B]" />
+                    <span className="text-[#52525B] text-[10px] uppercase tracking-wider">
+                      History:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {availableVersions.map((v) => {
+                        const isCurrentDisplay = (itinerary?.version || 1) === v.version;
+                        return (
+                          <button
+                            key={v.version}
+                            type="button"
+                            onClick={() => loadTrip(v.version)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-colors ${
+                              isCurrentDisplay
+                                ? 'bg-[#18181B] text-white'
+                                : 'text-[#52525B] hover:bg-zinc-200'
+                            }`}
+                            title={`Load version ${v.version} (${v.status}${v.isCurrent ? ', Active' : ''})`}
+                          >
+                            v{v.version}{v.isCurrent ? ' [LIVE]' : ''}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               <h2 className="font-display font-black text-2xl sm:text-4xl uppercase tracking-tight text-[#18181B] mt-2">
                 {itinerary?.title || `Journey to ${tripData.destinationName}`}
@@ -660,6 +723,20 @@ export default function PublicTripPage() {
         destinationName={tripData?.destinationName || 'Destination'}
         onItineraryUpdated={(updated) => {
           setTripData((prev: any) => ({ ...prev, itinerary: updated }));
+        }}
+      />
+      <ReplanRouteModal
+        isOpen={showReplanModal}
+        onClose={() => setShowReplanModal(false)}
+        tripId={tripId}
+        destinationName={tripData?.destinationName || 'Destination'}
+        currentVersion={itinerary?.version || 1}
+        totalDays={days.length}
+        activeDayIndex={activeDayIndex}
+        onReplanComplete={(result) => {
+          if (result.newVersion) {
+            loadTrip(result.newVersion);
+          }
         }}
       />
       <SwapActivityModal

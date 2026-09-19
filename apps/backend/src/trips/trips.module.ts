@@ -6,6 +6,8 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { AIModule } from '../ai/ai.module';
 import { ItinerariesModule } from '../itineraries/itineraries.module';
 import { DestinationsModule } from '../destinations/destinations.module';
+import { EngineModule } from '../engine/engine.module';
+import { PlacesModule } from '../places/places.module';
 import { ConfigService } from '@nestjs/config';
 
 import { CollabController } from './collab.controller';
@@ -13,7 +15,7 @@ import { CollabService } from './collab.service';
 import { RedisService } from '../common/redis/redis.service';
 
 @Module({
-  imports: [AIModule, ItinerariesModule, DestinationsModule],
+  imports: [AIModule, ItinerariesModule, DestinationsModule, EngineModule, PlacesModule],
   controllers: [TripsController, HomeController, CollabController],
   providers: [TripsService, CollabService, PrismaService, RedisService, ConfigService],
   exports: [TripsService, CollabService]

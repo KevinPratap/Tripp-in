@@ -198,6 +198,49 @@ export class ItinerariesService {
     return itinerary ? this.mapToItineraryModel(itinerary) : null;
   }
 
+  async getItineraryByVersion(tripId: string, version: number): Promise<ItineraryModel | null> {
+    const itinerary = await this.prisma.itinerary.findFirst({
+      where: { tripId, version },
+      include: {
+        days: {
+          orderBy: { dayIndex: 'asc' },
+          include: {
+            activities: {
+              orderBy: { orderIndex: 'asc' },
+              include: { place: true }
+            }
+          }
+        }
+      }
+    });
+
+    return itinerary ? this.mapToItineraryModel(itinerary) : null;
+  }
+
+  async getAllVersions(tripId: string): Promise<Array<{ version: number; status: string; createdAt: string; title?: string; summary?: string; activitiesCount: number; isCurrent: boolean }>> {
+    const records = await this.prisma.itinerary.findMany({
+      where: { tripId },
+      orderBy: { version: 'desc' },
+      include: {
+        days: {
+          include: {
+            activities: true
+          }
+        }
+      }
+    });
+
+    return records.map((r) => ({
+      version: r.version,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      title: r.title || undefined,
+      summary: r.summary || undefined,
+      activitiesCount: r.days.reduce((acc, d) => acc + d.activities.length, 0),
+      isCurrent: r.isCurrent
+    }));
+  }
+
   private mapToItineraryModel(raw: any): ItineraryModel {
     return {
       id: raw.id,
