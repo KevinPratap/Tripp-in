@@ -252,9 +252,9 @@ export default function PublicTripPage() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
-              <h1 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight truncate max-w-xs sm:max-w-md">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B] shrink-0" />
+              <h1 className="font-display font-black text-lg sm:text-xl uppercase tracking-tight truncate">
                 Trip plan: {tripData.destinationName}
               </h1>
             </div>
