@@ -19,6 +19,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
+import { apiFetch } from '@/lib/api-client';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-011e.up.railway.app';
@@ -114,9 +115,8 @@ export default function TripCollabPage({
     });
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}/vote`, {
+      const res = await apiFetch(`/api/v1/trips/${tripId}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           activityId,
           voterName: voter,
@@ -142,9 +142,8 @@ export default function TripCollabPage({
     const voter = agentName.trim() || 'Companion';
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}/vote`, {
+      const res = await apiFetch(`/api/v1/trips/${tripId}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           activityId,
           voterName: voter,

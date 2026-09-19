@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keep a focused field clear of the sticky header on small screens */
+input,
+select,
+textarea {
+  scroll-margin-top: 5.5rem;
+}
+
+/* Leaflet's default zoom control is 30px square, below the 44px touch minimum */
+.leaflet-touch .leaflet-control-zoom-in,
+.leaflet-touch .leaflet-control-zoom-out,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 20px;
+}
+
 :root {
   /* Comic Red & Minimalist Palette */
   --color-primary: #E11D48;

@@ -114,7 +114,9 @@ export default function WebHomePage() {
 
             <p className="text-base sm:text-lg text-[#52525B] font-medium leading-relaxed max-w-xl">
               Most travel apps schedule impossible schedules and closed museums. Trippin&apos; checks
-              real physical walking times, live operating hours, and local weather before you take a single step.
+              real walking and transit times from OSRM, the opening hours venues publish on
+              OpenStreetMap, and the local forecast when one is available, before you take a single
+              step.
             </p>
 
             <div className="pt-2 flex flex-wrap items-center gap-4">
@@ -127,7 +129,7 @@ export default function WebHomePage() {
               </Link>
               <div className="flex items-center gap-2 text-xs font-bold text-[#52525B] px-3 py-2 border-2 border-[#18181B] rounded-lg bg-[#F4F2EE]">
                 <ShieldCheck className="w-4 h-4 text-[#E11D48]" />
-                <span>100% Conflict-Free Guarantee</span>
+                <span>Checked transit, hours, pace and budget</span>
               </div>
             </div>
           </div>

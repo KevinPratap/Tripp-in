@@ -22,6 +22,8 @@ import {
   ExternalLink,
   Check
 } from 'lucide-react';
+import { unwrapTripDetails } from '@/lib/trip-contract';
+import { apiFetch } from '@/lib/api-client';
 
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
   ssr: false,
@@ -94,9 +96,8 @@ function PlannerContent() {
 
     try {
       // 1. Create Trip
-      const createRes = await fetch(`${API_BASE_URL}/api/v1/trips`, {
+      const createRes = await apiFetch(`/api/v1/trips`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           destination,
           startDate,
@@ -118,7 +119,7 @@ function PlannerContent() {
       setStatusMessage('Querying venue hours and road matrix...');
 
       // 2. Trigger Generation
-      const genRes = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}/generate`, {
+      const genRes = await apiFetch(`/api/v1/trips/${tripId}/generate`, {
         method: 'POST'
       });
 
@@ -135,7 +136,7 @@ function PlannerContent() {
         await new Promise((r) => setTimeout(r, 2000));
         attempts++;
 
-        const statusRes = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}/status`);
+        const statusRes = await apiFetch(`/api/v1/trips/${tripId}/status`);
         if (!statusRes.ok) continue;
 
         const statusData = await statusRes.json();
@@ -157,13 +158,13 @@ function PlannerContent() {
       }
 
       // 4. Fetch Full Trip
-      const detailsRes = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}`);
+      const detailsRes = await apiFetch(`/api/v1/trips/${tripId}`);
       if (!detailsRes.ok) {
         throw new Error('Failed to load final itinerary');
       }
 
       const fullTrip = await detailsRes.json();
-      setTripData(fullTrip);
+      setTripData(unwrapTripDetails(fullTrip));
     } catch (err: any) {
       console.error('Route error:', err);
       setErrorMsg(err.message || 'Error occurred while computing route');
@@ -179,11 +180,10 @@ function PlannerContent() {
     setRefineFeedback(null);
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/v1/itineraries/${tripData.itinerary.id}/modify`,
+      const res = await apiFetch(
+        `/api/v1/itineraries/${tripData.itinerary.id}/modify`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instruction: refineInstruction })
         }
       );
@@ -260,7 +260,7 @@ function PlannerContent() {
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder="e.g. Tokyo, Japan"
-                  className="w-full h-12 pl-10 pr-4 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-sm text-[#18181B] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                  className="w-full h-12 pl-10 pr-4 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
                 />
               </div>
             </div>
@@ -276,7 +276,7 @@ function PlannerContent() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full h-11 px-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-xs text-[#18181B] focus:bg-white focus:outline-none"
+                  className="w-full h-12 px-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none"
                 />
               </div>
               <div>
@@ -288,7 +288,7 @@ function PlannerContent() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full h-11 px-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-xs text-[#18181B] focus:bg-white focus:outline-none"
+                  className="w-full h-12 px-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none"
                 />
               </div>
             </div>
@@ -299,19 +299,21 @@ function PlannerContent() {
                 <label className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
                   Party Size
                 </label>
-                <div className="flex items-center justify-between h-11 px-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg">
+                <div className="flex items-center justify-between h-12 px-1 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg">
                   <button
                     type="button"
+                    aria-label="Fewer travellers"
                     onClick={() => setTravelers(Math.max(1, travelers - 1))}
-                    className="font-black text-sm px-1.5 hover:text-[#E11D48]"
+                    className="h-11 w-11 flex items-center justify-center font-black text-base hover:text-[#E11D48]"
                   >
                     -
                   </button>
                   <span className="font-black text-xs uppercase">{travelers} Crew</span>
                   <button
                     type="button"
+                    aria-label="More travellers"
                     onClick={() => setTravelers(travelers + 1)}
-                    className="font-black text-sm px-1.5 hover:text-[#E11D48]"
+                    className="h-11 w-11 flex items-center justify-center font-black text-base hover:text-[#E11D48]"
                   >
                     +
                   </button>
@@ -329,7 +331,7 @@ function PlannerContent() {
                     type="number"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
-                    className="w-full h-11 pl-9 pr-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-xs text-[#18181B] focus:bg-white focus:outline-none"
+                    className="w-full h-12 pl-9 pr-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -350,7 +352,7 @@ function PlannerContent() {
                     key={p.key}
                     type="button"
                     onClick={() => setPace(p.key)}
-                    className={`h-10 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                    className={`h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
                       pace === p.key
                         ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B]'
                         : 'bg-[#FAF8F5] text-[#52525B] border-2 border-[#18181B] hover:bg-[#F4F2EE]'
@@ -381,7 +383,7 @@ function PlannerContent() {
                           setSelectedInterests([...selectedInterests, interest]);
                         }
                       }}
-                      className={`comic-tag rounded-xs transition-all ${
+                      className={`comic-tag rounded-xs transition-all min-h-11 px-3 inline-flex items-center ${
                         isSelected
                           ? 'bg-[#E11D48] text-white'
                           : 'bg-white text-[#52525B] hover:bg-[#F4F2EE]'
@@ -606,7 +608,7 @@ function PlannerContent() {
                     onChange={(e) => setRefineInstruction(e.target.value)}
                     placeholder="e.g. Swap day 2 afternoon for vintage shopping in Shibuya"
                     onKeyDown={(e) => e.key === 'Enter' && handleRefine()}
-                    className="flex-1 h-12 px-3.5 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-xs text-[#18181B] focus:bg-white focus:outline-none"
+                    className="flex-1 h-12 px-3.5 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-xs text-[#18181B] focus:bg-white focus:outline-none"
                   />
                   <button
                     type="button"

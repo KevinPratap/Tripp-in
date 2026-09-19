@@ -79,3 +79,38 @@ Open `apps/android` in Android Studio or build via Gradle:
 cd apps/android
 ./gradlew assembleDebug
 ```
+
+## 🔐 API behaviour clients must know
+
+**Writes need an identity, reads do not.** `GET` routes are open so a shared trip link works for anyone.
+`POST` routes (create trip, generate, modify, vote) require either an `Authorization: Bearer <token>` or an
+`X-Guest-Session: <any stable id>` header. The web app and the Android app both generate a random id on
+first run and send it on every request, which gives each browser and each install its own account instead of
+a shared demo user. Without a header a write returns `401`.
+
+**Opening hours are labelled.** `place.openingHoursEstimated` is `true` when the hours came from the venue
+category rather than a published source. The engine never rejects a schedule for a venue with estimated
+hours, and any UI should show them as an estimate rather than as fact.
+
+**Schedules are only `VERIFIED` when the engine passed them.** `itinerary.status` is `DRAFT` when validation
+found unresolved violations after the repair budget was spent. The deterministic generator runs as a
+fallback before that happens. Clients should render drafts with a visible warning instead of hiding them.
+
+**Rate limits.** 60 requests per minute per IP by default, 10 on trip creation, 5 on generation, 6 on
+modification, 30 on voting. Tunable with `RATE_LIMIT_PER_MINUTE`. Over the limit returns `429`.
+
+**Switches.** `CORS_ORIGINS` (comma separated, otherwise `*` without credentials), `SWAGGER_ENABLED=false`
+to turn `/api/docs` off in production, `AUTH_BYPASS_DEV=true` for local work without a session header.
+
+## ⚠️ Two traps in this folder name
+
+The project directory is `Tripp'in`, and the apostrophe breaks two toolchains:
+
+1. `pnpm backend:dev` (`nest start --watch`) dies with `Syntax error: Unterminated quoted string` because
+   Nest interpolates the path into a shell command. Run the compiled server instead:
+   `node apps/backend/dist/src/main.js`.
+2. Next.js metadata routes (`src/app/robots.ts`, `sitemap.ts`, `icon.svg`) fail the webpack build with
+   "Default export is missing". This repo keeps `robots.txt`, `sitemap.xml` and `favicon.svg` in
+   `apps/web/public/` instead, which also serves them faster from the CDN.
+
+Both disappear if the folder is renamed without the apostrophe, but nothing here depends on that.

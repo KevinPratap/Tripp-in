@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /planner
+Disallow: /trip/
+
+Sitemap: https://web-production-a9ec6.up.railway.app/sitemap.xml

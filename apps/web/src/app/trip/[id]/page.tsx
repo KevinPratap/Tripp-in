@@ -23,6 +23,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
+import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
 
 // Dynamic import for Leaflet map to prevent SSR issues
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
@@ -57,7 +58,7 @@ export default function PublicTripPage() {
         return res.json();
       })
       .then((data) => {
-        setTripData(data);
+        setTripData(unwrapTripDetails(data));
         setIsLoading(false);
       })
       .catch((err) => {
@@ -147,7 +148,7 @@ export default function PublicTripPage() {
           <div className="flex items-center gap-2 sm:gap-2.5">
             <Link
               href={`/trip/${tripId}/collab`}
-              className="comic-btn-secondary px-3 sm:px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
+              className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
             >
               <Users className="w-3.5 h-3.5 text-[#E11D48]" />
               <span className="hidden md:inline">Squad</span>
@@ -157,7 +158,7 @@ export default function PublicTripPage() {
             <button
               type="button"
               onClick={handleSyncCalendar}
-              className="comic-btn-secondary px-3 sm:px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
               title="Export verified schedule to Apple, Google, or Outlook Calendar (.ics)"
             >
               {calendarDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Calendar className="w-3.5 h-3.5 text-[#18181B]" />}
@@ -168,7 +169,7 @@ export default function PublicTripPage() {
             <button
               type="button"
               onClick={handleCopyLink}
-              className="comic-btn-secondary px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              className="comic-btn-secondary px-3 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
               title="Copy shareable trip link"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -178,7 +179,7 @@ export default function PublicTripPage() {
             <button
               type="button"
               onClick={handlePrint}
-              className="comic-btn-primary px-3 sm:px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+              className="comic-btn-primary px-3 sm:px-4 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
               title="Export high-contrast printable Comic Field Dossier PDF"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -229,7 +230,7 @@ export default function PublicTripPage() {
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Timeframe</span>
               <span className="truncate block font-black">
-                {new Date(tripData.startDate).toLocaleDateString()} &rarr; {new Date(tripData.endDate).toLocaleDateString()}
+                {formatDateRange(tripData.startDate, tripData.endDate)}
               </span>
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
@@ -249,6 +250,27 @@ export default function PublicTripPage() {
           </div>
         </section>
 
+        {/* Empty / in-progress state */}
+        {(!itinerary || days.length === 0) && (
+          <section className="comic-panel p-8 rounded-2xl bg-white text-center space-y-3">
+            <h2 className="font-display font-black text-xl uppercase tracking-tight text-[#18181B]">
+              {tripData.status === 'GENERATING' ? 'Route still computing' : 'No verified route yet'}
+            </h2>
+            <p className="text-xs text-[#52525B] max-w-md mx-auto">
+              {tripData.status === 'GENERATING'
+                ? 'The deterministic engine is checking opening hours, transit times and pace. Reload in a few seconds.'
+                : 'This trip has no verified itinerary. Start one from the planner and the engine will lock a schedule.'}
+            </p>
+            <Link
+              href={`/planner?destination=${encodeURIComponent(tripData.destinationName || '')}`}
+              className="comic-btn-primary px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider inline-flex items-center gap-2"
+            >
+              <Flame className="w-3.5 h-3.5" />
+              <span>Open the planner</span>
+            </Link>
+          </section>
+        )}
+
         {/* Interactive Route Map Radar */}
         {allActivities.length > 0 && (
           <section className="print:hidden">
@@ -264,7 +286,7 @@ export default function PublicTripPage() {
                 key={d.dayIndex}
                 type="button"
                 onClick={() => setActiveDayIndex(d.dayIndex)}
-                className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
+                className={`px-4 py-2 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
                   activeDayIndex === d.dayIndex
                     ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B]'
                     : 'bg-white text-[#18181B] border-2 border-[#18181B] hover:bg-[#FAF8F5]'
