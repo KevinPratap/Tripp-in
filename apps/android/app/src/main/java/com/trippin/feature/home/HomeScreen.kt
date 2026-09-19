@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
@@ -114,15 +115,22 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(ComicRed)
+                            .border(2.dp, ComicInk, CircleShape)
                             .clickable(onClick = onNavigateToProfile),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "AR",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = (homeFeed?.user?.displayName?.trim()
+                                ?.split(" ")
+                                ?.filter { it.isNotBlank() }
+                                ?.take(2)
+                                ?.map { it.first().uppercase() }
+                                ?.joinToString(""))
+                                ?.ifBlank { null } ?: "YOU",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = PureWhite
                         )
                     }
                 }
@@ -130,41 +138,59 @@ fun HomeScreen(
 
             // 2. AI Planner Hero Card (Primary CTA)
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateToPlanner() },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .offset(x = 5.dp, y = 5.dp)
+                            .background(ComicInk, RoundedCornerShape(14.dp))
                     )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToPlanner() },
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(2.dp, ComicInk),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "AI Travel Planner",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Generate a verified, physics-checked itinerary in seconds with routes and weather.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            FilledTonalButton(
-                                onClick = onNavigateToPlanner,
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = PureWhite,
-                                    contentColor = MaterialTheme.colorScheme.primary
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "AI Travel Planner",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
-                            ) {
-                                Text("Plan a Trip", fontWeight = FontWeight.SemiBold)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "Generate a verified, physics-checked itinerary in seconds with routes and weather.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Button(
+                                    onClick = onNavigateToPlanner,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(2.dp, ComicInk),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PureWhite,
+                                        contentColor = ComicRed
+                                    )
+                                ) {
+                                    Text(
+                                        "PLAN A TRIP",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         }
                     }
@@ -327,20 +353,37 @@ private fun QuickActionButton(
     label: String,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .width(100.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Box(modifier = Modifier.width(100.dp)) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(x = 3.dp, y = 3.dp)
+                .background(ComicInk, RoundedCornerShape(12.dp))
+        )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(2.dp, ComicInk),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    label.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
