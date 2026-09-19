@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItinerariesService } from '../itineraries/itineraries.service';
@@ -62,6 +62,15 @@ export class TripsService {
    * Create a new Trip in DRAFT status (POST /api/v1/trips)
    */
   async createTrip(userId: string, dto: CreateTripRequestDto): Promise<CreateTripResponse> {
+    const start = new Date(dto.startDate);
+    const end = new Date(dto.endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('startDate and endDate must be real dates (YYYY-MM-DD).');
+    }
+    if (end < start) {
+      throw new BadRequestException('endDate must be the same day or later than startDate.');
+    }
+
     const trip = await this.prisma.trip.create({
       data: {
         userId,
@@ -75,8 +84,7 @@ export class TripsService {
         pace: dto.pace || 'MODERATE',
         transportPreference: dto.transportPreference || 'MIXED',
         notes: dto.notes,
-        heroImageUrl:
-          'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800'
+        heroImageUrl: undefined
       }
     });
 

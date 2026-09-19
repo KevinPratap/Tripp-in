@@ -10,9 +10,27 @@
  */
 import { getMetadataStorage } from 'class-validator';
 import { VoteActivityDto } from '../../trips/collab.controller';
+import { CreateTripRequestDto } from '../../trips/dto/create-trip.dto';
 
 const DTO_FIELDS: Array<[any, string[]]> = [
-  [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']]
+  [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']],
+  [
+    CreateTripRequestDto,
+    [
+      'destination',
+      'startDate',
+      'endDate',
+      'travelersCount',
+      'budgetTotal',
+      'currency',
+      'travelStyles',
+      'interests',
+      'foodPreferences',
+      'transportPreference',
+      'pace',
+      'notes'
+    ]
+  ]
 ];
 
 describe('Request DTO validation metadata', () => {

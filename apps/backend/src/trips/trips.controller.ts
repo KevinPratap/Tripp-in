@@ -5,12 +5,12 @@ import { FirebaseAuthGuard, AuthenticatedUser } from '../common/guards/firebase-
 import { RateLimit } from '../common/guards/rate-limit.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
 import {
-  CreateTripRequestDto,
   CreateTripResponse,
   GenerateTripResponse,
   TripDetailsResponse,
   TripGenerationStatusResponse
 } from '@trippin/api-contracts';
+import { CreateTripRequestDto } from './dto/create-trip.dto';
 
 @ApiTags('Trips')
 @ApiBearerAuth()
