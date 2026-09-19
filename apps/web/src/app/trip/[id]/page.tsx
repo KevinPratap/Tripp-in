@@ -696,6 +696,41 @@ export default function PublicTripPage() {
                           {idx + 1}
                         </div>
 
+                        {(() => {
+                          const photo = a.place?.photoUrls?.[0];
+                          if (!photo) {
+                            return (
+                              <div className="mb-3 h-14 rounded-lg border-2 border-dashed border-[#18181B]/40 flex items-center justify-center px-3">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#52525B] text-center">
+                                  No verified photo of this place yet. We only show real photos.
+                                </span>
+                              </div>
+                            );
+                          }
+                          const isCommons = photo.includes('/wiki/Special:FilePath/');
+                          const creditHref = isCommons ? photo.replace('/wiki/Special:FilePath/', '/wiki/File:').split('?')[0] : photo;
+                          return (
+                            <figure className="mb-3">
+                              <img
+                                src={photo}
+                                alt={a.title || a.name || 'Venue photograph'}
+                                loading="lazy"
+                                className="w-full h-40 sm:h-48 object-cover rounded-lg border-2 border-[#18181B]"
+                              />
+                              <figcaption className="mt-1">
+                                <a
+                                  href={creditHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-bold uppercase tracking-wider text-[#52525B] underline decoration-dotted hover:text-[#E11D48]"
+                                >
+                                  {isCommons ? 'Photo: Wikimedia Commons' : 'Photo: Wikipedia'}
+                                </a>
+                              </figcaption>
+                            </figure>
+                          );
+                        })()}
+
                         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 text-xs mb-1">
                           <span className="font-black text-[#E11D48] flex items-center gap-1 text-sm">
                             <Clock className="w-3.5 h-3.5 text-[#18181B]" />
