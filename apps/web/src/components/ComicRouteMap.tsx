@@ -37,6 +37,22 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
+  // A stop with no coordinates cannot be plotted. It is listed under the map so the number of pins
+  // never quietly disagrees with the day's schedule.
+  const unlocated = activities
+    .map((a, idx) => {
+      const lat = a.place?.location?.latitude;
+      const lng = a.place?.location?.longitude;
+      const hasCoords =
+        typeof lat === 'number' &&
+        typeof lng === 'number' &&
+        !isNaN(lat) &&
+        !isNaN(lng) &&
+        (lat !== 0 || lng !== 0);
+      return { index: idx + 1, title: a.title, hasCoords };
+    })
+    .filter((stop) => !stop.hasCoords);
+
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -170,14 +186,14 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
                 display: inline-flex;
                 align-items: center;
                 gap: 4px;
-                margin-top: 8px;
-                min-height: 32px;
-                padding: 0 10px;
+                margin-top: 10px;
+                min-height: 44px;
+                padding: 0 14px;
                 background: #18181B;
                 color: #FFFFFF;
                 border: 2px solid #18181B;
                 border-radius: 6px;
-                font-size: 11px;
+                font-size: 12px;
                 font-weight: 900;
                 text-transform: uppercase;
                 letter-spacing: 0.04em;
@@ -226,6 +242,20 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
         </span>
       </div>
       <div ref={mapContainerRef} style={{ height }} className="w-full relative z-0" />
+      {unlocated.length > 0 && (
+        <div className="bg-[#FAF8F5] border-t-2 border-[#18181B] px-4 py-2 space-y-1">
+          {unlocated.map((stop) => (
+            <div key={stop.index} className="flex items-start gap-2">
+              <span className="w-5 h-5 shrink-0 bg-white border-2 border-[#18181B] text-[9px] font-black flex items-center justify-center mt-0.5">
+                {String(stop.index).padStart(2, '0')}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#52525B] leading-snug break-words">
+                {stop.title} - no coordinates published, not plotted
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="bg-[#FAF8F5] border-t-2 border-[#18181B] px-4 py-2">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#52525B]">
           Tap a numbered stop for its address and walking directions

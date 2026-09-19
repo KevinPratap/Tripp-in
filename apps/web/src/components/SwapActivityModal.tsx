@@ -38,6 +38,20 @@ interface PlaceResult {
   openingHoursEstimated?: boolean;
 }
 
+/** Does the rebuilt day actually contain the venue the traveller picked? */
+function dayContainsVenue(updatedItinerary: any, dayIndex: number, venueName: string): boolean {
+  const days = updatedItinerary?.days;
+  if (!Array.isArray(days)) return false;
+  const day = days.find((d: any) => d?.dayIndex === dayIndex) || days[0];
+  const activities = day?.activities || [];
+  const wanted = venueName.trim().toLowerCase();
+  return activities.some((a: any) =>
+    String(a?.title || a?.name || '')
+      .toLowerCase()
+      .includes(wanted)
+  );
+}
+
 /** The address usually repeats the venue name, so show the street part only. */
 function streetPart(place: PlaceResult): string {
   const address = place.formattedAddress || '';
@@ -61,6 +75,7 @@ export default function SwapActivityModal({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [substituted, setSubstituted] = useState<{ asked: string; landed: string[] } | null>(null);
   const requestRef = useRef(0);
 
   // Reset the search every time the modal opens for a new stop.
@@ -71,6 +86,7 @@ export default function SwapActivityModal({
     setSearchError(null);
     setErrorMsg(null);
     setSubmittingId(null);
+    setSubstituted(null);
   }, [isOpen, activity?.id]);
 
   // Live OpenStreetMap search, debounced. Nothing here is prefilled or invented: an empty
@@ -119,14 +135,25 @@ export default function SwapActivityModal({
 
   if (!isOpen || !activity) return null;
 
-  const handleSwap = async (choosenName: string, resultId?: string) => {
-    const targetVenue = choosenName.trim();
+  const handleSwap = async (chosenName: string, result?: PlaceResult) => {
+    const targetVenue = chosenName.trim();
     if (!targetVenue || submittingId) return;
 
-    setSubmittingId(resultId || 'manual');
+    setSubmittingId(result?.id || 'manual');
     setErrorMsg(null);
+    setSubstituted(null);
 
-    const prompt = `On Day ${activity.dayIndex}, replace "${activity.title}" with a visit to "${targetVenue}" in ${destinationName}. Keep the schedule conflict-free and physically reachable.`;
+    // Name the venue exactly and hand over its coordinates, so the planner is not guessing which
+    // place was meant. The engine may still refuse to use it, which is reported rather than hidden.
+    const where = result?.formattedAddress ? ` at ${result.formattedAddress}` : '';
+    const coords = result?.location
+      ? ` Its OpenStreetMap coordinates are ${result.location.latitude}, ${result.location.longitude}.`
+      : '';
+    const prompt =
+      `On Day ${activity.dayIndex}, replace "${activity.title}" with a visit to the exact venue ` +
+      `"${targetVenue}"${where} in ${destinationName}.${coords} Use that exact venue by name. ` +
+      `Do not substitute a different venue. If it cannot be used, leave the day as it is and say so. ` +
+      `Keep the schedule conflict-free and physically reachable.`;
 
     try {
       const res = await apiFetch(`/api/v1/itineraries/${itineraryId}/modify`, {
@@ -140,10 +167,24 @@ export default function SwapActivityModal({
       }
 
       const data = await res.json();
-      if (data.updatedItinerary) {
-        onItineraryUpdated(data.updatedItinerary);
+      const updated = data.updatedItinerary;
+      const applied = updated ? dayContainsVenue(updated, activity.dayIndex, targetVenue) : false;
+
+      if (updated) {
+        onItineraryUpdated(updated);
       }
-      onClose();
+
+      if (applied) {
+        onClose();
+        return;
+      }
+
+      // The engine rebuilt the day without the chosen venue. Say that plainly instead of closing
+      // the modal as if the swap succeeded.
+      const days = updated?.days || [];
+      const day = days.find((d: any) => d?.dayIndex === activity.dayIndex) || days[0];
+      const landed = (day?.activities || []).map((a: any) => a?.title || a?.name).filter(Boolean);
+      setSubstituted({ asked: targetVenue, landed });
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to swap activity. Try another venue.');
     } finally {
@@ -195,6 +236,23 @@ export default function SwapActivityModal({
           </div>
         )}
 
+        {substituted && (
+          <div className="bg-amber-50 border-2 border-[#18181B] rounded-lg p-3 space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">
+              Venue not used
+            </span>
+            <p className="text-xs font-bold text-[#18181B] leading-snug">
+              The engine rebuilt the day but did not include {substituted.asked}. The new version is
+              saved, and you can restore the previous one from the trip's version history.
+            </p>
+            {substituted.landed.length > 0 && (
+              <p className="text-[11px] text-[#52525B] font-medium leading-snug">
+                Day {activity.dayIndex} now holds: {substituted.landed.join(', ')}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Live OpenStreetMap search */}
         <div className="space-y-2">
           <label
@@ -243,7 +301,7 @@ export default function SwapActivityModal({
                     <button
                       type="button"
                       disabled={isBusy}
-                      onClick={() => handleSwap(place.name, place.id)}
+                      onClick={() => handleSwap(place.name, place)}
                       className="w-full min-h-11 text-left p-3 rounded-lg border-2 border-[#18181B] bg-white hover:bg-[#FAF8F5] flex items-start justify-between gap-3 shadow-[2px_2px_0px_#18181B] transition-all disabled:opacity-50"
                     >
                       <span className="flex-1 min-w-0">

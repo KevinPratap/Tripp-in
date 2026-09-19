@@ -50,6 +50,7 @@ function PlannerContent() {
 
   const [destination, setDestination] = useState(initialDest);
   const [originCity, setOriginCity] = useState('');
+  const [originResolved, setOriginResolved] = useState<boolean | null>(null);
   const [startDate, setStartDate] = useState('2026-11-10');
   const [endDate, setEndDate] = useState('2026-11-12');
   const [travelers, setTravelers] = useState(2);
@@ -107,6 +108,41 @@ function PlannerContent() {
     }
   }, [inferredCurrency, currencyTouched, currency]);
 
+  // Check the departure city against OpenStreetMap before it reaches the planner. An unresolvable
+  // city is dropped from the request and reported, rather than being sent as text the engine cannot
+  // act on. null means nothing to check yet.
+  useEffect(() => {
+    const term = originCity.trim();
+    if (term.length < 2) {
+      setOriginResolved(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiFetch(
+          `/api/v1/places/search?q=${encodeURIComponent(term)}`
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          setOriginResolved(null);
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        setOriginResolved(Array.isArray(data) && data.length > 0);
+      } catch {
+        if (!cancelled) setOriginResolved(null);
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [originCity]);
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     setErrorMsg(null);
@@ -122,7 +158,7 @@ function PlannerContent() {
         method: 'POST',
         body: JSON.stringify({
           destination,
-          originCity: originCity.trim() || undefined,
+          originCity: originResolved === false ? undefined : originCity.trim() || undefined,
           startDate,
           endDate,
           travelersCount: Number(travelers),
@@ -331,8 +367,11 @@ function PlannerContent() {
                 />
               </div>
               <p className="text-[11px] font-medium text-[#52525B] mt-1.5 leading-relaxed">
-                Arrival day is planned around the trip from here. It is also the start point of
-                your first day schedule.
+                {originResolved === false
+                  ? `We could not find "${originCity.trim()}" in OpenStreetMap, so the arrival day will be planned without it.`
+                  : originResolved === true
+                    ? 'Arrival day will be planned around the trip from here.'
+                    : 'Arrival day is planned around the trip from here. It is also the start point of your first day schedule.'}
               </p>
             </div>
 
