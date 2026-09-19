@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { TripsService } from './trips.service';
 import { FirebaseAuthGuard, AuthenticatedUser } from '../common/guards/firebase-auth.guard';
@@ -93,5 +93,15 @@ export class TripsController {
   @ApiOperation({ summary: 'Unlock trip itinerary to re-allow modifications and replanning' })
   async unlock(@Param('id') id: string) {
     return this.tripsService.unlockTrip(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Archive and delete a trip' })
+  async delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string
+  ) {
+    return this.tripsService.deleteTrip(id, user.id);
   }
 }

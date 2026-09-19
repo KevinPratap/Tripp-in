@@ -87,6 +87,27 @@ export default function TripCollabPage({
     }
 
     loadTripAndCollab();
+
+    const pollInterval = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      try {
+        const collabRes = await fetch(`${API_BASE_URL}/api/v1/trips/${tripId}/collab`);
+        if (collabRes.ok) {
+          const cData = await collabRes.json();
+          setCollabData(cData.activities || {});
+          if (cData.isLocked) {
+            setIsLocked(true);
+            setLockedAt(cData.lockedAt || null);
+          } else {
+            setIsLocked(false);
+          }
+        }
+      } catch {
+        // Silently ignore background polling failure
+      }
+    }, 6000);
+
+    return () => clearInterval(pollInterval);
   }, [tripId]);
 
   const handleToggleLock = async () => {
