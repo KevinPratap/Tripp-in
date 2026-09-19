@@ -507,18 +507,23 @@ export default function PublicTripPage() {
                   : 'The engine left one or more rules unresolved for this plan, so treat the times as a draft until it passes again.'}
               </p>
               {unresolvedChecks.length > 0 && (
-                <ul className="mt-2 space-y-1">
-                  {unresolvedChecks.slice(0, 6).map((c: any, i: number) => (
-                    <li key={i} className="text-[11px] font-bold text-[#52525B] leading-snug break-words">
-                      Day 0{c.day}, {c.stop}: {c.label}
-                    </li>
-                  ))}
-                  {unresolvedChecks.length > 6 && (
-                    <li className="text-[11px] font-black uppercase text-[#52525B]">
-                      and {unresolvedChecks.length - 6} more
-                    </li>
-                  )}
-                </ul>
+                <details className="mt-2">
+                  <summary className="cursor-pointer min-h-11 flex items-center text-[11px] font-black uppercase tracking-wider text-amber-900 select-none">
+                    Show the {unresolvedChecks.length} check{unresolvedChecks.length === 1 ? '' : 's'} that need attention
+                  </summary>
+                  <ul className="mt-1 space-y-1">
+                    {unresolvedChecks.slice(0, 6).map((c: any, i: number) => (
+                      <li key={i} className="text-[11px] font-bold text-[#52525B] leading-snug break-words">
+                        Day 0{c.day}, {c.stop}: {c.label}
+                      </li>
+                    ))}
+                    {unresolvedChecks.length > 6 && (
+                      <li className="text-[11px] font-black uppercase text-[#52525B]">
+                        and {unresolvedChecks.length - 6} more
+                      </li>
+                    )}
+                  </ul>
+                </details>
               )}
             </div>
           )}
@@ -542,7 +547,7 @@ export default function PublicTripPage() {
             </div>
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Pace</span>
-              <span className="font-black">{tripData.pace || 'MODERATE'}</span>
+              <span className="font-black capitalize">{tripData.pace || 'moderate'}</span>
             </div>
           </div>
         </section>
@@ -621,10 +626,10 @@ export default function PublicTripPage() {
                     <span className="w-3.5 h-3.5 bg-[#E11D48] border-2 border-[#18181B]" />
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-[#E11D48]">
-                        STAGE 0{d.dayIndex}
+                        Day {d.dayIndex}
                       </span>
                       <h3 className="font-display font-black text-xl uppercase tracking-tight text-[#18181B]">
-                        {d.themeSummary || 'Exploration Circuit'}
+                        {d.themeSummary || 'Your day'}
                       </h3>
                     </div>
                   </div>
