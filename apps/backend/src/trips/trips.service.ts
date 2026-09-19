@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItinerariesService } from '../itineraries/itineraries.service';
@@ -269,6 +269,8 @@ export class TripsService {
         ? itinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
         : 0,
       currentVersion: itinerary?.version || 1,
+      isLocked: Boolean(trip.isLocked || itinerary?.isLocked),
+      lockedAt: trip.lockedAt ? trip.lockedAt.toISOString() : (itinerary?.lockedAt ? itinerary.lockedAt : undefined),
       createdAt: trip.createdAt?.toISOString ? trip.createdAt.toISOString() : new Date().toISOString(),
       updatedAt: trip.updatedAt?.toISOString ? trip.updatedAt.toISOString() : new Date().toISOString()
     };
@@ -342,6 +344,12 @@ export class TripsService {
     const currentItinerary = trip.itineraries[0];
     if (!currentItinerary || currentItinerary.days.length === 0) {
       throw new BadRequestException(`Trip with id ${tripId} has no itinerary to replan`);
+    }
+
+    if (trip.isLocked || currentItinerary.isLocked) {
+      throw new ConflictException(
+        'This itinerary is locked by the trip organizer and cannot be replanned. Unlock it first.'
+      );
     }
 
     this.logger.log(
@@ -685,6 +693,8 @@ export class TripsService {
           endDate: t.endDate.toISOString().split('T')[0],
           travelersCount: t.travelersCount,
           status: t.status as TripStatus,
+          isLocked: Boolean(t.isLocked),
+          lockedAt: t.lockedAt ? t.lockedAt.toISOString() : undefined,
           heroImageUrl: t.heroImageUrl || undefined,
           totalActivitiesCount: activityCount,
           currentVersion: currentItinerary?.version || 1,
@@ -695,5 +705,63 @@ export class TripsService {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Locks the trip and active itinerary, preventing further modifications, replanning, and voting
+   */
+  async lockTrip(
+    tripId: string
+  ): Promise<{ success: boolean; tripId: string; isLocked: boolean; lockedAt: string }> {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException(`Trip ${tripId} not found`);
+
+    const now = new Date();
+    await this.prisma.trip.update({
+      where: { id: tripId },
+      data: { isLocked: true, lockedAt: now }
+    });
+
+    await this.prisma.itinerary.updateMany({
+      where: { tripId, isCurrent: true },
+      data: { isLocked: true, lockedAt: now }
+    });
+
+    this.logger.log(`Trip ${tripId} has been LOCKED by organizer.`);
+
+    return {
+      success: true,
+      tripId,
+      isLocked: true,
+      lockedAt: now.toISOString()
+    };
+  }
+
+  /**
+   * Unlocks the trip and active itinerary, re-enabling modifications and replanning
+   */
+  async unlockTrip(
+    tripId: string
+  ): Promise<{ success: boolean; tripId: string; isLocked: boolean }> {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException(`Trip ${tripId} not found`);
+
+    await this.prisma.trip.update({
+      where: { id: tripId },
+      data: { isLocked: false, lockedAt: null }
+    });
+
+    await this.prisma.itinerary.updateMany({
+      where: { tripId, isCurrent: true },
+      data: { isLocked: false, lockedAt: null }
+    });
+
+    this.logger.log(`Trip ${tripId} has been UNLOCKED by organizer.`);
+
+    return {
+      success: true,
+      tripId,
+      isLocked: false
+    };
   }
 }

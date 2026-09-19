@@ -82,4 +82,16 @@ export class TripsController {
   ) {
     return this.tripsService.replanTrip(id, dto);
   }
+
+  @Post(':id/lock')
+  @ApiOperation({ summary: 'Lock trip itinerary to finalize schedule and block further edits' })
+  async lock(@Param('id') id: string) {
+    return this.tripsService.lockTrip(id);
+  }
+
+  @Post(':id/unlock')
+  @ApiOperation({ summary: 'Unlock trip itinerary to re-allow modifications and replanning' })
+  async unlock(@Param('id') id: string) {
+    return this.tripsService.unlockTrip(id);
+  }
 }

@@ -16,7 +16,9 @@ import {
   Compass,
   AlertCircle,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { apiFetch } from '@/lib/api-client';
@@ -38,6 +40,9 @@ export default function TripCollabPage({
   const [isLoading, setIsLoading] = useState(true);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'voting' | 'ledger'>('voting');
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedAt, setLockedAt] = useState<string | null>(null);
+  const [lockActionLoading, setLockActionLoading] = useState(false);
 
   // Companion identity
   const [agentName, setAgentName] = useState('Agent Fox');
@@ -60,11 +65,19 @@ export default function TripCollabPage({
         if (tripRes.ok) {
           const tData = await tripRes.json();
           setTripData(tData);
+          if (tData.trip?.isLocked || tData.itinerary?.isLocked) {
+            setIsLocked(true);
+            setLockedAt(tData.trip?.lockedAt || tData.itinerary?.lockedAt || null);
+          }
         }
 
         if (collabRes.ok) {
           const cData = await collabRes.json();
           setCollabData(cData.activities || {});
+          if (cData.isLocked) {
+            setIsLocked(true);
+            setLockedAt(cData.lockedAt || null);
+          }
         }
       } catch (err) {
         console.error('Failed loading collab session:', err);
@@ -76,7 +89,25 @@ export default function TripCollabPage({
     loadTripAndCollab();
   }, [tripId]);
 
+  const handleToggleLock = async () => {
+    setLockActionLoading(true);
+    try {
+      const endpoint = isLocked ? `/api/v1/trips/${tripId}/unlock` : `/api/v1/trips/${tripId}/lock`;
+      const res = await apiFetch(endpoint, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setIsLocked(Boolean(data.isLocked));
+        setLockedAt(data.lockedAt || null);
+      }
+    } catch (err) {
+      console.error('Lock toggle error:', err);
+    } finally {
+      setLockActionLoading(false);
+    }
+  };
+
   const handleVote = async (activityId: string, voteValue: number) => {
+    if (isLocked) return;
     const voter = agentName.trim() || 'Companion';
     setSubmittingVote(activityId);
 
@@ -222,6 +253,18 @@ export default function TripCollabPage({
             </button>
 
             <button
+              onClick={handleToggleLock}
+              disabled={lockActionLoading}
+              className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase shadow-comic hover:-translate-y-0.5 transition-transform ${
+                isLocked ? 'bg-[#18181B] text-white' : 'bg-[#FAF8F5] text-[#18181B]'
+              }`}
+              title={isLocked ? 'Unlock schedule to resume voting' : 'Lock schedule to finalize decisions'}
+            >
+              {isLocked ? <Unlock className="w-3.5 h-3.5 text-[#E11D48]" /> : <Lock className="w-3.5 h-3.5 text-[#18181B]" />}
+              <span className="hidden sm:inline">{isLocked ? 'Unlock Plan' : 'Lock Plan'}</span>
+            </button>
+
+            <button
               onClick={() => downloadTripCalendar(trip, itinerary)}
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase bg-[#E11D48] text-white shadow-comic hover:-translate-y-0.5 transition-transform"
               title="Download RFC-5545 iCalendar (.ics)"
@@ -235,6 +278,33 @@ export default function TripCollabPage({
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 w-full">
+        {/* Plan Locked Notification Banner */}
+        {isLocked && (
+          <div className="mb-6 comic-panel bg-[#18181B] text-white rounded-2xl p-5 border-[2.5px] border-[#18181B] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[4px_4px_0px_#E11D48]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E11D48] flex items-center justify-center font-black shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="font-display font-black text-sm uppercase tracking-wide">
+                  DECISION FINALIZED: SCHEDULE LOCKED
+                </div>
+                <p className="text-xs text-zinc-300 font-medium mt-0.5">
+                  This itinerary has been locked by the group organizer. Voting, swaps, and route adjustments are frozen.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={lockActionLoading}
+              onClick={handleToggleLock}
+              className="comic-btn-secondary px-4 min-h-11 py-2 rounded-xl text-xs font-black uppercase bg-white text-[#18181B] hover:bg-zinc-100 whitespace-nowrap shrink-0"
+            >
+              {lockActionLoading ? 'Updating...' : 'Unlock Plan'}
+            </button>
+          </div>
+        )}
+
         {/* Companion Callout Banner */}
         <section className="comic-panel rounded-2xl p-5 mb-8 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-[2.5px] border-[#18181B]">
           <div className="space-y-1">
@@ -407,7 +477,13 @@ export default function TripCollabPage({
                     {/* Upvote */}
                     <button
                       onClick={() => handleVote(act.id, 1)}
-                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase transition-all shadow-comic hover:-translate-y-0.5 ${
+                      disabled={isLocked || submittingVote === act.id}
+                      title={isLocked ? 'Schedule is locked' : 'Vote up'}
+                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase transition-all shadow-comic ${
+                        isLocked
+                          ? 'opacity-50 cursor-not-allowed bg-zinc-100 text-zinc-500'
+                          : 'hover:-translate-y-0.5'
+                      } ${
                         userVote === 1
                           ? 'bg-[#10B981] text-white'
                           : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
@@ -420,7 +496,13 @@ export default function TripCollabPage({
                     {/* Downvote */}
                     <button
                       onClick={() => handleVote(act.id, -1)}
-                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase transition-all shadow-comic hover:-translate-y-0.5 ${
+                      disabled={isLocked || submittingVote === act.id}
+                      title={isLocked ? 'Schedule is locked' : 'Vote down'}
+                      className={`inline-flex items-center space-x-1.5 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-black uppercase transition-all shadow-comic ${
+                        isLocked
+                          ? 'opacity-50 cursor-not-allowed bg-zinc-100 text-zinc-500'
+                          : 'hover:-translate-y-0.5'
+                      } ${
                         userVote === -1
                           ? 'bg-[#E11D48] text-white'
                           : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
@@ -457,17 +539,22 @@ export default function TripCollabPage({
                   <div className="flex items-center space-x-2 pt-1">
                     <input
                       type="text"
-                      placeholder={`Suggest swap or note for ${act.title}...`}
+                      disabled={isLocked}
+                      placeholder={
+                        isLocked
+                          ? 'Schedule is locked by organizer'
+                          : `Suggest swap or note for ${act.title}...`
+                      }
                       value={commentDraft}
                       onChange={(e) =>
                         setCommentDrafts((prev) => ({ ...prev, [act.id]: e.target.value }))
                       }
                       onKeyDown={(e) => e.key === 'Enter' && handleAddComment(act.id)}
-                      className="flex-1 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-medium focus:outline-none focus:border-[#E11D48] bg-white"
+                      className="flex-1 px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl text-xs font-medium focus:outline-none focus:border-[#E11D48] bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed"
                     />
                     <button
                       onClick={() => handleAddComment(act.id)}
-                      disabled={!commentDraft.trim()}
+                      disabled={isLocked || !commentDraft.trim()}
                       className="px-3 py-1.5 border-[2px] border-[#18181B] rounded-xl bg-[#18181B] text-white text-xs font-black uppercase disabled:opacity-40 hover:bg-[#E11D48] transition-colors"
                     >
                       <Send className="w-3.5 h-3.5" />
