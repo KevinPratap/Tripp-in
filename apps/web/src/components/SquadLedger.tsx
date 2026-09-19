@@ -65,7 +65,9 @@ export default function SquadLedger({
 
   const fetchExpenses = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/v1/trips/${tripId}/expenses`);
+      const res = await fetch(`${apiUrl}/api/v1/trips/${tripId}/expenses`, {
+        headers: { 'x-guest-session': 'squad-companion' },
+      });
       if (res.ok) {
         const data = await res.json();
         setExpenses(data.expenses || []);
@@ -89,7 +91,10 @@ export default function SquadLedger({
     try {
       const res = await fetch(`${apiUrl}/api/v1/trips/${tripId}/expenses`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-guest-session': 'squad-companion',
+        },
         body: JSON.stringify({
           title: title.trim(),
           amount: numAmount,

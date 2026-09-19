@@ -11,7 +11,7 @@ import {
   BadRequestException
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MinLength, IsNumber, IsArray } from 'class-validator';
 import { Response } from 'express';
 import {
   CollabService,
@@ -27,6 +27,7 @@ export class AddExpenseDto {
   @MinLength(2)
   title!: string;
 
+  @IsNumber()
   amount!: number;
 
   @IsOptional()
@@ -38,6 +39,7 @@ export class AddExpenseDto {
   paidBy!: string;
 
   @IsOptional()
+  @IsArray()
   splitBetween?: string[];
 }
 
