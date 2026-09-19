@@ -20,10 +20,14 @@ import {
   Flame,
   AlertCircle,
   Download,
-  MessageSquare
+  MessageSquare,
+  Luggage,
+  CloudRain
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
+import { fetchTripWeather, DayWeather } from '@/lib/weather-service';
+import PackingDocket from '@/components/PackingDocket';
 
 // Dynamic import for Leaflet map to prevent SSR issues
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
@@ -48,6 +52,8 @@ export default function PublicTripPage() {
   const [copied, setCopied] = useState(false);
   const [calendarDownloaded, setCalendarDownloaded] = useState(false);
   const [activeDayIndex, setActiveDayIndex] = useState(1);
+  const [weatherList, setWeatherList] = useState<DayWeather[]>([]);
+  const [showPackingDocket, setShowPackingDocket] = useState(false);
 
   useEffect(() => {
     if (!tripId) return;
@@ -58,8 +64,15 @@ export default function PublicTripPage() {
         return res.json();
       })
       .then((data) => {
-        setTripData(unwrapTripDetails(data));
+        const unwrapped = unwrapTripDetails(data);
+        setTripData(unwrapped);
         setIsLoading(false);
+
+        if (unwrapped?.destinationName) {
+          fetchTripWeather(unwrapped.destinationName)
+            .then((forecast) => setWeatherList(forecast))
+            .catch(() => {});
+        }
       })
       .catch((err) => {
         console.error('Fetch error:', err);
@@ -157,6 +170,19 @@ export default function PublicTripPage() {
 
             <button
               type="button"
+              onClick={() => setShowPackingDocket(!showPackingDocket)}
+              className={`comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors ${
+                showPackingDocket ? 'bg-[#18181B] text-white border-[#18181B]' : 'hover:border-[#E11D48]'
+              }`}
+              title="Toggle Dynamic Field Packing Kit Checklist"
+            >
+              <Luggage className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Field Kit</span>
+              <span className="md:hidden">Kit</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleSyncCalendar}
               className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
               title="Export verified schedule to Apple, Google, or Outlook Calendar (.ics)"
@@ -250,6 +276,17 @@ export default function PublicTripPage() {
           </div>
         </section>
 
+        {/* Dynamic Field Packing Kit Docket */}
+        {showPackingDocket && (
+          <section className="print:hidden">
+            <PackingDocket
+              tripId={tripId}
+              destination={tripData.destinationName || 'Destination'}
+              isRainy={weatherList.some((w) => w.isRainy)}
+            />
+          </section>
+        )}
+
         {/* Empty / in-progress state */}
         {(!itinerary || days.length === 0) && (
           <section className="comic-panel p-8 rounded-2xl bg-white text-center space-y-3">
@@ -319,12 +356,51 @@ export default function PublicTripPage() {
                       </h3>
                     </div>
                   </div>
-                  {d.weatherSummary && (
-                    <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[10px]">
-                      {d.weatherSummary}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const dayWeather = weatherList[d.dayIndex - 1] || weatherList[0];
+                      if (!dayWeather) return null;
+                      return (
+                        <span
+                          className={`comic-tag text-[10px] font-black border-2 border-[#18181B] ${
+                            dayWeather.isRainy
+                              ? 'bg-amber-100 text-amber-950 border-amber-900'
+                              : 'bg-[#FAF8F5] text-[#18181B]'
+                          }`}
+                        >
+                          {dayWeather.condition} · {dayWeather.tempMax}° / {dayWeather.tempMin}°C
+                        </span>
+                      );
+                    })()}
+
+                    {d.weatherSummary && (
+                      <span className="comic-tag bg-[#FAF8F5] text-[#18181B] text-[10px] hidden sm:inline-block">
+                        {d.weatherSummary}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Rain Contingency Warning */}
+                {(() => {
+                  const dayWeather = weatherList[d.dayIndex - 1] || weatherList[0];
+                  if (dayWeather && dayWeather.isRainy) {
+                    return (
+                      <div className="bg-amber-50 border-2 border-[#18181B] rounded-xl p-3 flex items-start gap-2 text-xs font-bold text-amber-900 shadow-[2px_2px_0px_#18181B] print:hidden">
+                        <CloudRain className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-black uppercase tracking-wider block text-[11px]">
+                            Rain Contingency Radar ({dayWeather.precipitationProbability}% chance)
+                          </span>
+                          <span className="text-[11px] font-medium">
+                            {dayWeather.advisoryNote || 'Precipitation expected. Carry rain gear or consider covered museum circuits.'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Timeline Stops */}
                 <div className="space-y-6 pl-2">

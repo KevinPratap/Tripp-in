@@ -13,9 +13,33 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { Response } from 'express';
-import { CollabService, TripCollabResponse } from './collab.service';
+import {
+  CollabService,
+  TripCollabResponse,
+  ExpenseOverview,
+  TripExpense
+} from './collab.service';
 import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
 import { RateLimit } from '../common/guards/rate-limit.guard';
+
+export class AddExpenseDto {
+  @IsString()
+  @MinLength(2)
+  title!: string;
+
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsString()
+  @MinLength(1)
+  paidBy!: string;
+
+  @IsOptional()
+  splitBetween?: string[];
+}
 
 /**
  * Decorated on purpose: the global ValidationPipe runs with whitelist: true, so a
@@ -92,4 +116,39 @@ export class CollabController {
     );
     res.status(HttpStatus.OK).send(icsContent);
   }
+
+  @Get(':id/expenses')
+  @ApiOperation({ summary: 'Retrieve expense ledger and debt settlement plan for a trip' })
+  @ApiResponse({ status: 200, description: 'Expense overview with simplified settlements' })
+  async getExpenses(@Param('id') tripId: string): Promise<ExpenseOverview> {
+    return this.collabService.getExpenses(tripId);
+  }
+
+  @Post(':id/expenses')
+  @RateLimit({ limit: 30, windowMs: 60000 })
+  @ApiOperation({ summary: 'Log a new group expense and update debt settlements' })
+  @ApiResponse({ status: 201, description: 'Updated expense overview' })
+  async addExpense(
+    @Param('id') tripId: string,
+    @Body() dto: AddExpenseDto
+  ): Promise<ExpenseOverview> {
+    if (!dto.title || dto.title.trim().length === 0) {
+      throw new BadRequestException('Expense title is required');
+    }
+    if (typeof dto.amount !== 'number' || dto.amount <= 0) {
+      throw new BadRequestException('Expense amount must be greater than 0');
+    }
+    if (!dto.paidBy || dto.paidBy.trim().length === 0) {
+      throw new BadRequestException('Payer identity (paidBy) is required');
+    }
+
+    return this.collabService.addExpense(tripId, {
+      title: dto.title,
+      amount: dto.amount,
+      currency: dto.currency,
+      paidBy: dto.paidBy,
+      splitBetween: dto.splitBetween,
+    });
+  }
 }
+

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { apiFetch } from '@/lib/api-client';
+import SquadLedger from '@/components/SquadLedger';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://backend-production-011e.up.railway.app';
@@ -36,6 +37,7 @@ export default function TripCollabPage({
   const [collabData, setCollabData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<'voting' | 'ledger'>('voting');
 
   // Companion identity
   const [agentName, setAgentName] = useState('Agent Fox');
@@ -185,6 +187,7 @@ export default function TripCollabPage({
   const itinerary = tripData?.itinerary;
   const days = itinerary?.days || [];
   const currentDay = days[activeDayIndex] || days[0];
+  const allActivities = days.flatMap((d: any) => d.activities || []);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#18181B] flex flex-col selection:bg-[#E11D48] selection:text-white pb-20">
@@ -270,9 +273,44 @@ export default function TripCollabPage({
           </div>
         </section>
 
-        {/* Day Switcher Tabs */}
-        {days.length > 0 && (
-          <nav className="flex space-x-2 overflow-x-auto pb-3 mb-6 no-scrollbar" aria-label="Trip Days">
+        {/* Mode Switcher Tabs */}
+        <nav className="flex items-center gap-2 mb-6 border-b-2 border-[#18181B] pb-3" aria-label="Collab View Modes">
+          <button
+            type="button"
+            onClick={() => setActiveTab('voting')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 border-[#18181B] transition-all ${
+              activeTab === 'voting'
+                ? 'bg-[#E11D48] text-white shadow-[2px_2px_0px_#18181B]'
+                : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
+            }`}
+          >
+            🗳️ Activity Voting ({allActivities.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ledger')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 border-[#18181B] transition-all ${
+              activeTab === 'ledger'
+                ? 'bg-[#E11D48] text-white shadow-[2px_2px_0px_#18181B]'
+                : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
+            }`}
+          >
+            🧾 Squad Expense Splitter
+          </button>
+        </nav>
+
+        {activeTab === 'ledger' ? (
+          <SquadLedger
+            tripId={tripId}
+            defaultCurrency={trip?.currency || 'USD'}
+            currentMember={agentName}
+            apiUrl={API_BASE_URL}
+          />
+        ) : (
+          <>
+            {/* Day Switcher Tabs */}
+            {days.length > 0 && (
+              <nav className="flex space-x-2 overflow-x-auto pb-3 mb-6 no-scrollbar" aria-label="Trip Days">
             {days.map((day: any, idx: number) => {
               const isActive = activeDayIndex === idx;
               return (
@@ -440,6 +478,8 @@ export default function TripCollabPage({
             );
           })}
         </section>
+        </>
+        )}
 
         {/* Footer actions */}
         <div className="mt-12 pt-6 border-t-[2.5px] border-[#18181B] flex flex-col sm:flex-row items-center justify-between gap-4">

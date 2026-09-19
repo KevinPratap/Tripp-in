@@ -86,6 +86,25 @@ fun ItineraryScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "Join our $destinationName squad collab & vote on activities: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
+                            )
+                            type = "text/plain"
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, "Invite Squad to Tripp'in"))
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Invite Squad", tint = ComicRed)
+                    }
+                    IconButton(onClick = {
+                        val calIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://backend-production-011e.up.railway.app/api/v1/trips/$tripId/calendar.ics"))
+                        context.startActivity(calIntent)
+                    }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = "Sync Calendar")
+                    }
                     IconButton(onClick = { onOpenMap(tripId) }) {
                         Icon(Icons.Default.Map, contentDescription = "Map")
                     }

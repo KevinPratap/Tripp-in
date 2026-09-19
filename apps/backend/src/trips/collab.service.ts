@@ -22,11 +22,37 @@ export interface TripCollabResponse {
   activities: Record<string, ActivityCollabData>;
 }
 
+export interface TripExpense {
+  id: string;
+  title: string;
+  amount: number;
+  currency: string;
+  paidBy: string;
+  splitBetween: string[];
+  createdAt: string;
+}
+
+export interface DebtSettlement {
+  from: string;
+  to: string;
+  amount: number;
+  currency: string;
+}
+
+export interface ExpenseOverview {
+  tripId: string;
+  expenses: TripExpense[];
+  totalSpent: number;
+  currency: string;
+  settlements: DebtSettlement[];
+}
+
 @Injectable()
 export class CollabService {
   private readonly logger = new Logger(CollabService.name);
   // In-memory fallback if Redis is offline
   private readonly inMemoryCollab = new Map<string, Record<string, ActivityCollabData>>();
+  private readonly inMemoryExpenses = new Map<string, TripExpense[]>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -183,4 +209,140 @@ export class CollabService {
       'END:VCALENDAR'
     ].join('\r\n');
   }
+
+  /**
+   * Records a new group expense for a trip and recalculates debt settlements.
+   */
+  async addExpense(
+    tripId: string,
+    expenseData: {
+      title: string;
+      amount: number;
+      currency?: string;
+      paidBy: string;
+      splitBetween?: string[];
+    }
+  ): Promise<ExpenseOverview> {
+    const expenses = await this.getRawExpenses(tripId);
+    const newExpense: TripExpense = {
+      id: Math.random().toString(36).substring(2, 10),
+      title: expenseData.title.trim(),
+      amount: Math.max(0, expenseData.amount),
+      currency: (expenseData.currency || 'USD').toUpperCase(),
+      paidBy: expenseData.paidBy.trim(),
+      splitBetween: (expenseData.splitBetween && expenseData.splitBetween.length > 0)
+        ? expenseData.splitBetween.map((s) => s.trim())
+        : [expenseData.paidBy.trim()],
+      createdAt: new Date().toISOString(),
+    };
+
+    expenses.unshift(newExpense);
+    await this.saveExpenses(tripId, expenses);
+    return this.buildExpenseOverview(tripId, expenses);
+  }
+
+  /**
+   * Retrieves the current expense ledger and simplified debt settlements.
+   */
+  async getExpenses(tripId: string): Promise<ExpenseOverview> {
+    const expenses = await this.getRawExpenses(tripId);
+    return this.buildExpenseOverview(tripId, expenses);
+  }
+
+  private async getRawExpenses(tripId: string): Promise<TripExpense[]> {
+    const cacheKey = `trip:expenses:${tripId}`;
+    const cached = await this.redis.get<TripExpense[]>(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      return cached;
+    }
+    return this.inMemoryExpenses.get(tripId) || [];
+  }
+
+  private async saveExpenses(tripId: string, expenses: TripExpense[]): Promise<void> {
+    const cacheKey = `trip:expenses:${tripId}`;
+    this.inMemoryExpenses.set(tripId, expenses);
+    try {
+      await this.redis.set(cacheKey, expenses, 60 * 60 * 24 * 30); // 30-day retention
+    } catch {
+      // In-memory fallback
+    }
+  }
+
+  private buildExpenseOverview(tripId: string, expenses: TripExpense[]): ExpenseOverview {
+    const defaultCurrency = expenses[0]?.currency || 'USD';
+    const totalSpent = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+    const settlements = this.calculateSettlements(expenses, defaultCurrency);
+
+    return {
+      tripId,
+      expenses,
+      totalSpent: Math.round(totalSpent * 100) / 100,
+      currency: defaultCurrency,
+      settlements,
+    };
+  }
+
+  /**
+   * Greedy debt minimization algorithm: reduces N-way group debts to the minimum transactions.
+   */
+  private calculateSettlements(expenses: TripExpense[], currency: string): DebtSettlement[] {
+    const netBalances: Record<string, number> = {};
+
+    for (const exp of expenses) {
+      const splitList = exp.splitBetween.length > 0 ? exp.splitBetween : [exp.paidBy];
+      const perPersonShare = exp.amount / splitList.length;
+
+      // Payer gets credit
+      netBalances[exp.paidBy] = (netBalances[exp.paidBy] || 0) + exp.amount;
+
+      // Each beneficiary owes their share
+      for (const person of splitList) {
+        netBalances[person] = (netBalances[person] || 0) - perPersonShare;
+      }
+    }
+
+    const creditors: { name: string; amount: number }[] = [];
+    const debtors: { name: string; amount: number }[] = [];
+
+    for (const [person, balance] of Object.entries(netBalances)) {
+      const rounded = Math.round(balance * 100) / 100;
+      if (rounded > 0.01) {
+        creditors.push({ name: person, amount: rounded });
+      } else if (rounded < -0.01) {
+        debtors.push({ name: person, amount: -rounded });
+      }
+    }
+
+    // Sort descending
+    creditors.sort((a, b) => b.amount - a.amount);
+    debtors.sort((a, b) => b.amount - a.amount);
+
+    const settlements: DebtSettlement[] = [];
+    let i = 0;
+    let j = 0;
+
+    while (i < debtors.length && j < creditors.length) {
+      const debtor = debtors[i];
+      const creditor = creditors[j];
+      const settledAmount = Math.min(debtor.amount, creditor.amount);
+
+      if (settledAmount > 0.01) {
+        settlements.push({
+          from: debtor.name,
+          to: creditor.name,
+          amount: Math.round(settledAmount * 100) / 100,
+          currency,
+        });
+      }
+
+      debtor.amount -= settledAmount;
+      creditor.amount -= settledAmount;
+
+      if (debtor.amount <= 0.01) i++;
+      if (creditor.amount <= 0.01) j++;
+    }
+
+    return settlements;
+  }
 }
+

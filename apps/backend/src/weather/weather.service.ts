@@ -1,123 +1,142 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WeatherDayForecast, WeatherCondition } from '@trippin/shared-types';
-import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
 export class WeatherService {
   private readonly logger = new Logger(WeatherService.name);
+  private readonly cache = new Map<string, { data: WeatherDayForecast[]; expiresAt: number }>();
+  private readonly CACHE_TTL_MS = 60 * 60 * 1000; // 1-hour in-memory cache
 
-  constructor(private readonly redis: RedisService) {}
-
-  async getForecast(destination: string, daysCount = 5): Promise<WeatherDayForecast[]> {
-    const cacheKey = `weather:forecast:${destination.toLowerCase()}:${daysCount}`;
-    const cached = await this.redis.get<WeatherDayForecast[]>(cacheKey);
-    if (cached) return cached;
-
-    // 1. Try Live Open-Meteo API (100% Free, No API Key Required)
+  /**
+   * Main forecast method called by AIPlannerService: takes destination name or coordinates.
+   */
+  async getForecast(destination: string, days = 5): Promise<WeatherDayForecast[]> {
     try {
-      const liveForecast = await this.fetchOpenMeteoForecast(destination, daysCount);
-      if (liveForecast && liveForecast.length > 0) {
-        await this.redis.set(cacheKey, liveForecast, 3600 * 6); // 6 hours cache
-        return liveForecast;
-      }
-    } catch (err) {
-      this.logger.debug(`Open-Meteo live fetch failed for ${destination}: ${(err as Error).message}. Falling back to deterministic model.`);
+      // 1. Geocode destination using free OpenStreetMap Photon geocoder
+      const coords = await this.geocodeDestination(destination);
+      return await this.getForecastByCoords(coords.lat, coords.lng, days);
+    } catch (error: any) {
+      this.logger.warn(`Could not geocode destination "${destination}" for weather: ${error.message}`);
+      return this.getFallbackForecast(days);
+    }
+  }
+
+  /**
+   * Fetches real-time daily forecast from Open-Meteo API (100% Free, no API key).
+   */
+  async getForecastByCoords(lat: number, lng: number, days = 7): Promise<WeatherDayForecast[]> {
+    const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${days}`;
+    const cached = this.cache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
     }
 
-    // 2. Deterministic mock forecast generator for destinations (Offline fallback)
-    const forecast: WeatherDayForecast[] = [];
-    const today = new Date();
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Open-Meteo HTTP ${res.status}`);
+      }
 
-    for (let i = 0; i < daysCount; i++) {
+      const json = await res.json();
+      const daily = json?.daily;
+
+      if (!daily || !daily.time) {
+        return this.getFallbackForecast(days);
+      }
+
+      const forecasts: WeatherDayForecast[] = daily.time.slice(0, days).map((date: string, i: number) => {
+        const code = daily.weather_code[i] ?? 0;
+        const precipProb = daily.precipitation_probability_max[i] ?? 0;
+        const tMax = Math.round(daily.temperature_2m_max[i] ?? 22);
+        const tMin = Math.round(daily.temperature_2m_min[i] ?? 15);
+        const condition = this.mapWmoToCondition(code);
+
+        let advisoryNote: string | undefined;
+        if (precipProb >= 60 || condition === 'RAIN') {
+          advisoryNote = 'Rain alert: Plan indoor activities or pack an umbrella';
+        } else if (condition === 'THUNDERSTORM') {
+          advisoryNote = 'Severe weather warning: Postpone outdoor exploration';
+        }
+
+        return {
+          date,
+          temperatureCelsius: Math.round((tMax + tMin) / 2),
+          temperatureMinCelsius: tMin,
+          temperatureMaxCelsius: tMax,
+          condition,
+          precipitationProbability: precipProb,
+          windSpeedKmh: Math.round(daily.wind_speed_10m_max[i] ?? 10),
+          iconCode: this.getIconCode(condition),
+          advisoryNote,
+        };
+      });
+
+      this.cache.set(cacheKey, { data: forecasts, expiresAt: Date.now() + this.CACHE_TTL_MS });
+      return forecasts;
+    } catch (err: any) {
+      this.logger.warn(`Open-Meteo request failed for (${lat}, ${lng}): ${err.message}`);
+      return this.getFallbackForecast(days);
+    }
+  }
+
+  private async geocodeDestination(destination: string): Promise<{ lat: number; lng: number }> {
+    const encoded = encodeURIComponent(destination.trim());
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encoded}&limit=1`, {
+      headers: { 'User-Agent': 'TrippinAI/1.0' },
+    });
+    if (!res.ok) throw new Error(`Photon HTTP ${res.status}`);
+    const data = await res.json();
+    const first = data?.features?.[0];
+    if (!first?.geometry?.coordinates) {
+      // Default to Tokyo coordinates if unresolved
+      return { lat: 35.6762, lng: 139.6503 };
+    }
+    const [lng, lat] = first.geometry.coordinates;
+    return { lat, lng };
+  }
+
+  private mapWmoToCondition(code: number): WeatherCondition {
+    if (code === 0) return 'SUNNY';
+    if (code === 1 || code === 2) return 'PARTLY_CLOUDY';
+    if (code === 3) return 'CLOUDY';
+    if (code >= 51 && code <= 67) return 'RAIN';
+    if (code >= 71 && code <= 77) return 'SNOW';
+    if (code >= 80 && code <= 82) return 'HEAVY_RAIN';
+    if (code >= 95) return 'THUNDERSTORM';
+    return 'CLOUDY';
+  }
+
+  private getIconCode(condition: WeatherCondition): string {
+    switch (condition) {
+      case 'SUNNY': return '01d';
+      case 'PARTLY_CLOUDY': return '02d';
+      case 'CLOUDY': return '03d';
+      case 'RAIN': return '10d';
+      case 'HEAVY_RAIN': return '09d';
+      case 'SNOW': return '13d';
+      case 'THUNDERSTORM': return '11d';
+      case 'WINDY': return '50d';
+      default: return '02d';
+    }
+  }
+
+  private getFallbackForecast(days: number): WeatherDayForecast[] {
+    const today = new Date();
+    return Array.from({ length: days }, (_, i) => {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
-
-      const condition: WeatherCondition =
-        i === 1 && destination.toLowerCase().includes('london')
-          ? 'RAIN'
-          : i === 2
-          ? 'PARTLY_CLOUDY'
-          : 'SUNNY';
-
-      forecast.push({
-        date: dateStr,
-        temperatureCelsius: 19 + (i % 3),
-        temperatureMinCelsius: 14 + (i % 2),
-        temperatureMaxCelsius: 23 + (i % 3),
-        condition,
-        precipitationProbability: condition === 'RAIN' ? 75 : 10,
-        windSpeedKmh: 12.0 + i,
-        advisoryNote:
-          condition === 'RAIN'
-            ? 'Rain expected: Recommend indoor museums & covered galleries'
-            : 'Mild conditions, great for walking and outdoor landmarks'
-      });
-    }
-
-    await this.redis.set(cacheKey, forecast, 3600 * 6); // 6 hours cache
-    return forecast;
-  }
-
-  private async fetchOpenMeteoForecast(destination: string, daysCount: number): Promise<WeatherDayForecast[] | null> {
-    // Step 1: Free Open-Meteo geocoding
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`;
-    const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(3000) });
-    if (!geoRes.ok) return null;
-
-    const geoData = await geoRes.json();
-    const match = geoData.results?.[0];
-    if (!match) return null;
-
-    const { latitude, longitude } = match;
-
-    // Step 2: Free Open-Meteo daily weather forecast
-    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=auto`;
-    const forecastRes = await fetch(forecastUrl, { signal: AbortSignal.timeout(4000) });
-    if (!forecastRes.ok) return null;
-
-    const data = await forecastRes.json();
-    const daily = data.daily;
-    if (!daily || !daily.time) return null;
-
-    const result: WeatherDayForecast[] = [];
-    const count = Math.min(daysCount, daily.time.length);
-
-    for (let i = 0; i < count; i++) {
-      const code = daily.weathercode[i] || 0;
-      const condition = this.mapWmoCodeToCondition(code);
-      const precipProb = daily.precipitation_probability_max?.[i] ?? (condition === 'RAIN' ? 70 : 10);
-      const tMax = Math.round(daily.temperature_2m_max?.[i] ?? 20);
-      const tMin = Math.round(daily.temperature_2m_min?.[i] ?? 12);
-      const tAvg = Math.round((tMax + tMin) / 2);
-
-      result.push({
-        date: daily.time[i],
-        temperatureCelsius: tAvg,
-        temperatureMinCelsius: tMin,
-        temperatureMaxCelsius: tMax,
-        condition,
-        precipitationProbability: precipProb,
-        windSpeedKmh: Math.round(daily.windspeed_10m_max?.[i] ?? 15),
-        advisoryNote:
-          condition === 'RAIN'
-            ? 'High rain probability: indoor attractions recommended'
-            : condition === 'SNOW'
-            ? 'Snow conditions: dress warm and check transit delays'
-            : 'Pleasant weather for walking and sightseeing'
-      });
-    }
-
-    return result;
-  }
-
-  private mapWmoCodeToCondition(code: number): WeatherCondition {
-    if (code === 0) return 'SUNNY';
-    if ([1, 2].includes(code)) return 'PARTLY_CLOUDY';
-    if ([3, 45, 48].includes(code)) return 'CLOUDY';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'RAIN';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'SNOW';
-    if ([95, 96, 99].includes(code)) return 'THUNDERSTORM';
-    return 'SUNNY';
+      return {
+        date: d.toISOString().split('T')[0],
+        temperatureCelsius: 22,
+        temperatureMinCelsius: 16,
+        temperatureMaxCelsius: 26,
+        condition: 'SUNNY',
+        precipitationProbability: 10,
+        windSpeedKmh: 12,
+        iconCode: '01d',
+      };
+    });
   }
 }
