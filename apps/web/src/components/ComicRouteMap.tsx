@@ -142,7 +142,6 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
               background: #E11D48;
               color: #FFFFFF;
               border: 2.5px solid #18181B;
-              box-shadow: 3px 3px 0px #18181B;
               font-family: var(--font-comic-display, sans-serif);
               font-weight: 900;
               font-size: 13px;

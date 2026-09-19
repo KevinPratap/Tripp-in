@@ -71,26 +71,22 @@ textarea {
 .comic-panel {
   background-color: var(--color-surface);
   border: 2.5px solid var(--color-ink);
-  box-shadow: 4px 4px 0px 0px var(--color-ink);
 }
 
 .comic-panel-red {
   background-color: var(--color-surface);
   border: 2.5px solid var(--color-ink);
-  box-shadow: 4px 4px 0px 0px var(--color-primary);
 }
 
 .comic-panel-sm {
   background-color: var(--color-surface);
   border: 2px solid var(--color-ink);
-  box-shadow: 2px 2px 0px 0px var(--color-ink);
 }
 
 .comic-btn-primary {
   background-color: var(--color-primary);
   color: #FFFFFF;
   border: 2.5px solid var(--color-ink);
-  box-shadow: 3px 3px 0px 0px var(--color-ink);
   font-weight: 800;
   letter-spacing: 0.02em;
   transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
@@ -99,20 +95,17 @@ textarea {
 
 .comic-btn-primary:hover:not(:disabled) {
   transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0px 0px var(--color-ink);
   background-color: var(--color-primary-hover);
 }
 
 .comic-btn-primary:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px 0px var(--color-ink);
 }
 
 .comic-btn-secondary {
   background-color: var(--color-surface);
   color: var(--color-ink);
   border: 2.5px solid var(--color-ink);
-  box-shadow: 3px 3px 0px 0px var(--color-ink);
   font-weight: 700;
   transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -120,12 +113,10 @@ textarea {
 
 .comic-btn-secondary:hover:not(:disabled) {
   transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0px 0px var(--color-ink);
 }
 
 .comic-btn-secondary:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px 0px var(--color-ink);
 }
 
 .comic-tag {
@@ -137,7 +128,6 @@ textarea {
   font-size: 0.7rem;
   padding: 0.2rem 0.6rem;
   border: 2px solid var(--color-ink);
-  box-shadow: 2px 2px 0px 0px var(--color-ink);
 }
 
 .comic-halftone {
