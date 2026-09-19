@@ -1,4 +1,5 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItinerariesService } from '../itineraries/itineraries.service';
@@ -50,7 +51,8 @@ export class TripsService {
     private readonly itinerariesService: ItinerariesService,
     private readonly destinationsService: DestinationsService,
     private readonly validator: ItineraryValidator,
-    private readonly placeService: PlaceService
+    private readonly placeService: PlaceService,
+    private readonly config?: ConfigService
   ) {}
 
   /**
@@ -789,5 +791,38 @@ export class TripsService {
       tripId,
       isLocked: false
     };
+  }
+
+  /**
+   * Delete a trip and all its cascaded entities (DELETE /api/v1/trips/:id)
+   */
+  async deleteTrip(tripId: string, userId: string): Promise<{ success: boolean; tripId: string }> {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { travelers: true }
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip with ID ${tripId} not found`);
+    }
+
+    const allowBypass = this.config?.get<string>('AUTH_BYPASS_DEV') === 'true';
+    if (trip.userId !== userId && !allowBypass) {
+      const isOrganizer = trip.travelers?.some(
+        (t) => t.userId === userId && (t.role === 'OWNER' || t.role === 'ORGANIZER')
+      );
+      if (!isOrganizer) {
+        throw new ForbiddenException('You do not have permission to delete this trip');
+      }
+    }
+
+    this.activeJobs.delete(tripId);
+
+    await this.prisma.trip.delete({
+      where: { id: tripId }
+    });
+
+    this.logger.log(`Trip ${tripId} deleted by user ${userId}`);
+    return { success: true, tripId };
   }
 }

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createShareLink, fetchMyTrips, SavedTripSummary } from '@/lib/auth-client';
+import { Trash2, Share2 } from 'lucide-react';
+import { createShareLink, deleteSavedTrip, fetchMyTrips, SavedTripSummary } from '@/lib/auth-client';
 import { sessionToken } from '@/lib/api-client';
+import { removeSavedTrip } from '@/lib/saved-trips';
 
 /**
  * Saved trips.
@@ -30,6 +32,8 @@ export default function TripsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleShare = async (tripId: string) => {
     try {
       const share = await createShareLink(tripId);
@@ -39,6 +43,22 @@ export default function TripsPage() {
       }
     } catch (err) {
       setError((err as Error).message);
+    }
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    if (!confirm('Scrap this field ticket? This permanently removes the route and all squad records.')) {
+      return;
+    }
+    setDeletingId(tripId);
+    try {
+      await deleteSavedTrip(tripId);
+      removeSavedTrip(tripId);
+      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -142,9 +162,20 @@ export default function TripsPage() {
                   <button
                     type="button"
                     onClick={() => handleShare(trip.id)}
-                    className="comic-btn-primary px-3 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider"
+                    className="comic-btn-primary px-3 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5"
                   >
-                    {trip.shareToken ? 'Copy share link' : 'Create share link'}
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>{trip.shareToken ? 'Copy share link' : 'Create share link'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTrip(trip.id)}
+                    disabled={deletingId === trip.id}
+                    className="comic-btn-secondary px-3 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 text-zinc-500 hover:text-[#E11D48] hover:border-[#E11D48] transition-colors"
+                    title="Permanently scrap and delete this trip"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{deletingId === trip.id ? 'Scrapping...' : 'Scrap Ticket'}</span>
                   </button>
                 </div>
 

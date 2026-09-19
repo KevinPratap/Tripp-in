@@ -88,4 +88,16 @@ export async function createShareLink(
   return res.json();
 }
 
+/** Deletes a trip from the database. Requires organizer session. */
+export async function deleteSavedTrip(
+  tripId: string
+): Promise<{ success: boolean; tripId: string }> {
+  const res = await apiFetch(`/api/v1/trips/${tripId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.message || 'Could not delete trip.');
+  }
+  return res.json();
+}
+
 export { apiUrl };
