@@ -163,7 +163,7 @@ export class OSMPlacesProvider implements PlaceProvider {
     if (!res.ok) return [];
 
     const list = await res.json();
-    return list.map((item: any, idx: number) => {
+    const places = list.map((item: any, idx: number) => {
       const lat = parseFloat(item.lat);
       const lon = parseFloat(item.lon);
       const osmId = `osm_${item.osm_type?.[0]?.toUpperCase() || 'N'}_${item.osm_id || item.place_id}`;
@@ -185,6 +185,89 @@ export class OSMPlacesProvider implements PlaceProvider {
         openingHoursEstimated: !realHours
       } as PlaceModel;
     });
+
+    // Attach a real photograph of each venue where OpenStreetMap points at one. The tags below
+    // name the venue's own Wikidata item or Wikipedia article, so the picture is of that place and
+    // of nothing else. If a venue has no such record it keeps no photo and the interface says so.
+    await Promise.all(
+      places.map(async (place: PlaceModel, i: number) => {
+        const photo = await this.resolveRealPhoto(list[i]?.extratags);
+        if (photo) place.photoUrls = [photo];
+      })
+    );
+
+    return places;
+  }
+
+  private static readonly photoCache = new Map<string, string | null>();
+
+  private static readonly photoUserAgent = 'TrippinAI-Production/1.0 (contact@trippin.ai)';
+
+  /**
+   * Resolves a photograph of the venue itself from its own open record. Two sources, both exact:
+   * the Wikidata item referenced by the OSM wikidata tag (property P18), then the Wikipedia article
+   * referenced by the OSM wikipedia tag. No name matching, no guessing, no stock imagery: when
+   * neither record exists this returns undefined and the caller stores no photo at all.
+   */
+  private async resolveRealPhoto(extratags?: Record<string, string>): Promise<string | undefined> {
+    if (!extratags) return undefined;
+    const wikidata = extratags.wikidata?.trim();
+    const wikipedia = extratags.wikipedia?.trim();
+    const cacheKey = wikidata || wikipedia;
+    if (!cacheKey) return undefined;
+
+    const cached = OSMPlacesProvider.photoCache.get(cacheKey);
+    if (cached !== undefined) return cached || undefined;
+
+    let url: string | undefined;
+    try {
+      if (wikidata && /^Q\d+$/.test(wikidata)) {
+        url = await this.wikidataPhoto(wikidata);
+      }
+      if (!url && wikipedia) {
+        url = await this.wikipediaPhoto(wikipedia);
+      }
+    } catch {
+      url = undefined;
+    }
+
+    OSMPlacesProvider.photoCache.set(cacheKey, url ?? null);
+    return url;
+  }
+
+  private async wikidataPhoto(qid: string): Promise<string | undefined> {
+    const api = `https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=${qid}&property=P18&format=json`;
+    const res = await fetch(api, {
+      headers: { 'User-Agent': OSMPlacesProvider.photoUserAgent, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const file = data?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+    if (typeof file !== 'string' || !file.trim()) return undefined;
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file.trim())}?width=640`;
+  }
+
+  private async wikipediaPhoto(tag: string): Promise<string | undefined> {
+    const parts = tag.split(':');
+    const hasLang = parts.length > 1 && /^[a-z]{2,3}(-[a-z]+)?$/i.test(parts[0]);
+    const lang = hasLang ? parts[0] : 'en';
+    const title = hasLang ? parts.slice(1).join(':') : tag;
+    const api = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
+      title
+    )}&prop=pageimages&pithumbsize=640&redirects=1&format=json`;
+    const res = await fetch(api, {
+      headers: { 'User-Agent': OSMPlacesProvider.photoUserAgent, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const pages = data?.query?.pages || {};
+    for (const key of Object.keys(pages)) {
+      const src = pages[key]?.thumbnail?.source;
+      if (typeof src === 'string' && src.startsWith('https://')) return src;
+    }
+    return undefined;
   }
 
   private normalizeNominatimDetail(d: any, placeId: string): PlaceModel {
