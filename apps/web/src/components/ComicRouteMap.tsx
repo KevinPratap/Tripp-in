@@ -107,9 +107,10 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
 
       mapInstanceRef.current = map;
 
-      // Carto Voyager / Positron High-contrast Clean Tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      // OpenStreetMap standard tiles: no watermark and no key. CARTO began serving the voyager
+      // raster tiles with a large "API KEY REQUIRED" watermark, which is not acceptable on a paid product.
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       }).addTo(map);
 

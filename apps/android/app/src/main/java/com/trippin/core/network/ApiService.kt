@@ -26,4 +26,19 @@ interface ApiService {
 
     @GET("api/v1/places/search")
     suspend fun searchPlaces(@Query("q") query: String): List<PlaceSearchResultDto>
+
+    @POST("api/v1/trips/{id}/lock")
+    suspend fun lockTrip(@Path("id") tripId: String): LockResponseDto
+
+    @POST("api/v1/trips/{id}/unlock")
+    suspend fun unlockTrip(@Path("id") tripId: String): LockResponseDto
+
+    @POST("api/v1/trips/{id}/replan")
+    suspend fun replanTrip(
+        @Path("id") tripId: String,
+        @Body body: ReplanRequestDto
+    ): ReplanResponseDto
+
+    @DELETE("api/v1/trips/{id}")
+    suspend fun deleteTrip(@Path("id") tripId: String): DeleteResponseDto
 }

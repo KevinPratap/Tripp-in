@@ -12,6 +12,7 @@ import com.trippin.feature.itinerary.ItineraryScreen
 import com.trippin.feature.explore.ExploreScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.profile.ProfileScreen
+import com.trippin.feature.today.TodayScreen
 
 @Composable
 fun TrippinNavHost(
@@ -58,6 +59,16 @@ fun TrippinNavHost(
             ItineraryScreen(
                 tripId = tripId,
                 onNavigateBack = { navController.navigate(Screen.Home.route) { popUpTo(0) } },
+                onOpenMap = { navController.navigate(Screen.Map.createRoute(tripId)) },
+                onNavigateToToday = { navController.navigate(Screen.Today.createRoute(tripId)) }
+            )
+        }
+
+        composable(Screen.Today.route) { backStackEntry ->
+            val tripId = backStackEntry.arguments?.getString("tripId") ?: "default"
+            TodayScreen(
+                tripId = tripId,
+                onNavigateBack = { navController.popBackStack() },
                 onOpenMap = { navController.navigate(Screen.Map.createRoute(tripId)) }
             )
         }

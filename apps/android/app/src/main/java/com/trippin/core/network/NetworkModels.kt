@@ -28,7 +28,10 @@ data class TripSummaryDto(
     val status: String,
     val heroImageUrl: String? = null,
     val totalActivitiesCount: Int = 0,
-    val currentVersion: Int = 1
+    val currentVersion: Int = 1,
+    val isLocked: Boolean = false,
+    val lockedAt: String? = null,
+    val departureCity: String? = null
 )
 
 @Serializable
@@ -148,4 +151,29 @@ data class PlaceSearchResultDto(
 data class GeoPointDto(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0
+)
+
+@Serializable
+data class ReplanRequestDto(
+    val intent: String
+)
+
+@Serializable
+data class ReplanResponseDto(
+    val success: Boolean = true,
+    val version: Int? = null,
+    val itinerary: ItineraryDto? = null
+)
+
+@Serializable
+data class LockResponseDto(
+    val success: Boolean = true,
+    val isLocked: Boolean = false,
+    val lockedAt: String? = null
+)
+
+@Serializable
+data class DeleteResponseDto(
+    val success: Boolean = true,
+    val id: String? = null
 )

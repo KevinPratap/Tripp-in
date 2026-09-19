@@ -13,5 +13,8 @@ sealed class Screen(val route: String) {
     object Map : Screen("map/{tripId}") {
         fun createRoute(tripId: String) = "map/$tripId"
     }
+    object Today : Screen("today/{tripId}") {
+        fun createRoute(tripId: String) = "today/$tripId"
+    }
     object Profile : Screen("profile")
 }

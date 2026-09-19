@@ -371,15 +371,16 @@ export default function PublicTripPage() {
               <span className="hidden sm:inline">{copied ? 'Copied' : 'Share'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="comic-btn-primary px-3 sm:px-4 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
-              title="Export high-contrast printable Comic Field Dossier PDF"
+            <Link
+              href={`/trip/${tripId}/print`}
+              target="_blank"
+              className="comic-btn-primary px-3 sm:px-4 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#18181B]"
+              title="Open high-contrast printable Comic Field Dossier and PDF Voucher"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Dossier PDF</span>
-            </button>
+              <span className="hidden sm:inline">Print Voucher</span>
+              <span className="sm:hidden">Print</span>
+            </Link>
           </div>
         </div>
       </header>
