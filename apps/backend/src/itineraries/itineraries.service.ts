@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItineraryValidator } from '../engine/itinerary-validator';
@@ -145,6 +145,12 @@ export class ItinerariesService {
       throw new NotFoundException(`Itinerary with id ${itineraryId} not found`);
     }
 
+    if (existing.isLocked || existing.trip?.isLocked) {
+      throw new ConflictException(
+        'This itinerary is locked by the trip organizer and cannot be modified. Unlock it first.'
+      );
+    }
+
     this.logger.log(
       `Applying user instruction "${instruction}" to itinerary ${itineraryId} (Trip: ${existing.tripId})`
     );
@@ -233,6 +239,8 @@ export class ItinerariesService {
     return records.map((r) => ({
       version: r.version,
       status: r.status,
+      isLocked: Boolean(r.isLocked),
+      lockedAt: r.lockedAt ? r.lockedAt.toISOString() : undefined,
       createdAt: r.createdAt.toISOString(),
       title: r.title || undefined,
       summary: r.summary || undefined,
@@ -247,6 +255,8 @@ export class ItinerariesService {
       tripId: raw.tripId,
       version: raw.version,
       status: raw.status as any,
+      isLocked: Boolean(raw.isLocked),
+      lockedAt: raw.lockedAt ? raw.lockedAt.toISOString() : undefined,
       createdAt: raw.createdAt.toISOString(),
       title: raw.title || undefined,
       summary: raw.summary || undefined,

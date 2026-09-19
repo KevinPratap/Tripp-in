@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 
@@ -19,6 +19,8 @@ export interface ActivityCollabData {
 
 export interface TripCollabResponse {
   tripId: string;
+  isLocked?: boolean;
+  lockedAt?: string;
   activities: Record<string, ActivityCollabData>;
 }
 
@@ -66,13 +68,21 @@ export class CollabService {
   ) {}
 
   async getCollabData(tripId: string): Promise<TripCollabResponse> {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      select: { isLocked: true, lockedAt: true }
+    });
+
+    const isLocked = Boolean(trip?.isLocked);
+    const lockedAt = trip?.lockedAt ? trip.lockedAt.toISOString() : undefined;
+
     const cacheKey = `trip:collab:${tripId}`;
     const cached = await this.redis.get<Record<string, ActivityCollabData>>(cacheKey);
     if (cached) {
-      return { tripId, activities: cached };
+      return { tripId, isLocked, lockedAt, activities: cached };
     }
     const mem = this.inMemoryCollab.get(tripId) || {};
-    return { tripId, activities: mem };
+    return { tripId, isLocked, lockedAt, activities: mem };
   }
 
   async vote(
@@ -82,6 +92,16 @@ export class CollabService {
     vote: number,
     comment?: string
   ): Promise<TripCollabResponse> {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      select: { isLocked: true }
+    });
+    if (trip?.isLocked) {
+      throw new ConflictException(
+        'Voting is closed: This itinerary has been locked by the trip organizer.'
+      );
+    }
+
     // A vote must point at a real stop on this trip, otherwise anyone can create
     // phantom entries in the collaboration payload.
     const activity = await this.prisma.activity.findFirst({

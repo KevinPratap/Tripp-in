@@ -86,6 +86,8 @@ export interface TripSummary {
   endDate: string;
   travelersCount: number;
   status: TripStatus;
+  isLocked?: boolean;
+  lockedAt?: string;
   heroImageUrl?: string;
   totalActivitiesCount: number;
   currentVersion: number;
@@ -210,6 +212,8 @@ export interface ItineraryModel {
   tripId: string;
   version: number;
   status: 'DRAFT' | 'VERIFIED' | 'ARCHIVED';
+  isLocked?: boolean;
+  lockedAt?: string;
   createdAt: string;
   title?: string;
   summary?: string;

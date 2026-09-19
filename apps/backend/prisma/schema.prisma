@@ -148,6 +148,8 @@ model Trip {
   budgetTotal         Float?   @map("budget_total")
   currency            String   @default("USD")
   status              String   @default("DRAFT") // DRAFT, GENERATING, READY, FAILED, ARCHIVED
+  isLocked            Boolean  @default(false) @map("is_locked")
+  lockedAt            DateTime? @map("locked_at")
   pace                String   @default("MODERATE")
   transportPreference String   @default("MIXED") @map("transport_preference")
   originCity          String?  @map("origin_city")
@@ -206,6 +208,8 @@ model Itinerary {
   tripId             String   @map("trip_id")
   version            Int      @default(1)
   isCurrent          Boolean  @default(true) @map("is_current")
+  isLocked           Boolean  @default(false) @map("is_locked")
+  lockedAt           DateTime? @map("locked_at")
   status             String   @default("VERIFIED") // DRAFT, VERIFIED, ARCHIVED
   title              String?
   summary            String?
