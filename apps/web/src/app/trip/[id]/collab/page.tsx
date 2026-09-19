@@ -301,7 +301,7 @@ export default function TripCollabPage({
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 w-full">
         {/* Plan Locked Notification Banner */}
         {isLocked && (
-          <div className="mb-6 comic-panel bg-[#18181B] text-white rounded-2xl p-5 border-[2.5px] border-[#18181B] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[4px_4px_0px_#E11D48]">
+          <div className="mb-6 comic-panel bg-[#18181B] text-white rounded-2xl p-5 border-[2.5px] border-[#18181B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#E11D48] flex items-center justify-center font-black shrink-0">
                 <Lock className="w-5 h-5 text-white" />
@@ -371,7 +371,7 @@ export default function TripCollabPage({
             onClick={() => setActiveTab('voting')}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 border-[#18181B] transition-all ${
               activeTab === 'voting'
-                ? 'bg-[#E11D48] text-white shadow-[2px_2px_0px_#18181B]'
+                ? 'bg-[#E11D48] text-white '
                 : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
             }`}
           >
@@ -382,7 +382,7 @@ export default function TripCollabPage({
             onClick={() => setActiveTab('ledger')}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 border-[#18181B] transition-all ${
               activeTab === 'ledger'
-                ? 'bg-[#E11D48] text-white shadow-[2px_2px_0px_#18181B]'
+                ? 'bg-[#E11D48] text-white '
                 : 'bg-white text-[#18181B] hover:bg-[#FAF8F5]'
             }`}
           >
@@ -452,7 +452,7 @@ export default function TripCollabPage({
                 {/* Header row: Pin Number, Timeslot, Cost, Nav Link */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center space-x-3">
-                    <span className="w-8 h-8 rounded-lg bg-[#E11D48] text-white border-[2px] border-[#18181B] font-display font-black text-xs flex items-center justify-center shadow-[2px_2px_0px_#18181B]">
+                    <span className="w-8 h-8 rounded-lg bg-[#E11D48] text-white border-[2px] border-[#18181B] font-display font-black text-xs flex items-center justify-center">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
                     <div>
@@ -595,7 +595,7 @@ export default function TripCollabPage({
             href={`/trip/${tripId}`}
             className="comic-btn-secondary w-full sm:w-auto text-center"
           >
-            ← View Final Field Ticket
+            ← View Final Itinerary
           </Link>
           <button
             onClick={() => downloadTripCalendar(trip, itinerary)}

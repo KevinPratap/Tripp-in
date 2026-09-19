@@ -36,7 +36,7 @@ const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
   ssr: false,
   loading: () => (
     <div className="comic-panel rounded-2xl h-56 flex items-center justify-center text-xs font-bold uppercase text-[#52525B]">
-      Loading Route Radar...
+      Loading the map...
     </div>
   )
 });
@@ -300,7 +300,7 @@ function PlannerContent() {
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-[#E11D48] border-2 border-[#18181B]" />
               <h1 className="font-display font-black text-xl uppercase tracking-tight">
-                MISSION BRIEFING // ROUTE PLANNER
+                Plan your trip
               </h1>
             </div>
           </div>
@@ -327,15 +327,15 @@ function PlannerContent() {
           <div className="comic-panel p-6 rounded-2xl bg-white space-y-6">
             <div className="border-b-2 border-[#18181B] pb-3 flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-widest text-[#E11D48]">
-                STEP 01 // PARAMETERS
+                Step 1 of 2
               </span>
-              <span className="text-[10px] font-bold text-[#52525B] uppercase">FORM 40-A</span>
+              <span className="text-[10px] font-bold text-[#52525B] uppercase">Your trip details</span>
             </div>
 
             {/* Destination */}
             <div>
               <label htmlFor="destination-input" className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
-                Target Destination
+                Destination
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#18181B]" />
@@ -368,7 +368,7 @@ function PlannerContent() {
               </div>
               <p className="text-[11px] font-medium text-[#52525B] mt-1.5 leading-relaxed">
                 {originResolved === false
-                  ? `We could not find "${originCity.trim()}" in OpenStreetMap, so the arrival day will be planned without it.`
+                  ? `We could not find"${originCity.trim()}" in OpenStreetMap, so the arrival day will be planned without it.`
                   : originResolved === true
                     ? 'Arrival day will be planned around the trip from here.'
                     : 'Arrival day is planned around the trip from here. It is also the start point of your first day schedule.'}
@@ -379,7 +379,7 @@ function PlannerContent() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="start-date-input" className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
-                  Launch Date
+                  Start date
                 </label>
                 <input
                   id="start-date-input"
@@ -488,7 +488,7 @@ function PlannerContent() {
                     onClick={() => setPace(p.key)}
                     className={`h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
                       pace === p.key
-                        ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B]'
+                        ? 'bg-[#E11D48] text-white border-2 border-[#18181B] '
                         : 'bg-[#FAF8F5] text-[#52525B] border-2 border-[#18181B] hover:bg-[#F4F2EE]'
                     }`}
                   >
@@ -600,7 +600,7 @@ function PlannerContent() {
                       href={`/trip/${tripData.id}`}
                       className="comic-btn-primary px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1"
                     >
-                      <span>Field Ticket</span>
+                      <span>Itinerary</span>
                       <ExternalLink className="w-2.5 h-2.5" />
                     </Link>
                   </div>
@@ -622,7 +622,7 @@ function PlannerContent() {
                 </div>
               </div>
 
-              {/* Interactive Route Radar Map */}
+              {/* Route map Map */}
               <ComicRouteMap activities={itinerary.days?.flatMap((d: any) => d.activities || []) || []} height="300px" />
 
               {/* Day Panels */}

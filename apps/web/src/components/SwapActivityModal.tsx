@@ -150,7 +150,7 @@ export default function SwapActivityModal({
       ? ` Its OpenStreetMap coordinates are ${result.location.latitude}, ${result.location.longitude}.`
       : '';
     const prompt =
-      `On Day ${activity.dayIndex}, replace "${activity.title}" with a visit to the exact venue ` +
+      `On Day ${activity.dayIndex}, replace"${activity.title}" with a visit to the exact venue ` +
       `"${targetVenue}"${where} in ${destinationName}.${coords} Use that exact venue by name. ` +
       `Do not substitute a different venue. If it cannot be used, leave the day as it is and say so. ` +
       `Keep the schedule conflict-free and physically reachable.`;
@@ -196,7 +196,7 @@ export default function SwapActivityModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="comic-panel w-full max-w-md bg-white rounded-2xl p-6 space-y-5 shadow-[6px_6px_0px_#18181B] relative max-h-[92vh] overflow-y-auto">
+      <div className="comic-panel w-full max-w-md bg-white rounded-2xl p-6 space-y-5 relative max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
           <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function SwapActivityModal({
                       type="button"
                       disabled={isBusy}
                       onClick={() => handleSwap(place.name, place)}
-                      className="w-full min-h-11 text-left p-3 rounded-lg border-2 border-[#18181B] bg-white hover:bg-[#FAF8F5] flex items-start justify-between gap-3 shadow-[2px_2px_0px_#18181B] transition-all disabled:opacity-50"
+                      className="w-full min-h-11 text-left p-3 rounded-lg border-2 border-[#18181B] bg-white hover:bg-[#FAF8F5] flex items-start justify-between gap-3 transition-all disabled:opacity-50"
                     >
                       <span className="flex-1 min-w-0">
                         <span className="font-black text-xs text-[#18181B] block leading-snug break-words">

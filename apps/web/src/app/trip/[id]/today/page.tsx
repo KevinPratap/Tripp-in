@@ -272,7 +272,7 @@ export default function TodayModePage() {
           href={`/trip/${tripId}`}
           className="comic-btn-primary px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider"
         >
-          Return to Field Ticket
+          Return to Itinerary
         </Link>
       </div>
     );
@@ -326,7 +326,7 @@ export default function TodayModePage() {
 
       <main className="max-w-2xl mx-auto px-4 pt-4 space-y-5">
         {/* Day Override Bar */}
-        <section className="bg-white border-2 border-[#18181B] rounded-xl p-3 shadow-[2px_2px_0px_#18181B] flex items-center justify-between gap-3">
+        <section className="bg-white border-2 border-[#18181B] rounded-xl p-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Calendar className="w-4 h-4 text-[#E11D48] shrink-0" />
             <div className="truncate">
@@ -350,7 +350,7 @@ export default function TodayModePage() {
                 }}
                 className={`px-3 py-1.5 min-h-11 rounded-md text-xs font-black uppercase transition-all ${
                   activeDayIndex === d.dayIndex
-                    ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[1px_1px_0px_#18181B]'
+                    ? 'bg-[#E11D48] text-white border-2 border-[#18181B] '
                     : 'bg-[#FAF8F5] text-[#18181B] border border-[#18181B] hover:bg-white'
                 }`}
               >
@@ -362,7 +362,7 @@ export default function TodayModePage() {
 
         {/* Current Active Stop Hero Card */}
         {currentStop ? (
-          <article className="comic-panel p-5 sm:p-6 rounded-2xl bg-white border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] space-y-4">
+          <article className="comic-panel p-5 sm:p-6 rounded-2xl bg-white border-2 border-[#18181B] space-y-4">
             <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 bg-[#E11D48] text-white text-[10px] font-black uppercase tracking-wider border border-[#18181B]">
@@ -401,7 +401,7 @@ export default function TodayModePage() {
                 href={getNavUrl(currentStop)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="comic-btn-primary min-h-12 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[2px_2px_0px_#18181B]"
+                className="comic-btn-primary min-h-12 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
               >
                 <Navigation className="w-4 h-4 text-white" />
                 <span>Navigate</span>
@@ -433,7 +433,7 @@ export default function TodayModePage() {
 
         {/* Up Next & Leave By Countdown */}
         {nextStop && (
-          <section className="bg-amber-50 border-2 border-[#18181B] rounded-xl p-4 shadow-[2px_2px_0px_#18181B] space-y-2">
+          <section className="bg-amber-50 border-2 border-[#18181B] rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#E11D48] flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
@@ -470,7 +470,7 @@ export default function TodayModePage() {
         )}
 
         {/* Full Day Itinerary Mini Checklist */}
-        <section className="bg-white border-2 border-[#18181B] rounded-2xl p-4 shadow-[2px_2px_0px_#18181B] space-y-3">
+        <section className="bg-white border-2 border-[#18181B] rounded-2xl p-4 space-y-3">
           <div className="border-b-2 border-[#18181B] pb-2 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-[#18181B]">
               Day Schedule Checklist ({activities.length} stops)
@@ -492,7 +492,7 @@ export default function TodayModePage() {
                   onClick={() => handleSetStopIndex(idx)}
                   className={`w-full p-2.5 min-h-11 rounded-lg border-2 text-left flex items-center justify-between gap-3 transition-colors ${
                     isCurrent
-                      ? 'border-[#E11D48] bg-rose-50/50 shadow-[1px_1px_0px_#18181B]'
+                      ? 'border-[#E11D48] bg-rose-50/50 '
                       : isPast
                       ? 'border-[#18181B]/30 bg-[#FAF8F5] opacity-60'
                       : 'border-[#18181B] bg-white hover:bg-[#FAF8F5]'

@@ -20,7 +20,7 @@ const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
   ssr: false,
   loading: () => (
     <div className="comic-panel rounded-xl h-64 flex items-center justify-center text-xs font-bold uppercase text-[#52525B]">
-      Loading Route Radar...
+      Loading the map...
     </div>
   )
 });
@@ -140,7 +140,7 @@ export default function VerifiedLandingTrip() {
                 onClick={() => setSelectedTripId(item.id)}
                 className={`px-3 py-1.5 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-150 flex items-center gap-1 ${
                   isSelected
-                    ? 'bg-[#18181B] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#E11D48]'
+                    ? 'bg-[#18181B] text-white border-2 border-[#18181B] '
                     : 'bg-white text-[#18181B] border-2 border-[#18181B] hover:bg-[#FAF8F5]'
                 }`}
               >
@@ -226,7 +226,7 @@ export default function VerifiedLandingTrip() {
                   onClick={() => setActiveDayIndex(d.dayIndex)}
                   className={`px-4 py-2 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-colors ${
                     d.dayIndex === activeDayIndex
-                      ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B]'
+                      ? 'bg-[#E11D48] text-white border-2 border-[#18181B] '
                       : 'bg-[#FAF8F5] text-[#18181B] border-2 border-[#18181B] hover:bg-white'
                   }`}
                 >
@@ -258,18 +258,18 @@ export default function VerifiedLandingTrip() {
 
           {/* Map + Stops Split Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left: Leaflet Route Radar */}
+            {/* Left: the route map */}
             <div className="lg:col-span-5 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-[#18181B] flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-[#E11D48]" />
-                  <span>Route Radar Trail</span>
+                  <span>Route map</span>
                 </span>
                 <span className="text-[10px] font-bold text-[#52525B] uppercase">
                   OSRM Walking / Transit
                 </span>
               </div>
-              <div className="border-2 border-[#18181B] rounded-xl overflow-hidden shadow-[3px_3px_0px_#18181B]">
+              <div className="border-2 border-[#18181B] rounded-xl overflow-hidden">
                 <ComicRouteMap activities={dayActivities} height="380px" />
               </div>
               <p className="text-[10px] text-[#52525B] font-medium leading-normal">
@@ -348,7 +348,7 @@ export default function VerifiedLandingTrip() {
                   return (
                     <article
                       key={a.id || idx}
-                      className="border-2 border-[#18181B] rounded-xl p-4 bg-white shadow-[2px_2px_0px_#18181B] space-y-3"
+                      className="border-2 border-[#18181B] rounded-xl p-4 bg-white space-y-3"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 text-xs">
                         <div className="flex items-center gap-2">

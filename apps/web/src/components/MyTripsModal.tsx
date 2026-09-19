@@ -40,7 +40,7 @@ export default function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="comic-panel w-full max-w-xl bg-white rounded-2xl p-6 sm:p-8 space-y-6 max-h-[85vh] flex flex-col shadow-[6px_6px_0px_#18181B] relative">
+      <div className="comic-panel w-full max-w-xl bg-white rounded-2xl p-6 sm:p-8 space-y-6 max-h-[85vh] flex flex-col relative">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -88,7 +88,7 @@ export default function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                 key={t.id}
                 href={`/trip/${t.id}`}
                 onClick={onClose}
-                className="block p-4 rounded-xl border-2 border-[#18181B] bg-[#FAF8F5] hover:bg-white shadow-[2px_2px_0px_#18181B] transition-all group"
+                className="block p-4 rounded-xl border-2 border-[#18181B] bg-[#FAF8F5] hover:bg-white transition-all group"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

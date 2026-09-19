@@ -303,7 +303,7 @@ export default function PackingDocket({
                       className={`text-left p-3 rounded-xl border-2 border-[#18181B] flex items-start gap-2.5 transition-all ${
                         isChecked
                           ? 'bg-emerald-50 opacity-70 shadow-none'
-                          : 'bg-[#FAF8F5] shadow-[2px_2px_0px_#18181B] hover:bg-white'
+                          : 'bg-[#FAF8F5]  hover:bg-white'
                       }`}
                     >
                       {isChecked ? (

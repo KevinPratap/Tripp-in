@@ -82,7 +82,7 @@ export default function RefineRouteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="comic-panel w-full max-w-lg bg-white rounded-2xl p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_#18181B] relative">
+      <div className="comic-panel w-full max-w-lg bg-white rounded-2xl p-6 sm:p-8 space-y-6 relative">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4">
           <div className="flex items-center gap-2.5">
@@ -109,7 +109,7 @@ export default function RefineRouteModal({
 
         {/* Feedback Alert */}
         {feedback && (
-          <div className="bg-emerald-50 border-2 border-[#18181B] rounded-xl p-3.5 flex items-start gap-2.5 text-xs font-bold text-emerald-900 shadow-[2px_2px_0px_#18181B]">
+          <div className="bg-emerald-50 border-2 border-[#18181B] rounded-xl p-3.5 flex items-start gap-2.5 text-xs font-bold text-emerald-900">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
               <span className="font-black uppercase tracking-wider block text-[11px]">

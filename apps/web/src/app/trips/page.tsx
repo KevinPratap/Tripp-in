@@ -47,7 +47,7 @@ export default function TripsPage() {
   };
 
   const handleDeleteTrip = async (tripId: string) => {
-    if (!confirm('Scrap this field ticket? This permanently removes the route and all squad records.')) {
+    if (!confirm('Delete this trip? This removes the itinerary and everything saved with it.')) {
       return;
     }
     setDeletingId(tripId);

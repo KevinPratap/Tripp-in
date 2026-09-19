@@ -235,7 +235,7 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 bg-[#E11D48] border border-[#18181B]" />
           <span className="font-display font-black text-xs uppercase tracking-wider text-[#18181B]">
-            Interactive Route Radar
+            Route map
           </span>
         </div>
         <span className="text-[10px] font-bold text-[#52525B] uppercase tracking-wider hidden sm:inline">

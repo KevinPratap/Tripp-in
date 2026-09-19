@@ -141,7 +141,7 @@ export default function ReplanRouteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="comic-panel w-full max-w-xl bg-white rounded-2xl p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_#18181B] relative max-h-[90vh] overflow-y-auto">
+      <div className="comic-panel w-full max-w-xl bg-white rounded-2xl p-6 sm:p-8 space-y-6 relative max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4">
           <div className="flex items-center gap-2.5">
@@ -226,7 +226,7 @@ export default function ReplanRouteModal({
               <button
                 type="button"
                 onClick={handleApplyNewVersion}
-                className="comic-btn-primary flex-1 min-h-11 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[3px_3px_0px_#18181B]"
+                className="comic-btn-primary flex-1 min-h-11 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
               >
                 <span>Switch to Itinerary v{replanResult.newVersion}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -296,7 +296,7 @@ export default function ReplanRouteModal({
                       onClick={() => setSelectedIntent(opt.id)}
                       className={`min-h-11 p-3 rounded-xl border-2 border-[#18181B] text-left transition-all flex items-start gap-2.5 ${
                         isSelected
-                          ? 'bg-[#18181B] text-white shadow-[2px_2px_0px_#E11D48]'
+                          ? 'bg-[#18181B] text-white '
                           : 'bg-[#FAF8F5] text-[#18181B] hover:bg-zinc-100'
                       }`}
                     >
@@ -351,7 +351,7 @@ export default function ReplanRouteModal({
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleExecuteReplan}
-                className="comic-btn-primary w-full min-h-11 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[3px_3px_0px_#18181B] disabled:opacity-50"
+                className="comic-btn-primary w-full min-h-11 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>

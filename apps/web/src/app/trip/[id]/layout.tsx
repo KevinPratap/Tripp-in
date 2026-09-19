@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Trip Field Ticket',
+  title: 'Trip Itinerary',
   description:
     'A verified Trippin itinerary: day by day stops with transit times, addresses and calendar export.'
 };

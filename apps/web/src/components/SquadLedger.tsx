@@ -131,14 +131,14 @@ export default function SquadLedger({
   const copySettlementSummary = () => {
     if (settlements.length === 0) return;
     const lines = [
-      "TRIPPIN' SQUAD SETTLEMENT REPORT",
+"TRIPPIN' SQUAD SETTLEMENT REPORT",
       mixedCurrencies
         ? `Totals by currency: ${totalsByCurrency.map((t) => `${t.amount} ${t.currency}`).join(', ')}`
         : `Total group spend: ${totalSpent} ${currency}`,
       '---------------------------------',
       ...settlements.map((s) => `${s.from} owes ${s.to}: ${s.amount} ${s.currency}`),
       '---------------------------------',
-      "Generated via Tripp'in Collab Ledger",
+"Generated via Tripp'in Collab Ledger",
     ];
     const text = lines.join('\n');
 
@@ -310,7 +310,7 @@ export default function SquadLedger({
             {settlements.map((s, idx) => (
               <div
                 key={idx}
-                className="bg-white p-3.5 border-2 border-[#18181B] rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#18181B]"
+                className="bg-white p-3.5 border-2 border-[#18181B] rounded-xl flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 text-xs font-black text-[#18181B]">
                   <span className="bg-red-100 text-[#E11D48] px-2 py-0.5 rounded border border-[#18181B]">
@@ -343,7 +343,7 @@ export default function SquadLedger({
             {expenses.map((exp) => (
               <div
                 key={exp.id}
-                className="bg-white p-3 border-2 border-[#18181B] rounded-xl flex items-center justify-between shadow-[2px_2px_0px_#18181B]"
+                className="bg-white p-3 border-2 border-[#18181B] rounded-xl flex items-center justify-between"
               >
                 <div>
                   <h5 className="font-display font-black text-xs uppercase text-[#18181B]">
