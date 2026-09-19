@@ -112,7 +112,7 @@ export default function WebHomePage() {
               <span className="font-display font-black text-2xl tracking-tighter uppercase text-[#18181B]">
                 TRIPPIN<span className="text-[#E11D48]">&apos;</span>
               </span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#52525B]">
+              <span className="text-[12px] font-extrabold uppercase tracking-widest text-[#52525B]">
                 Trip planner
               </span>
             </div>
@@ -265,10 +265,10 @@ export default function WebHomePage() {
                   <div className="relative h-44 bg-[#18181B] text-white p-4 flex flex-col justify-between border-b-2 border-[#18181B] overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 comic-halftone opacity-20 pointer-events-none" />
                     <div className="flex items-center justify-between relative z-10">
-                      <span className="bg-[#E11D48] text-white comic-tag text-[10px] rounded-xs font-black">
+                      <span className="bg-[#E11D48] text-white comic-tag text-[12px] rounded-xs font-black">
                         {r.issue}
                       </span>
-                      <span className="bg-white text-[#18181B] comic-tag text-[10px] rounded-xs font-black">
+                      <span className="bg-white text-[#18181B] comic-tag text-[12px] rounded-xs font-black">
                         {r.code}
                       </span>
                     </div>
@@ -324,7 +324,7 @@ export default function WebHomePage() {
                   </Link>
                   <Link
                     href={`/trip/${r.tripId}/today`}
-                    className="w-full py-1.5 text-[11px] font-black uppercase tracking-wider text-center text-[#52525B] hover:text-[#E11D48] flex items-center justify-center gap-1"
+                    className="w-full py-1.5 text-[12px] font-black uppercase tracking-wider text-center text-[#52525B] hover:text-[#E11D48] flex items-center justify-center gap-1"
                   >
                     <Navigation className="w-3 h-3 text-[#E11D48]" />
                     <span>Open today mode</span>

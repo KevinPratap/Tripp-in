@@ -237,7 +237,7 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
             Route map
           </span>
         </div>
-        <span className="text-[10px] font-bold text-[#52525B] uppercase tracking-wider hidden sm:inline">
+        <span className="text-[12px] font-bold text-[#52525B] uppercase tracking-wider hidden sm:inline">
           Carto // OpenStreetMap
         </span>
       </div>
@@ -246,10 +246,10 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
         <div className="bg-[#FAF8F5] border-t-2 border-[#18181B] px-4 py-2 space-y-1">
           {unlocated.map((stop) => (
             <div key={stop.index} className="flex items-start gap-2">
-              <span className="w-5 h-5 shrink-0 bg-white border-2 border-[#18181B] text-[9px] font-black flex items-center justify-center mt-0.5">
+              <span className="w-6 h-6 shrink-0 bg-white border-2 border-[#18181B] text-[12px] font-black flex items-center justify-center mt-0.5">
                 {String(stop.index).padStart(2, '0')}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#52525B] leading-snug break-words">
+              <span className="text-[12px] font-bold uppercase tracking-wider text-[#52525B] leading-snug break-words">
                 {stop.title} - no coordinates published, not plotted
               </span>
             </div>
@@ -257,7 +257,7 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
         </div>
       )}
       <div className="bg-[#FAF8F5] border-t-2 border-[#18181B] px-4 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#52525B]">
+        <span className="text-[12px] font-bold uppercase tracking-wider text-[#52525B]">
           Tap a numbered stop for its address and walking directions
         </span>
       </div>
