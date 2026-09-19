@@ -23,6 +23,16 @@ interface ComicRouteMapProps {
   height?: string;
 }
 
+/** Popup HTML is injected raw by Leaflet, so every value is escaped before it goes in. */
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export default function ComicRouteMap({ activities, height = '360px' }: ComicRouteMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -35,13 +45,22 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
       .map((a, idx) => ({
         index: idx + 1,
         title: a.title,
-        time: a.startTime ? `${a.startTime} - ${a.endTime}` : '',
+        time: a.startTime ? `${a.startTime} to ${a.endTime || ''}`.trim() : '',
         address: a.place?.formattedAddress || '',
+        placeName: a.place?.name || '',
         lat: a.place?.location?.latitude,
         lng: a.place?.location?.longitude
       }))
       .filter(
-        (p): p is { index: number; title: string; time: string; address: string; lat: number; lng: number } =>
+        (p): p is {
+          index: number;
+          title: string;
+          time: string;
+          address: string;
+          placeName: string;
+          lat: number;
+          lng: number;
+        } =>
           typeof p.lat === 'number' &&
           typeof p.lng === 'number' &&
           !isNaN(p.lat) &&
@@ -80,7 +99,7 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
 
       const latlngs: [number, number][] = validPoints.map((p) => [p.lat, p.lng]);
 
-      // Add Red Dashed Route Trail
+      // Add Ink outline then crimson dashed route trail
       if (latlngs.length > 1) {
         L.polyline(latlngs, {
           color: '#18181B',
@@ -96,49 +115,83 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
         }).addTo(map);
       }
 
-      // Add Custom Comic Markers
+      // Numbered comic markers, matching the stop order on the day card
       validPoints.forEach((p) => {
         const customIcon = L.divIcon({
           className: 'comic-marker-wrapper',
           html: `
             <div style="
+              position: relative;
               background: #E11D48;
               color: #FFFFFF;
-              border: 2px solid #18181B;
-              box-shadow: 2.5px 2.5px 0px #18181B;
+              border: 2.5px solid #18181B;
+              box-shadow: 3px 3px 0px #18181B;
               font-family: var(--font-comic-display, sans-serif);
               font-weight: 900;
-              font-size: 11px;
-              width: 28px;
-              height: 28px;
+              font-size: 13px;
+              line-height: 1;
+              width: 30px;
+              height: 30px;
               display: flex;
               align-items: center;
               justify-content: center;
-              border-radius: 4px;
-              transform: translate(-14px, -14px);
+              border-radius: 6px;
             ">
               ${p.index}
             </div>
           `,
-          iconSize: [28, 28],
-          iconAnchor: [0, 0]
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+          popupAnchor: [0, -16]
         });
 
+        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=walking`;
+        const addressLine = p.address
+          ? `<div style="font-size: 11px; color: #52525B; line-height: 1.35; margin-top: 4px;">${escapeHtml(p.address)}</div>`
+          : '';
+
         const popupContent = `
-          <div style="font-family: sans-serif; padding: 4px; color: #18181B;">
-            <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #E11D48; letter-spacing: 0.05em;">
-              STOP 0${p.index} ${p.time ? `· ${p.time}` : ''}
+          <div style="font-family: sans-serif; padding: 2px; color: #18181B; min-width: 210px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="background: #E11D48; color: #FFFFFF; border: 2px solid #18181B; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 4px;">
+                STOP ${String(p.index).padStart(2, '0')}
+              </span>
+              ${p.time ? `<span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #52525B;">${escapeHtml(p.time)}</span>` : ''}
             </div>
-            <div style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-top: 2px;">
-              ${p.title}
+            <div style="font-size: 13px; font-weight: 900; text-transform: uppercase; margin-top: 6px; line-height: 1.2;">
+              ${escapeHtml(p.title)}
             </div>
-            ${p.address ? `<div style="font-size: 11px; color: #52525B; margin-top: 2px;">${p.address}</div>` : ''}
+            ${addressLine}
+            <a
+              href="${directionsUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 8px;
+                min-height: 32px;
+                padding: 0 10px;
+                background: #18181B;
+                color: #FFFFFF;
+                border: 2px solid #18181B;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                text-decoration: none;
+              "
+            >
+              Navigate
+            </a>
           </div>
         `;
 
         L.marker([p.lat, p.lng], { icon: customIcon })
           .addTo(map)
-          .bindPopup(popupContent);
+          .bindPopup(popupContent, { maxWidth: 280, autoPanPadding: [24, 24] });
       });
 
       // Fit bounds
@@ -161,18 +214,23 @@ export default function ComicRouteMap({ activities, height = '360px' }: ComicRou
 
   return (
     <div className="comic-panel rounded-2xl overflow-hidden relative bg-[#FAF8F5]">
-      <div className="bg-[#FAF8F5] border-b-2 border-[#18181B] px-4 py-2.5 flex items-center justify-between">
+      <div className="bg-[#FAF8F5] border-b-2 border-[#18181B] px-4 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 bg-[#E11D48] border border-[#18181B]" />
           <span className="font-display font-black text-xs uppercase tracking-wider text-[#18181B]">
             Interactive Route Radar
           </span>
         </div>
-        <span className="text-[10px] font-bold text-[#52525B] uppercase tracking-wider">
+        <span className="text-[10px] font-bold text-[#52525B] uppercase tracking-wider hidden sm:inline">
           Carto // OpenStreetMap
         </span>
       </div>
       <div ref={mapContainerRef} style={{ height }} className="w-full relative z-0" />
+      <div className="bg-[#FAF8F5] border-t-2 border-[#18181B] px-4 py-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#52525B]">
+          Tap a numbered stop for its address and walking directions
+        </span>
+      </div>
     </div>
   );
 }

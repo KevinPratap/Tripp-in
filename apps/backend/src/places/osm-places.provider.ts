@@ -136,7 +136,7 @@ export class OSMPlacesProvider implements PlaceProvider {
           location: { latitude: lat, longitude: lon },
           types: [category, props.osm_key || 'point_of_interest'].filter(Boolean),
           priceLevel: this.estimatePriceLevel(category),
-          photoUrls: [this.getPhotoForCategory(category, idx)],
+          photoUrls: [],
           openingHours: this.buildOpeningHours(category),
           openingHoursEstimated: true
         } as PlaceModel;
@@ -180,7 +180,7 @@ export class OSMPlacesProvider implements PlaceProvider {
         location: { latitude: lat, longitude: lon },
         types: [category, item.class].filter(Boolean),
         priceLevel: this.estimatePriceLevel(category),
-        photoUrls: [this.getPhotoForCategory(category, idx)],
+        photoUrls: [],
         openingHours: this.buildOpeningHours(category, realHours),
         openingHoursEstimated: !realHours
       } as PlaceModel;
@@ -201,7 +201,7 @@ export class OSMPlacesProvider implements PlaceProvider {
       location: { latitude: lat, longitude: lon },
       types: [category],
       priceLevel: this.estimatePriceLevel(category),
-      photoUrls: [this.getPhotoForCategory(category, 0)],
+      photoUrls: [],
       openingHours: this.buildOpeningHours(category, d.extratags?.opening_hours),
       openingHoursEstimated: !d.extratags?.opening_hours
     } as PlaceModel;
@@ -363,28 +363,4 @@ export class OSMPlacesProvider implements PlaceProvider {
     };
   }
 
-  private getPhotoForCategory(category: string, index: number): string {
-    const photos: Record<string, string[]> = {
-      museum: [
-        'https://images.unsplash.com/photo-1565099824688-e93eb20fe622?w=800',
-        'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=800'
-      ],
-      attraction: [
-        'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
-        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800'
-      ],
-      cafe: [
-        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800',
-        'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800'
-      ],
-      historic: [
-        'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
-        'https://images.unsplash.com/photo-1543349689-9a4d426bee8e?w=800'
-      ]
-    };
-
-    const key = Object.keys(photos).find((k) => category.toLowerCase().includes(k)) || 'attraction';
-    const list = photos[key] || photos.attraction;
-    return list[index % list.length];
-  }
 }

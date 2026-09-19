@@ -144,3 +144,28 @@ textarea {
   background-image: radial-gradient(#E4E4E7 1.2px, transparent 1.2px);
   background-size: 10px 10px;
 }
+
+/*
+ * Stamp entrance for the verification badges. The permanent tilt lives on the inner
+ * element as a rotate utility, so this keyframe only animates scale and opacity and the
+ * two never fight over the transform property. The global reduced motion block above
+ * already collapses this animation to nothing for users who ask for less motion.
+ */
+@keyframes stampIn {
+  0% {
+    transform: scale(1.32);
+    opacity: 0.3;
+  }
+  60% {
+    transform: scale(0.97);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-stamp {
+  animation: stampIn 300ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}

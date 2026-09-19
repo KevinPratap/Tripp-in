@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X,
   Shuffle,
   Search,
-  CheckCircle2,
   RefreshCw,
   MapPin,
-  Clock,
-  ArrowRight
+  ArrowRight,
+  CircleSlash
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 
@@ -25,7 +24,26 @@ interface SwapActivityModalProps {
   } | null;
   itineraryId: string;
   destinationName: string;
+  /** Optional bias so the search prefers venues near the stop being replaced. */
+  near?: { latitude: number; longitude: number };
   onItineraryUpdated: (newItinerary: any) => void;
+}
+
+interface PlaceResult {
+  id: string;
+  name: string;
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  types?: string[];
+  openingHoursEstimated?: boolean;
+}
+
+/** The address usually repeats the venue name, so show the street part only. */
+function streetPart(place: PlaceResult): string {
+  const address = place.formattedAddress || '';
+  if (!address) return '';
+  const trimmed = address.replace(new RegExp(`^${place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*,?\\s*`), '');
+  return trimmed || address;
 }
 
 export default function SwapActivityModal({
@@ -34,27 +52,78 @@ export default function SwapActivityModal({
   activity,
   itineraryId,
   destinationName,
+  near,
   onItineraryUpdated,
 }: SwapActivityModalProps) {
-  const [replacementName, setReplacementName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const requestRef = useRef(0);
+
+  // Reset the search every time the modal opens for a new stop.
+  useEffect(() => {
+    if (!isOpen) return;
+    setQuery('');
+    setResults([]);
+    setSearchError(null);
+    setErrorMsg(null);
+    setSubmittingId(null);
+  }, [isOpen, activity?.id]);
+
+  // Live OpenStreetMap search, debounced. Nothing here is prefilled or invented: an empty
+  // result means OpenStreetMap has no match for what was typed.
+  useEffect(() => {
+    if (!isOpen) return;
+    const term = query.trim();
+    if (term.length < 2) {
+      setResults([]);
+      setSearchError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+    setIsSearching(true);
+    setSearchError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: `${term} ${destinationName}`.trim() });
+        if (near) {
+          params.set('lat', String(near.latitude));
+          params.set('lng', String(near.longitude));
+        }
+        const res = await apiFetch(`/api/v1/places/search?${params.toString()}`);
+        if (requestRef.current !== requestId) return;
+        if (!res.ok) {
+          throw new Error(`Search failed (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        if (requestRef.current !== requestId) return;
+        setResults(Array.isArray(data) ? data.slice(0, 8) : []);
+      } catch (err: any) {
+        if (requestRef.current !== requestId) return;
+        setResults([]);
+        setSearchError(err.message || 'Could not reach the venue index.');
+      } finally {
+        if (requestRef.current === requestId) setIsSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [query, isOpen, destinationName, near]);
 
   if (!isOpen || !activity) return null;
 
-  const quickPicks = [
-    'Local Street Food Market',
-    'Scenic City Viewpoint',
-    'Contemporary Art Gallery',
-    'Relaxed Park & Tea House',
-    'Historic Neighborhood Walk',
-  ];
+  const handleSwap = async (choosenName: string, resultId?: string) => {
+    const targetVenue = choosenName.trim();
+    if (!targetVenue || submittingId) return;
 
-  const handleSwap = async (chosenName: string) => {
-    const targetVenue = chosenName.trim();
-    if (!targetVenue || isSubmitting) return;
-
-    setIsSubmitting(true);
+    setSubmittingId(resultId || 'manual');
     setErrorMsg(null);
 
     const prompt = `On Day ${activity.dayIndex}, replace "${activity.title}" with a visit to "${targetVenue}" in ${destinationName}. Keep the schedule conflict-free and physically reachable.`;
@@ -78,13 +147,15 @@ export default function SwapActivityModal({
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to swap activity. Try another venue.');
     } finally {
-      setIsSubmitting(false);
+      setSubmittingId(null);
     }
   };
 
+  const isBusy = submittingId !== null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="comic-panel w-full max-w-md bg-white rounded-2xl p-6 space-y-5 shadow-[6px_6px_0px_#18181B] relative">
+      <div className="comic-panel w-full max-w-md bg-white rounded-2xl p-6 space-y-5 shadow-[6px_6px_0px_#18181B] relative max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
           <div className="flex items-center gap-2">
@@ -96,7 +167,7 @@ export default function SwapActivityModal({
           <button
             type="button"
             onClick={onClose}
-            className="comic-btn-secondary p-1 rounded-lg"
+            className="comic-btn-secondary p-1 min-h-11 min-w-11 flex items-center justify-center rounded-lg"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -113,7 +184,7 @@ export default function SwapActivityModal({
           </span>
           {activity.startTime && (
             <span className="text-[11px] text-[#52525B] font-bold">
-              Timeslot: {activity.startTime} – {activity.endTime}
+              Timeslot: {activity.startTime} to {activity.endTime}
             </span>
           )}
         </div>
@@ -124,49 +195,116 @@ export default function SwapActivityModal({
           </div>
         )}
 
-        {/* Custom Input */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-black uppercase text-[#18181B] block">
-            Enter New Venue / Spot Name
+        {/* Live OpenStreetMap search */}
+        <div className="space-y-2">
+          <label
+            htmlFor="swap-search"
+            className="text-[11px] font-black uppercase text-[#18181B] block"
+          >
+            Search venues in {destinationName}
           </label>
-          <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#18181B]" />
             <input
+              id="swap-search"
               type="text"
-              placeholder="e.g. Meiji Shrine, Tsukiji Outer Market"
-              value={replacementName}
-              onChange={(e) => setReplacementName(e.target.value)}
-              className="flex-1 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg px-3 py-2 text-xs font-bold text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+              autoComplete="off"
+              placeholder="e.g. market, museum, viewpoint"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full min-h-12 pl-9 pr-9 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-base sm:text-sm font-bold text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:bg-white"
             />
-            <button
-              type="button"
-              disabled={isSubmitting || !replacementName.trim()}
-              onClick={() => handleSwap(replacementName)}
-              className="comic-btn-primary px-3 py-2 rounded-lg text-xs font-black uppercase disabled:opacity-50"
-            >
-              {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Swap'}
-            </button>
+            {isSearching && (
+              <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E11D48] animate-spin" />
+            )}
           </div>
+
+          {searchError && (
+            <p className="text-[11px] font-bold text-red-800">{searchError}</p>
+          )}
+
+          {!isSearching && !searchError && query.trim().length >= 2 && results.length === 0 && (
+            <div className="flex items-center gap-2 p-2.5 border-2 border-[#18181B] rounded-lg bg-[#FAF8F5]">
+              <CircleSlash className="w-4 h-4 text-[#52525B] shrink-0" />
+              <span className="text-[11px] font-bold text-[#52525B]">
+                No OpenStreetMap venue matches that search. Try a different word, or type the
+                name in full below.
+              </span>
+            </div>
+          )}
+
+          {results.length > 0 && (
+            <ul className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+              {results.map((place) => {
+                const street = streetPart(place);
+                const isSubmitting = submittingId === place.id;
+                return (
+                  <li key={place.id}>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleSwap(place.name, place.id)}
+                      className="w-full min-h-11 text-left p-3 rounded-lg border-2 border-[#18181B] bg-white hover:bg-[#FAF8F5] flex items-start justify-between gap-3 shadow-[2px_2px_0px_#18181B] transition-all disabled:opacity-50"
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="font-black text-xs text-[#18181B] block leading-snug break-words">
+                          {place.name}
+                        </span>
+                        {street && (
+                          <span className="text-[11px] text-[#52525B] font-medium block mt-0.5 leading-snug break-words">
+                            {street}
+                          </span>
+                        )}
+                      </span>
+                      {isSubmitting ? (
+                        <RefreshCw className="w-4 h-4 text-[#E11D48] animate-spin shrink-0 mt-0.5" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4 text-[#E11D48] shrink-0 mt-0.5" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#52525B]">
+            Source: OpenStreetMap // coordinates and hours only, no stock imagery
+          </p>
         </div>
 
-        {/* Quick Alternative Picks */}
-        <div className="space-y-1.5 pt-1">
-          <span className="text-[10px] font-black uppercase text-[#52525B] tracking-wider block">
-            Or pick an alternative category:
-          </span>
-          <div className="space-y-1.5">
-            {quickPicks.map((pick, i) => (
-              <button
-                key={i}
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSwap(pick)}
-                className="w-full text-left p-2.5 rounded-lg border-2 border-[#18181B] bg-white hover:bg-[#FAF8F5] flex items-center justify-between text-xs font-black text-[#18181B] shadow-[2px_2px_0px_#18181B] transition-all disabled:opacity-50"
-              >
-                <span>{pick}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#E11D48]" />
-              </button>
-            ))}
-          </div>
+        {/* Manual entry fallback */}
+        <div className="space-y-1.5 pt-1 border-t-2 border-[#18181B]">
+          <label className="text-[11px] font-black uppercase text-[#18181B] block pt-3">
+            Or name the venue yourself
+          </label>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSwap(query);
+            }}
+          >
+            <input
+              type="text"
+              placeholder="exact venue name"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 min-h-12 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg px-3 text-base sm:text-sm font-bold text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:bg-white"
+            />
+            <button
+              type="submit"
+              disabled={isBusy || query.trim().length < 2}
+              className="comic-btn-primary px-4 min-h-12 rounded-lg text-xs font-black uppercase disabled:opacity-50 flex items-center gap-2"
+            >
+              {submittingId === 'manual' ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <MapPin className="w-4 h-4" />
+              )}
+              Swap
+            </button>
+          </form>
         </div>
       </div>
     </div>

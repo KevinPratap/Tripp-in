@@ -16,6 +16,8 @@ interface PackingDocketProps {
   tripId: string;
   destination: string;
   isRainy?: boolean;
+  /** Trip pace. High pace adds hydration gear because the days run long. */
+  pace?: string;
 }
 
 interface PackingItem {
@@ -25,13 +27,54 @@ interface PackingItem {
   recommendedReason?: string;
 }
 
+/**
+ * Plug and voltage by destination. Defaults to a universal adapter when the destination
+ * is not recognised rather than guessing a standard.
+ */
+function adapterFor(destination: string): { text: string; region: string | null } {
+  const d = destination.toLowerCase();
+  const match = (pattern: RegExp) => pattern.test(d);
+
+  if (match(/japan|tokyo|kyoto|osaka|sapporo/)) {
+    return { text: 'Type A Power Adapter (100V, 50/60Hz)', region: 'Japan' };
+  }
+  if (match(/united kingdom|england|london|scotland|edinburgh|wales|ireland|dublin/)) {
+    return { text: 'Type G Power Adapter (230V)', region: 'UK and Ireland' };
+  }
+  if (match(/india|delhi|mumbai|bangalore|bengaluru|jaipur|goa|chennai/)) {
+    return { text: 'Type C or D Power Adapter (230V)', region: 'India' };
+  }
+  if (match(/australia|sydney|melbourne|brisbane|new zealand|auckland/)) {
+    return { text: 'Type I Power Adapter (230V)', region: 'Australia and New Zealand' };
+  }
+  if (match(/united states|usa|new york|san francisco|chicago|boston|canada|toronto|vancouver/)) {
+    return { text: 'Type A Power Adapter (120V)', region: 'North America' };
+  }
+  if (match(/united arab emirates|dubai|abu dhabi|qatar|doha|saudi/)) {
+    return { text: 'Type G Power Adapter (230V)', region: 'Gulf' };
+  }
+  if (match(/china|beijing|shanghai|hong kong|singapore|malaysia|kuala lumpur/)) {
+    return { text: 'Type A or I Power Adapter (220V)', region: 'East and Southeast Asia' };
+  }
+  if (
+    match(
+      /france|paris|italy|rome|spain|madrid|barcelona|germany|berlin|netherlands|amsterdam|portugal|lisbon|porto|greece|athens|austria|vienna|belgium|brussels|croatia|split|finland|helsinki|czech|prague|hungary|budapest|poland|warsaw|norway|oslo|sweden|stockholm|denmark|copenhagen|switzerland|zurich/
+    )
+  ) {
+    return { text: 'Type C or E Power Adapter (230V)', region: 'Europe' };
+  }
+  return { text: 'Universal Travel Power Adapter', region: null };
+}
+
 export default function PackingDocket({
   tripId,
   destination,
   isRainy = false,
+  pace,
 }: PackingDocketProps) {
   const isJapan = /japan|tokyo|kyoto|osaka/i.test(destination);
-  const isEurope = /france|paris|italy|rome|london|uk|spain|germany/i.test(destination);
+  const adapter = adapterFor(destination);
+  const isHighPace = String(pace || '').trim().toUpperCase() === 'FAST';
 
   const defaultItems: PackingItem[] = [
     // Documents & Tech
@@ -50,12 +93,10 @@ export default function PackingDocket({
     {
       id: 'doc-plug',
       category: 'DOCS',
-      text: isJapan
-        ? 'Type A/B Power Adapter (100V)'
-        : isEurope
-        ? 'Type C/E Power Adapter (230V)'
-        : 'Universal Travel Power Adapter',
-      recommendedReason: 'Keep devices charged on the move',
+      text: adapter.text,
+      recommendedReason: adapter.region
+        ? `Mains standard for ${adapter.region}`
+        : 'Destination not recognised, bring the universal adapter',
     },
     {
       id: 'doc-bank',
@@ -68,9 +109,21 @@ export default function PackingDocket({
     {
       id: 'clim-rain',
       category: 'CLIMATE',
-      text: isRainy ? 'Compact Windproof Umbrella & Rain Shell' : 'Packable Lightweight Umbrella',
-      recommendedReason: isRainy ? 'Rain radar detected in forecast!' : 'Precautionary weather defense',
+      text: isRainy ? 'Windproof Umbrella and Rain Shell' : 'Packable Lightweight Umbrella',
+      recommendedReason: isRainy
+        ? 'Rain is in the forecast for these dates'
+        : 'Precautionary weather defense',
     },
+    ...(isRainy
+      ? [
+          {
+            id: 'clim-poncho',
+            category: 'CLIMATE' as const,
+            text: 'Compact Rain Poncho',
+            recommendedReason: 'Packs flat for wet walking days, keeps the daypack dry',
+          },
+        ]
+      : []),
     {
       id: 'clim-sun',
       category: 'CLIMATE',
@@ -97,6 +150,22 @@ export default function PackingDocket({
       text: 'Compact Daypack or Crossbody Bag',
       recommendedReason: 'Daily excursions & field purchases',
     },
+    ...(isHighPace
+      ? [
+          {
+            id: 'tran-hydro',
+            category: 'TRANSIT' as const,
+            text: '1L Insulated Water Bottle',
+            recommendedReason: 'All-out pace means long stretches between refills',
+          },
+          {
+            id: 'hlth-hydro',
+            category: 'HEALTH' as const,
+            text: 'Electrolyte Sachets (2 per active day)',
+            recommendedReason: 'Hydration for back-to-back high pace days',
+          },
+        ]
+      : []),
 
     // Health & Essentials
     {
@@ -174,6 +243,20 @@ export default function PackingDocket({
             <h3 className="font-display font-black text-xl uppercase text-[#18181B]">
               Field Kit Docket // {destination}
             </h3>
+            {(isRainy || isHighPace) && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {isRainy && (
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#E11D48] text-white border-2 border-[#18181B] px-2 py-0.5 rounded-xs">
+                    Rain gear added
+                  </span>
+                )}
+                {isHighPace && (
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-[#18181B] text-white border-2 border-[#18181B] px-2 py-0.5 rounded-xs">
+                    Hydration added
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

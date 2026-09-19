@@ -215,6 +215,11 @@ export default function PublicTripPage() {
   const itinerary = tripData.itinerary;
   const days = itinerary?.days || [];
   const activeDay = days.find((d: any) => d.dayIndex === activeDayIndex) || days[0];
+
+  // Search bias for the swap modal: coordinates of the first located stop on the shown day.
+  const dayAnchor = activeDay?.activities?.find((a: any) => a?.place?.location)?.place?.location as
+    | { latitude: number; longitude: number }
+    | undefined;
   const allActivities = days.flatMap((d: any) => d.activities || []);
 
   return (
@@ -444,14 +449,18 @@ export default function PublicTripPage() {
             </div>
 
             <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                VERIFIED PASS
+              <span className="animate-stamp inline-flex">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[-2deg] shadow-[4px_4px_0px_#18181B]">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  VERIFIED PASS
+                </span>
               </span>
               {isPlanLocked && (
-                <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs">
-                  <Lock className="w-3.5 h-3.5 text-amber-800" />
-                  PLAN LOCKED
+                <span className="animate-stamp inline-flex">
+                  <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border-2 border-[#18181B] px-3 py-1 text-xs font-black uppercase rounded-xs rotate-[1.5deg] shadow-[4px_4px_0px_#18181B]">
+                    <Lock className="w-3.5 h-3.5 text-amber-800" />
+                    PLAN LOCKED
+                  </span>
                 </span>
               )}
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#52525B]">
@@ -491,6 +500,7 @@ export default function PublicTripPage() {
               tripId={tripId}
               destination={tripData.destinationName || 'Destination'}
               isRainy={weatherList.some((w) => w.isRainy)}
+              pace={tripData?.pace}
             />
           </section>
         )}
@@ -533,8 +543,8 @@ export default function PublicTripPage() {
                 onClick={() => setActiveDayIndex(d.dayIndex)}
                 className={`px-4 py-2 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
                   activeDayIndex === d.dayIndex
-                    ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B]'
-                    : 'bg-white text-[#18181B] border-2 border-[#18181B] hover:bg-[#FAF8F5]'
+                    ? 'bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] -translate-y-0.5'
+                    : 'bg-white text-[#18181B] border-2 border-[#18181B] hover:bg-[#FAF8F5] hover:border-[#E11D48]'
                 }`}
               >
                 Day 0{d.dayIndex}
@@ -838,6 +848,7 @@ export default function PublicTripPage() {
         activity={swappingActivity}
         itineraryId={itinerary?.id || tripData?.id}
         destinationName={tripData?.destinationName || 'Destination'}
+        near={dayAnchor}
         onItineraryUpdated={(updated) => {
           setTripData((prev: any) => ({ ...prev, itinerary: updated }));
         }}
