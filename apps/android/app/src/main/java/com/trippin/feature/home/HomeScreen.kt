@@ -21,6 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import com.trippin.core.design.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -348,14 +352,27 @@ private fun DestinationCard(
     imageUrl: String,
     onClick: () -> Unit
 ) {
-    Card(
+    // Ink border plus a hard offset shadow, and a gradient scrim so the label stays readable over
+    // a bright photograph instead of sitting on a flat grey wash.
+    Box(
         modifier = Modifier
-            .width(160.dp)
-            .height(200.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp)
+            .width(164.dp)
+            .height(204.dp)
+            .clickable { onClick() }
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(x = 4.dp, y = 4.dp)
+                .background(ComicInk, RoundedCornerShape(12.dp))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(12.dp))
+                .background(ComicPanel)
+                .border(2.dp, ComicInk, RoundedCornerShape(12.dp))
+        ) {
             AsyncImage(
                 model = imageUrl,
                 contentDescription = city,
@@ -365,23 +382,36 @@ private fun DestinationCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.15f),
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
             )
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(12.dp)
+                    .padding(14.dp)
             ) {
                 Text(
                     text = city,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = PureWhite
+                    color = PureWhite,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = country,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PureWhite.copy(alpha = 0.85f)
+                    text = country.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite.copy(alpha = 0.9f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
