@@ -187,6 +187,7 @@ export interface ActivityModel {
   tips?: string;
   bookingUrl?: string;
   place?: PlaceModel;
+  checks?: VerificationCheck[];
 }
 
 export interface ItineraryDayModel {
@@ -231,6 +232,18 @@ export interface BookingReference {
   bookedAt?: string;
 }
 
+// Verification Receipts
+export type VerificationCheckSource = 'OSM' | 'OSRM' | 'Open-Meteo' | 'engine';
+export type VerificationCheckStatus = 'confirmed' | 'estimated' | 'unchecked';
+
+export interface VerificationCheck {
+  code: string;
+  label: string;
+  source: VerificationCheckSource;
+  status: VerificationCheckStatus;
+  details?: string;
+}
+
 // Deterministic Validation Results
 export interface ValidationViolation {
   code:
@@ -261,4 +274,6 @@ export interface ValidationResult {
     totalTransitMinutes: number;
     estimatedCostTotal: number;
   };
+  activityChecks?: Record<string, VerificationCheck[]>;
 }
+

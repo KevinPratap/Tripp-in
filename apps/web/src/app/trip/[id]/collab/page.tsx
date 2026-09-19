@@ -369,7 +369,7 @@ export default function TripCollabPage({
                         {act.title}
                       </h3>
                       <div className="flex items-center space-x-2 text-xs font-mono font-bold text-[#52525B]">
-                        <span>{act.startTime} — {act.endTime}</span>
+                        <span>{act.startTime} to {act.endTime}</span>
                         <span>•</span>
                         <span className="uppercase text-[#E11D48]">{act.activityType || 'Attraction'}</span>
                       </div>

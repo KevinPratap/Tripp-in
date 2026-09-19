@@ -228,4 +228,48 @@ describe('ItineraryValidator (Deterministic Engine)', () => {
     expect(result.isValid).toBe(true);
     expect(result.violations.length).toBe(0);
   });
+
+  it('should generate verification receipts per activity with real sources', async () => {
+    mockRouteService.estimateTravelTimeMinutes.mockResolvedValue(20);
+
+    const candidate: ItineraryV1 = {
+      schemaVersion: 'itinerary.schema.v1',
+      tripTitle: 'Receipts Test',
+      destination: 'Paris',
+      summary: 'Testing verification receipts',
+      currency: 'USD',
+      days: [
+        {
+          dayIndex: 1,
+          date: '2026-06-01',
+          themeSummary: 'Museum day',
+          activities: [
+            {
+              placeId: 'place-1',
+              placeName: 'Place 1',
+              activityType: 'MUSEUM',
+              startTime: '10:00',
+              endTime: '12:00',
+              durationMinutes: 120,
+              travelTimeFromPreviousMinutes: 0,
+              transitModeFromPrevious: 'TRANSIT',
+              reason: 'First stop'
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = await validator.validate(candidate, baseRequirements);
+    expect(result.activityChecks).toBeDefined();
+    const checks = result.activityChecks?.['1_0'];
+    expect(checks).toBeDefined();
+    expect(checks?.length).toBeGreaterThanOrEqual(4);
+
+    const sources = checks?.map((c) => c.source);
+    expect(sources).toContain('engine');
+    expect(sources).toContain('OSM');
+    expect(sources).toContain('OSRM');
+    expect(sources).toContain('Open-Meteo');
+  });
 });

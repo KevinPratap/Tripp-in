@@ -99,7 +99,8 @@ export class ItinerariesService {
                 currency: verified.currency,
                 reason: a.reason,
                 tips: a.tips,
-                orderIndex: idx
+                orderIndex: idx,
+                validationJson: (a as any).checks || undefined
               }))
             }
           }))
@@ -232,6 +233,7 @@ export class ItinerariesService {
           reason: a.reason,
           tips: a.tips,
           bookingUrl: a.bookingUrl,
+          checks: (a.validationJson as any) || undefined,
           place: a.place
             ? {
                 id: a.place.id,

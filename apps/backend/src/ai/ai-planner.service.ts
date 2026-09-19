@@ -180,6 +180,7 @@ export class AIPlannerService {
 
       if (validationResult.isValid) {
         this.logger.log(`✅ Candidate itinerary passed all deterministic constraints at iteration ${repairIterations}!`);
+        this.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
         return {
           success: true,
           itinerary: candidateItinerary,
@@ -211,9 +212,11 @@ export class AIPlannerService {
           this.logger.log(
             'Repair loop exhausted, deterministic fallback produced a fully verified schedule.'
           );
+          const finalItinerary = this.attachWeatherSummaries(deterministic, weather);
+          this.attachActivityChecks(finalItinerary, deterministicResult.activityChecks);
           return {
             success: true,
-            itinerary: this.attachWeatherSummaries(deterministic, weather),
+            itinerary: finalItinerary,
             validationResult: deterministicResult,
             repairIterations,
             modelUsed: 'heuristic-deterministic-engine'
@@ -226,6 +229,9 @@ export class AIPlannerService {
 
     if (candidateItinerary) {
       candidateItinerary = this.attachWeatherSummaries(candidateItinerary, weather);
+      if (validationResult?.activityChecks) {
+        this.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
+      }
     }
 
     return {
@@ -572,6 +578,21 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
         return summary ? ({ ...day, weatherSummary: summary } as any) : day;
       })
     } as ItineraryV1;
+  }
+
+  private attachActivityChecks(
+    itinerary: ItineraryV1,
+    checksMap?: Record<string, any[]>
+  ): ItineraryV1 {
+    if (!checksMap) return itinerary;
+    for (const day of itinerary.days) {
+      for (let i = 0; i < (day.activities || []).length; i++) {
+        const act = day.activities[i];
+        const key = `${day.dayIndex}_${i}`;
+        (act as any).checks = checksMap[key] || checksMap[(act as any).id] || [];
+      }
+    }
+    return itinerary;
   }
 
   /**

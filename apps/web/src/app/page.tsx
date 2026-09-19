@@ -266,7 +266,7 @@ export default function WebHomePage() {
         <section className="comic-panel-red p-8 sm:p-10 rounded-2xl bg-[#18181B] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center sm:text-left">
             <span className="text-xs font-extrabold tracking-widest text-[#E11D48] uppercase">
-              Field Tested &amp; Certified
+              Deterministic &amp; Feasible
             </span>
             <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight">
               Ready to map your next run?

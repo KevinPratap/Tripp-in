@@ -657,7 +657,7 @@ function PlannerContent() {
                 Awaiting Target Coordinates
               </h3>
               <p className="text-xs font-medium text-[#52525B] max-w-sm leading-relaxed">
-                Enter your city and travel window on the left. Tap &quot;Lock In Route&quot; to compile your certified conflict-free travel log.
+                Enter your city and travel window on the left. Tap &quot;Lock In Route&quot; to compile your verified conflict-free travel log.
               </p>
             </div>
           )}

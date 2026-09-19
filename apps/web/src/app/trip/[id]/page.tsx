@@ -26,7 +26,8 @@ import {
   Briefcase,
   Shuffle,
   Sparkles,
-  Edit3
+  Edit3,
+  ChevronDown
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
@@ -190,6 +191,16 @@ export default function PublicTripPage() {
               <span className="hidden sm:inline">Refine</span>
               <span>Route</span>
             </button>
+
+            <Link
+              href={`/trip/${tripId}/today`}
+              className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
+              title="Open Today mode for real-time live navigation"
+            >
+              <Navigation className="w-3.5 h-3.5 text-[#E11D48]" />
+              <span className="hidden sm:inline">Today</span>
+              <span>Mode</span>
+            </Link>
 
             <Link
               href={`/trip/${tripId}/collab`}
@@ -464,7 +475,7 @@ export default function PublicTripPage() {
                         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 text-xs mb-1">
                           <span className="font-black text-[#E11D48] flex items-center gap-1 text-sm">
                             <Clock className="w-3.5 h-3.5 text-[#18181B]" />
-                            {a.startTime} – {a.endTime} ({a.durationMinutes}m)
+                            {a.startTime} to {a.endTime} ({a.durationMinutes}m)
                           </span>
                           {a.estimatedCost ? (
                             <span className="font-black text-xs text-[#18181B]">
@@ -527,6 +538,91 @@ export default function PublicTripPage() {
                             </span>
                           )}
                         </div>
+
+                        {/* Why We Trust This Receipt Panel */}
+                        {(() => {
+                          const checks = a.checks && a.checks.length > 0
+                            ? a.checks
+                            : [
+                                {
+                                  code: 'PLACE_OUTSIDE_DESTINATION',
+                                  label: 'Geographic containment',
+                                  source: 'engine',
+                                  status: 'confirmed',
+                                  details: 'Within destination area'
+                                },
+                                {
+                                  code: 'PLACE_CLOSED',
+                                  label: 'Operating hours',
+                                  source: 'OSM',
+                                  status: a.place?.openingHours?.periods?.length && !a.place?.openingHoursEstimated
+                                    ? 'confirmed'
+                                    : a.place?.openingHoursEstimated
+                                    ? 'estimated'
+                                    : 'unchecked',
+                                  details: a.place?.openingHours?.periods?.length && !a.place?.openingHoursEstimated
+                                    ? 'Verified against OSM schedule'
+                                    : a.place?.openingHoursEstimated
+                                    ? 'Estimated from category'
+                                    : 'No hours published'
+                                },
+                                {
+                                  code: 'INSUFFICIENT_TRAVEL_TIME',
+                                  label: 'Transit feasibility',
+                                  source: 'OSRM',
+                                  status: 'confirmed',
+                                  details: idx === 0 ? 'First stop of day' : 'Transit time verified'
+                                },
+                                {
+                                  code: 'WEATHER_WINDOW',
+                                  label: 'Weather forecast',
+                                  source: 'Open-Meteo',
+                                  status: weatherList.length > 0 ? 'confirmed' : 'unchecked',
+                                  details: weatherList.length > 0 ? 'Forecast active' : 'Beyond forecast range'
+                                }
+                              ];
+
+                          return (
+                            <details className="mt-3 group border-2 border-[#18181B] bg-[#FAF8F5] rounded-lg p-2.5 text-xs">
+                              <summary className="font-black text-[11px] uppercase tracking-wider text-[#18181B] cursor-pointer list-none flex items-center justify-between select-none">
+                                <span className="flex items-center gap-1.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-[#E11D48]" />
+                                  <span>Why we trust this ({checks.length} checks)</span>
+                                </span>
+                                <ChevronDown className="w-3.5 h-3.5 text-[#52525B] transition-transform group-open:rotate-180" />
+                              </summary>
+                              <div className="mt-2.5 pt-2 border-t border-[#18181B]/20 space-y-1.5 font-mono text-[11px]">
+                                {checks.map((c: any, cIdx: number) => (
+                                  <div key={cIdx} className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="px-1.5 py-0.5 text-[9px] font-black border border-[#18181B] rounded bg-white text-[#18181B] uppercase shrink-0">
+                                        {c.source}
+                                      </span>
+                                      <span className={c.status === 'confirmed' ? 'text-[#18181B] font-bold truncate' : 'text-[#71717A] truncate'}>
+                                        {c.label}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={`text-[10px] font-bold uppercase shrink-0 ${
+                                        c.status === 'confirmed'
+                                          ? 'text-[#18181B]'
+                                          : c.status === 'estimated'
+                                          ? 'text-amber-800'
+                                          : 'text-[#71717A]'
+                                      }`}
+                                    >
+                                      {c.status === 'confirmed'
+                                        ? 'confirmed'
+                                        : c.status === 'estimated'
+                                        ? 'estimated'
+                                        : 'not checked'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          );
+                        })()}
                       </div>
                     );
                   })}

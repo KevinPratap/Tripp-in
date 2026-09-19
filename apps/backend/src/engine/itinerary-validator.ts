@@ -5,7 +5,8 @@ import {
   ValidationViolation,
   PlaceModel,
   RouteMode,
-  GeoLocation
+  GeoLocation,
+  VerificationCheck
 } from '@trippin/shared-types';
 import { ItineraryV1 } from '@trippin/itinerary-schema';
 import { PlaceService } from '../places/places.service';
@@ -448,6 +449,127 @@ export class ItineraryValidator {
       });
     }
 
+    // 8. Build verification receipts per activity
+    const activityChecks: Record<string, VerificationCheck[]> = {};
+    for (const day of candidate.days) {
+      const acts = activitiesOf(day);
+      for (let i = 0; i < acts.length; i++) {
+        const current = acts[i];
+        const key = `${day.dayIndex}_${i}`;
+        const place = await getPlace(current.placeId);
+        const checks: VerificationCheck[] = [];
+
+        // 1. Geographic containment
+        const isOutside = violations.some(
+          (v) =>
+            v.code === 'PLACE_OUTSIDE_DESTINATION' &&
+            v.dayIndex === day.dayIndex &&
+            v.activityIndices.includes(i)
+        );
+        checks.push({
+          code: 'PLACE_OUTSIDE_DESTINATION',
+          label: 'Geographic containment',
+          source: 'engine',
+          status: isOutside ? 'unchecked' : 'confirmed',
+          details: isOutside ? 'Exceeds perimeter' : 'Within destination area'
+        });
+
+        // 2. Operating hours (OSM)
+        const isClosed = violations.some(
+          (v) =>
+            v.code === 'PLACE_CLOSED' &&
+            v.dayIndex === day.dayIndex &&
+            v.activityIndices.includes(i)
+        );
+        const hasRealPeriods =
+          Boolean(place?.openingHours?.periods && place.openingHours.periods.length > 0) &&
+          !(place as any)?.openingHoursEstimated;
+
+        if (isClosed) {
+          checks.push({
+            code: 'PLACE_CLOSED',
+            label: 'Operating hours',
+            source: 'OSM',
+            status: 'unchecked',
+            details: 'Outside operating hours'
+          });
+        } else if (hasRealPeriods) {
+          checks.push({
+            code: 'PLACE_CLOSED',
+            label: 'Operating hours',
+            source: 'OSM',
+            status: 'confirmed',
+            details: 'Verified against OSM schedule'
+          });
+        } else if ((place as any)?.openingHoursEstimated) {
+          checks.push({
+            code: 'PLACE_CLOSED',
+            label: 'Operating hours',
+            source: 'OSM',
+            status: 'estimated',
+            details: 'Estimated from category'
+          });
+        } else {
+          checks.push({
+            code: 'PLACE_CLOSED',
+            label: 'Operating hours',
+            source: 'OSM',
+            status: 'unchecked',
+            details: 'No hours published'
+          });
+        }
+
+        // 3. Transit feasibility (OSRM)
+        const hasTransitIssue = violations.some(
+          (v) =>
+            v.code === 'INSUFFICIENT_TRAVEL_TIME' &&
+            v.dayIndex === day.dayIndex &&
+            v.activityIndices.includes(i)
+        );
+        checks.push({
+          code: 'INSUFFICIENT_TRAVEL_TIME',
+          label: 'Transit feasibility',
+          source: 'OSRM',
+          status: hasTransitIssue ? 'unchecked' : 'confirmed',
+          details: hasTransitIssue
+            ? 'Transit time insufficient'
+            : i === 0
+            ? 'First stop of day'
+            : 'Transit time verified'
+        });
+
+        // 4. Schedule buffer / overlap
+        const hasOverlap = violations.some(
+          (v) =>
+            v.code === 'TIME_OVERLAP' &&
+            v.dayIndex === day.dayIndex &&
+            v.activityIndices.includes(i)
+        );
+        checks.push({
+          code: 'TIME_OVERLAP',
+          label: 'Schedule buffer',
+          source: 'engine',
+          status: hasOverlap ? 'unchecked' : 'confirmed',
+          details: hasOverlap ? 'Time overlap detected' : 'Conflict-free'
+        });
+
+        // 5. Weather forecast (Open-Meteo)
+        const hasWeather = Boolean((day as any).weatherSummary || (day as any).weather);
+        checks.push({
+          code: 'WEATHER_WINDOW',
+          label: 'Weather forecast',
+          source: 'Open-Meteo',
+          status: hasWeather ? 'confirmed' : 'unchecked',
+          details: hasWeather ? 'Forecast linked' : 'Beyond forecast range'
+        });
+
+        activityChecks[key] = checks;
+        if (current.id) {
+          activityChecks[current.id] = checks;
+        }
+      }
+    }
+
     if (violations.length > 0) {
       this.logger.debug(
         `Validation found ${violations.length} violation(s): ${violations
@@ -464,7 +586,8 @@ export class ItineraryValidator {
         totalActiveMinutes,
         totalTransitMinutes,
         estimatedCostTotal
-      }
+      },
+      activityChecks
     };
   }
 }
