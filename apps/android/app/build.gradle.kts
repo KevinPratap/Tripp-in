@@ -86,15 +86,6 @@ dependencies {
     // Image loading (Coil)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // Room Database (Offline sync - Phase 22)
-    val roomVersion = "2.6.1"
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    ksp("androidx.room:room-compiler:$roomVersion")
-
-    // DataStore Preferences
-    implementation("androidx.datastore:datastore-preferences:1.1.2")
-
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")

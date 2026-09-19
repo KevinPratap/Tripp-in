@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window theme only: the UI itself is Compose (see core/design/Theme.kt). -->
+    <style name="Theme.Trippin" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/comic_paper</item>
+        <item name="android:statusBarColor">@color/comic_paper</item>
+        <item name="android:navigationBarColor">@color/comic_paper</item>
+        <item name="android:colorAccent">@color/comic_red</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

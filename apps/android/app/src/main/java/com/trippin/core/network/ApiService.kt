@@ -21,4 +21,10 @@ interface ApiService {
 
     @GET("api/v1/trips/{id}")
     suspend fun getTripDetails(@Path("id") tripId: String): TripDetailsDto
+
+    @POST("api/v1/itineraries/{id}/modify")
+    suspend fun modifyItinerary(
+        @Path("id") itineraryId: String,
+        @Body body: ModifyItineraryRequestDto
+    ): ModifyItineraryResponseDto
 }

@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.trippin.core.design.EmeraldTeal
+import com.trippin.core.design.ComicRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,7 +22,7 @@ fun ProfileScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) }
+                title = { Text("Traveller", fontWeight = FontWeight.Bold) }
             )
         }
     ) { padding ->
@@ -34,7 +34,7 @@ fun ProfileScreen() {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // User Info Card
+            // Identity: this install, not a fake account
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -53,7 +53,7 @@ fun ProfileScreen() {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "AR",
+                                text = "TA",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -61,14 +61,18 @@ fun ProfileScreen() {
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Alex Rivers", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                            Text("traveler@trippin.ai", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("This device", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                "Your trips belong to this install. No account needed yet.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
 
-            // Offline sync indicator (Phase 22)
+            // Where the data comes from
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -79,11 +83,40 @@ fun ProfileScreen() {
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.CloudDone, contentDescription = null, tint = EmeraldTeal)
+                        Icon(Icons.Default.Public, contentDescription = null, tint = ComicRed)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Offline Cache Enabled", fontWeight = FontWeight.SemiBold)
-                            Text("Paris trip is saved locally in Room database for offline use", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Live venue data", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Venues and opening hours come from OpenStreetMap, routes from OSRM. Hours that nobody publishes are labelled as estimates.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // What the engine actually guarantees
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = ComicRed)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Checked before you see it", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Transit time, pace, budget, repeat venues and distance from your destination are validated. Schedules that fail are saved as drafts, never as verified.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

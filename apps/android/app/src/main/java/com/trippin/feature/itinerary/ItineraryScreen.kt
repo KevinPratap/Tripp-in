@@ -21,8 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.design.*
 import com.trippin.core.network.ActivityDto
+import com.trippin.core.network.ModifyItineraryRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.TripDetailsDto
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +41,7 @@ fun ItineraryScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var editInstruction by remember { mutableStateOf("") }
     var isModifying by remember { mutableStateOf(false) }
+    var modifyError by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -243,16 +246,52 @@ fun ItineraryScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
                         )
+                        modifyError?.let { message ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 },
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        enabled = !isModifying && editInstruction.isNotBlank(),
                         onClick = {
-                            showEditDialog = false
+                            val instruction = editInstruction.trim()
+                            val itineraryId = tripDetails?.itinerary?.id
+                            if (instruction.isBlank() || itineraryId == null) return@Button
+                            scope.launch {
+                                try {
+                                    isModifying = true
+                                    modifyError = null
+                                    NetworkModule.apiService.modifyItinerary(
+                                        itineraryId,
+                                        ModifyItineraryRequestDto(instruction = instruction)
+                                    )
+                                    tripDetails = NetworkModule.apiService.getTripDetails(tripId)
+                                    editInstruction = ""
+                                    showEditDialog = false
+                                } catch (e: Exception) {
+                                    modifyError = e.message ?: "Could not apply that change"
+                                } finally {
+                                    isModifying = false
+                                }
+                            }
                         }
                     ) {
-                        Text("APPLY DIRECTIVE", fontWeight = FontWeight.Bold)
+                        if (isModifying) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text("APPLY DIRECTIVE", fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
                 dismissButton = {

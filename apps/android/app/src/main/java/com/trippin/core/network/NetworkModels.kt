@@ -99,6 +99,7 @@ data class ItineraryDayDto(
     val date: String,
     val dayIndex: Int,
     val summary: String? = null,
+    val weatherSummary: String? = null,
     val activities: List<ActivityDto> = emptyList()
 )
 
@@ -115,4 +116,17 @@ data class ActivityDto(
     val estimatedCost: Double? = null,
     val currency: String? = null,
     val reason: String? = null
+)
+
+@Serializable
+data class ModifyItineraryRequestDto(
+    val instruction: String
+)
+
+@Serializable
+data class ModifyItineraryResponseDto(
+    val itineraryId: String? = null,
+    val newVersion: Int? = null,
+    val appliedChangesSummary: String? = null,
+    val updatedItinerary: ItineraryDto? = null
 )

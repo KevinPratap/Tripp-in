@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="comic_red">#E11D48</color>
+    <color name="comic_ink">#18181B</color>
+    <color name="comic_paper">#FAF8F5</color>
+</resources>
