@@ -20,10 +20,13 @@ import {
   RefreshCw,
   Share2,
   ExternalLink,
-  Check
+  Check,
+  Bookmark
 } from 'lucide-react';
 import { unwrapTripDetails } from '@/lib/trip-contract';
 import { apiFetch } from '@/lib/api-client';
+import { saveTripToHistory } from '@/lib/saved-trips';
+import MyTripsModal from '@/components/MyTripsModal';
 
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
   ssr: false,
@@ -57,6 +60,7 @@ function PlannerContent() {
 
   // Results state
   const [tripData, setTripData] = useState<any>(null);
+  const [isMyTripsOpen, setIsMyTripsOpen] = useState(false);
 
   // Refine / Modification state
   const [refineInstruction, setRefineInstruction] = useState('');
@@ -164,7 +168,11 @@ function PlannerContent() {
       }
 
       const fullTrip = await detailsRes.json();
-      setTripData(unwrapTripDetails(fullTrip));
+      const unwrapped = unwrapTripDetails(fullTrip);
+      setTripData(unwrapped);
+      if (unwrapped?.id) {
+        saveTripToHistory(unwrapped);
+      }
     } catch (err: any) {
       console.error('Route error:', err);
       setErrorMsg(err.message || 'Error occurred while computing route');
@@ -229,9 +237,19 @@ function PlannerContent() {
               </h1>
             </div>
           </div>
-          <div className="hidden sm:inline-flex items-center gap-1.5 text-xs font-black uppercase text-[#52525B]">
-            <ShieldCheck className="w-4 h-4 text-[#E11D48]" />
-            <span>PHYSICS CHECKED</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMyTripsOpen(true)}
+              className="comic-btn-secondary px-3 py-1.5 text-xs font-black uppercase flex items-center gap-1.5 rounded-lg"
+              title="View saved missions"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-[#E11D48]" />
+              <span className="hidden sm:inline">Saved Trips</span>
+            </button>
+            <div className="hidden sm:inline-flex items-center gap-1.5 text-xs font-black uppercase text-[#52525B]">
+              <ShieldCheck className="w-4 h-4 text-[#E11D48]" />
+              <span>PHYSICS CHECKED</span>
+            </div>
           </div>
         </div>
       </header>
@@ -645,6 +663,11 @@ function PlannerContent() {
           )}
         </section>
       </main>
+
+      <MyTripsModal
+        isOpen={isMyTripsOpen}
+        onClose={() => setIsMyTripsOpen(false)}
+      />
     </div>
   );
 }

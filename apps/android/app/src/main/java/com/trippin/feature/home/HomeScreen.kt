@@ -28,7 +28,8 @@ import com.trippin.core.design.*
 fun HomeScreen(
     onNavigateToPlanner: () -> Unit,
     onNavigateToTrip: (String) -> Unit,
-    onNavigateToExplore: () -> Unit
+    onNavigateToExplore: () -> Unit,
+    onNavigateToProfile: () -> Unit = {}
 ) {
     var homeFeed by remember { mutableStateOf<com.trippin.core.network.HomeFeedDto?>(null) }
 
@@ -53,7 +54,14 @@ fun HomeScreen(
                     icon = { Icon(Icons.Default.CardTravel, contentDescription = "Trips") },
                     label = { Text("Trips") },
                     selected = false,
-                    onClick = {}
+                    onClick = {
+                        val firstTripId = homeFeed?.recentTrips?.firstOrNull()?.id
+                        if (firstTripId != null) {
+                            onNavigateToTrip(firstTripId)
+                        } else {
+                            onNavigateToPlanner()
+                        }
+                    }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Explore, contentDescription = "Explore") },
@@ -65,7 +73,7 @@ fun HomeScreen(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                     label = { Text("Profile") },
                     selected = false,
-                    onClick = {}
+                    onClick = onNavigateToProfile
                 )
             }
         }
@@ -102,7 +110,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable(onClick = onNavigateToProfile),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

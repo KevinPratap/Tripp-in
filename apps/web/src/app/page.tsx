@@ -12,10 +12,13 @@ import {
   Navigation,
   Clock,
   Zap,
-  Flame
+  Flame,
+  Briefcase
 } from 'lucide-react';
+import MyTripsModal from '@/components/MyTripsModal';
 
 export default function WebHomePage() {
+  const [showMyTrips, setShowMyTrips] = React.useState(false);
   const destinations = [
     {
       code: 'TYO',
@@ -78,7 +81,16 @@ export default function WebHomePage() {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-3 sm:gap-6">
+          <nav className="flex items-center gap-2.5 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setShowMyTrips(true)}
+              className="comic-btn-secondary px-3.5 py-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-1.5"
+            >
+              <Briefcase className="w-4 h-4 text-[#18181B]" />
+              <span className="hidden sm:inline">My Trips</span>
+            </button>
+
             <Link
               href="/planner"
               className="comic-btn-primary px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-black uppercase tracking-wider flex items-center gap-2"
@@ -292,6 +304,9 @@ export default function WebHomePage() {
           </a>
         </div>
       </footer>
+
+      {/* My Trips Modal */}
+      <MyTripsModal isOpen={showMyTrips} onClose={() => setShowMyTrips(false)} />
     </div>
   );
 }

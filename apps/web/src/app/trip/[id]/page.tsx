@@ -22,12 +22,20 @@ import {
   Download,
   MessageSquare,
   Luggage,
-  CloudRain
+  CloudRain,
+  Briefcase,
+  Shuffle,
+  Sparkles,
+  Edit3
 } from 'lucide-react';
 import { downloadTripCalendar } from '@/lib/calendar-generator';
 import { unwrapTripDetails, formatDateRange } from '@/lib/trip-contract';
 import { fetchTripWeather, DayWeather } from '@/lib/weather-service';
+import { saveTripToHistory } from '@/lib/saved-trips';
 import PackingDocket from '@/components/PackingDocket';
+import MyTripsModal from '@/components/MyTripsModal';
+import RefineRouteModal from '@/components/RefineRouteModal';
+import SwapActivityModal from '@/components/SwapActivityModal';
 
 // Dynamic import for Leaflet map to prevent SSR issues
 const ComicRouteMap = dynamic(() => import('@/components/ComicRouteMap'), {
@@ -54,6 +62,15 @@ export default function PublicTripPage() {
   const [activeDayIndex, setActiveDayIndex] = useState(1);
   const [weatherList, setWeatherList] = useState<DayWeather[]>([]);
   const [showPackingDocket, setShowPackingDocket] = useState(false);
+  const [showMyTrips, setShowMyTrips] = useState(false);
+  const [showRefineModal, setShowRefineModal] = useState(false);
+  const [swappingActivity, setSwappingActivity] = useState<{
+    id: string;
+    title: string;
+    dayIndex: number;
+    startTime?: string;
+    endTime?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!tripId) return;
@@ -67,6 +84,10 @@ export default function PublicTripPage() {
         const unwrapped = unwrapTripDetails(data);
         setTripData(unwrapped);
         setIsLoading(false);
+
+        if (unwrapped?.id) {
+          saveTripToHistory(unwrapped);
+        }
 
         if (unwrapped?.destinationName) {
           fetchTripWeather(unwrapped.destinationName)
@@ -159,6 +180,17 @@ export default function PublicTripPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowRefineModal(true)}
+              className="comic-btn-primary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#18181B]"
+              title="Chat with AI Planner to adjust pace, swap meals, or re-route"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Refine</span>
+              <span>Route</span>
+            </button>
+
             <Link
               href={`/trip/${tripId}/collab`}
               className="comic-btn-secondary px-3 sm:px-3.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:border-[#E11D48]"
@@ -179,6 +211,15 @@ export default function PublicTripPage() {
               <Luggage className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Field Kit</span>
               <span className="md:hidden">Kit</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowMyTrips(true)}
+              className="comic-btn-secondary px-2.5 min-h-11 py-2 rounded-lg text-xs font-black uppercase"
+              title="View all your saved field tickets"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-[#18181B]" />
             </button>
 
             <button
@@ -464,6 +505,22 @@ export default function PublicTripPage() {
                             <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                           </a>
 
+                          <button
+                            type="button"
+                            onClick={() => setSwappingActivity({
+                              id: a.id || `${idx}`,
+                              title: a.title || a.name || 'Venue Stop',
+                              dayIndex: d.dayIndex,
+                              startTime: a.startTime,
+                              endTime: a.endTime,
+                            })}
+                            className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                            title="Swap this venue for an alternative in the city"
+                          >
+                            <Shuffle className="w-3 h-3 text-[#E11D48]" />
+                            <span>Swap Stop</span>
+                          </button>
+
                           {a.travelTimeFromPreviousMinutes > 0 && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#18181B] bg-amber-100 border border-[#18181B] px-2 py-1 rounded-xs">
                               {a.travelTimeFromPreviousMinutes}m transit ({a.transitModeFromPrevious || 'TRANSIT'})
@@ -489,6 +546,29 @@ export default function PublicTripPage() {
           </Link>
         </div>
       </main>
+
+      {/* Modals & Drawers */}
+      <MyTripsModal isOpen={showMyTrips} onClose={() => setShowMyTrips(false)} />
+      <RefineRouteModal
+        isOpen={showRefineModal}
+        onClose={() => setShowRefineModal(false)}
+        itineraryId={itinerary?.id || tripData?.id}
+        tripId={tripId}
+        destinationName={tripData?.destinationName || 'Destination'}
+        onItineraryUpdated={(updated) => {
+          setTripData((prev: any) => ({ ...prev, itinerary: updated }));
+        }}
+      />
+      <SwapActivityModal
+        isOpen={!!swappingActivity}
+        onClose={() => setSwappingActivity(null)}
+        activity={swappingActivity}
+        itineraryId={itinerary?.id || tripData?.id}
+        destinationName={tripData?.destinationName || 'Destination'}
+        onItineraryUpdated={(updated) => {
+          setTripData((prev: any) => ({ ...prev, itinerary: updated }));
+        }}
+      />
     </div>
   );
 }

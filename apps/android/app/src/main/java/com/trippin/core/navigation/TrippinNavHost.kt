@@ -25,7 +25,8 @@ fun TrippinNavHost(
             HomeScreen(
                 onNavigateToPlanner = { navController.navigate(Screen.Planner.route) },
                 onNavigateToTrip = { tripId -> navController.navigate(Screen.Itinerary.createRoute(tripId)) },
-                onNavigateToExplore = { navController.navigate(Screen.Explore.route) }
+                onNavigateToExplore = { navController.navigate(Screen.Explore.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
             )
         }
 
@@ -74,7 +75,7 @@ fun TrippinNavHost(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }
