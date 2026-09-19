@@ -16,49 +16,58 @@ import {
   Briefcase
 } from 'lucide-react';
 import MyTripsModal from '@/components/MyTripsModal';
+import VerifiedLandingTrip from '@/components/VerifiedLandingTrip';
 
 export default function WebHomePage() {
   const [showMyTrips, setShowMyTrips] = React.useState(false);
-  const destinations = [
+  const featuredRuns = [
     {
+      tripId: '3fbd9dd1-38d3-4127-acd7-a3d3bbd3dd56',
       code: 'TYO',
       name: 'Tokyo',
       country: 'Japan',
-      tagline: 'Cyberpunk Temples & Alley Ramen',
-      issue: 'VOL. 01',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800',
-      tag: 'MEGA-CITY RUN'
+      circuit: '3-Day Urban Circuit',
+      stopsCount: 9,
+      currency: 'USD',
+      issue: 'RUN 01',
+      highlights: 'Tokyo Tower, Alte Liebe, Small Worlds, Kasai Aquarium',
+      status: 'VERIFIED'
     },
     {
+      tripId: '28610d13-c776-47b0-a6a6-6f8c26dcb654',
       code: 'PAR',
       name: 'Paris',
       country: 'France',
-      tagline: 'Impressionist Vaults & Sidewalk Cafes',
-      issue: 'VOL. 02',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-      tag: 'CULTURE CIRCUIT'
+      circuit: '2-Day Cultural Route',
+      stopsCount: 6,
+      currency: 'EUR',
+      issue: 'RUN 02',
+      highlights: 'Picasso Museum, Catacombs, Carnavalet, Galliera',
+      status: 'VERIFIED'
     },
     {
-      code: 'ROM',
-      name: 'Rome',
-      country: 'Italy',
-      tagline: 'Ancient Amphitheaters & Sunset Piazzas',
-      issue: 'VOL. 03',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
-      tag: 'HISTORIC CORE'
+      tripId: '79576b46-4eea-40b0-8d66-93ab733d6e97',
+      code: 'KYO',
+      name: 'Kyoto',
+      country: 'Japan',
+      circuit: '2-Day Heritage Route',
+      stopsCount: 6,
+      currency: 'USD',
+      issue: 'RUN 03',
+      highlights: 'Imperial Palace, National Museum, Samurai Museum',
+      status: 'VERIFIED'
     },
     {
-      code: 'LDN',
-      name: 'London',
-      country: 'United Kingdom',
-      tagline: 'West End Lights & Riverbank Fog',
-      issue: 'VOL. 04',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
-      tag: 'METROPOLIS'
+      tripId: '7b1f67a3-5b6b-4db8-9a1f-d2e4c2460747',
+      code: 'LIS',
+      name: 'Lisbon',
+      country: 'Portugal',
+      circuit: '3-Day Historical Route',
+      stopsCount: 3,
+      currency: 'USD',
+      issue: 'RUN 04',
+      highlights: 'Geographical Society, Quake 1755 Centre',
+      status: 'VERIFIED'
     }
   ];
 
@@ -111,7 +120,7 @@ export default function WebHomePage() {
           {/* Top Label Tag */}
           <div className="inline-flex items-center gap-2 bg-[#E11D48] text-white comic-tag px-3 py-1 rounded-sm text-xs font-black uppercase mb-6">
             <Flame className="w-3.5 h-3.5" />
-            <span>Issue #01 — Real-World Transit Engine</span>
+            <span>Issue #01: Real-World Transit Engine</span>
           </div>
 
           <div className="max-w-3xl space-y-6 relative z-10">
@@ -147,7 +156,10 @@ export default function WebHomePage() {
           </div>
         </section>
 
-        {/* 3. The Three Laws (Comic Panels Grid) */}
+        {/* 3. Live Verified Itinerary Showcase (Real Engine Output) */}
+        <VerifiedLandingTrip />
+
+        {/* 4. The Three Laws (Comic Panels Grid) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -200,7 +212,7 @@ export default function WebHomePage() {
           </div>
         </section>
 
-        {/* 4. Curated Field Runs (Manga Issue Cards) */}
+        {/* 5. Curated Field Runs (Manga Issue Cards) */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
             <div className="flex items-center gap-2">
@@ -215,49 +227,68 @@ export default function WebHomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {destinations.map((d) => (
-              <div
-                key={d.code}
+            {featuredRuns.map((r) => (
+              <article
+                key={r.code}
                 className="comic-panel rounded-xl overflow-hidden bg-white group hover:-translate-y-1 transition-transform duration-150 flex flex-col justify-between"
               >
                 <div>
-                  <div className="relative h-44 border-b-2 border-[#18181B] overflow-hidden">
-                    <img
-                      src={d.image}
-                      alt={d.name}
-                      className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300"
-                    />
-                    <span className="absolute top-3 left-3 bg-[#E11D48] text-white comic-tag text-[10px] rounded-xs font-black">
-                      {d.issue}
-                    </span>
-                    <span className="absolute bottom-3 right-3 bg-white text-[#18181B] comic-tag text-[10px] rounded-xs font-black">
-                      {d.code}
-                    </span>
+                  {/* Schematic Route Header Panel (No stock photos) */}
+                  <div className="relative h-44 bg-[#18181B] text-white p-4 flex flex-col justify-between border-b-2 border-[#18181B] overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 comic-halftone opacity-20 pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className="bg-[#E11D48] text-white comic-tag text-[10px] rounded-xs font-black">
+                        {r.issue}
+                      </span>
+                      <span className="bg-white text-[#18181B] comic-tag text-[10px] rounded-xs font-black">
+                        {r.code}
+                      </span>
+                    </div>
+
+                    <div className="relative z-10 space-y-1">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                        <span>{r.status} ROUTE</span>
+                      </div>
+                      <div className="font-display font-black text-3xl tracking-tight text-white uppercase">
+                        {r.code}
+                      </div>
+                      <div className="text-[11px] font-bold text-zinc-300">
+                        {r.stopsCount} OSM Stops · {r.circuit}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="p-4 space-y-2">
                     <div className="flex items-baseline justify-between">
                       <h3 className="font-display font-black text-xl uppercase tracking-tight">
-                        {d.name}
+                        {r.name}
                       </h3>
-                      <span className="text-xs font-bold text-[#52525B]">{d.country}</span>
+                      <span className="text-xs font-bold text-[#52525B]">{r.country}</span>
                     </div>
                     <p className="text-xs text-[#52525B] font-medium leading-normal">
-                      {d.tagline}
+                      {r.highlights}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 pt-0">
+                <div className="p-4 pt-0 space-y-2">
                   <Link
-                    href={`/planner?destination=${encodeURIComponent(d.name + ', ' + d.country)}`}
-                    className="comic-btn-secondary w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5"
+                    href={`/trip/${r.tripId}`}
+                    className="comic-btn-secondary w-full py-2.5 min-h-11 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 hover:text-[#E11D48]"
                   >
                     <span>Inspect Route</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
+                  <Link
+                    href={`/trip/${r.tripId}/today`}
+                    className="w-full py-1.5 text-[11px] font-black uppercase tracking-wider text-center text-[#52525B] hover:text-[#E11D48] flex items-center justify-center gap-1"
+                  >
+                    <Navigation className="w-3 h-3 text-[#E11D48]" />
+                    <span>Launch Today Mode</span>
+                  </Link>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
