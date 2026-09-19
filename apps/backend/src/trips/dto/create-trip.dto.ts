@@ -75,6 +75,11 @@ export class CreateTripRequestDto implements CreateTripRequest {
 
   @IsOptional()
   @IsString()
+  @MaxLength(120)
+  originCity?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(600)
   notes?: string;
 }

@@ -7,6 +7,7 @@ import { PlaceService } from '../places/places.service';
 import {
   CreateTripRequestDto,
   CreateTripResponse,
+  GenerationStageKey,
   HomeFeedResponse,
   TripDetailsResponse,
   TripGenerationStatusResponse
@@ -14,6 +15,7 @@ import {
 import { TripSummary, TripStatus, UserProfile, ItineraryModel, TripRequirement } from '@trippin/shared-types';
 import { ItineraryV1 } from '@trippin/itinerary-schema';
 import { DestinationsService } from '../destinations/destinations.service';
+import { GenerationStageReporter } from '../common/generation/generation-stage';
 import { ReplanTripDto } from './dto/replan-trip.dto';
 
 @Injectable()
@@ -23,8 +25,24 @@ export class TripsService {
   // In-memory generation job tracker for local / dev polling
   private readonly activeJobs = new Map<
     string,
-    { status: TripStatus; progress: number; message: string; error?: string }
+    { status: TripStatus; progress: number; message: string; step: GenerationStageKey; error?: string }
   >();
+
+  /**
+   * Progress reported when the worker reaches each real stage. Derived from the stage itself
+   * rather than a timer, so the bar cannot claim work that is not happening.
+   */
+  private static readonly STAGE_PROGRESS: Record<GenerationStageKey, number> = {
+    queued: 10,
+    forecast: 20,
+    geocoding: 30,
+    venues: 45,
+    planning: 65,
+    validation: 80,
+    persist: 90,
+    ready: 100,
+    failed: 100
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -89,6 +107,7 @@ export class TripsService {
         status: 'DRAFT',
         pace: dto.pace || 'MODERATE',
         transportPreference: dto.transportPreference || 'MIXED',
+        originCity: dto.originCity?.trim() || undefined,
         notes: dto.notes,
         heroImageUrl: undefined
       }
@@ -115,8 +134,9 @@ export class TripsService {
     const jobId = `job_${tripId}_${Date.now()}`;
     this.activeJobs.set(tripId, {
       status: 'GENERATING',
-      progress: 10,
-      message: 'Analyzing travel dates and destination...'
+      progress: TripsService.STAGE_PROGRESS.queued,
+      message: 'Analyzing travel dates and destination...',
+      step: 'queued'
     });
 
     // Update DB trip status to GENERATING
@@ -130,8 +150,9 @@ export class TripsService {
       this.logger.error(`Trip generation failed for ${tripId}: ${err.message}`);
       this.activeJobs.set(tripId, {
         status: 'FAILED',
-        progress: 100,
+        progress: TripsService.STAGE_PROGRESS.failed,
         message: 'Generation failed',
+        step: 'failed',
         error: err.message
       });
     });
@@ -143,15 +164,9 @@ export class TripsService {
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) return;
 
-    // Step 1: Places & Weather discovery
-    this.activeJobs.set(tripId, {
-      status: 'GENERATING',
-      progress: 30,
-      message: `Fetching verified places and weather for ${trip.destinationName}...`
-    });
-
     const requirements = {
       destination: trip.destinationName,
+      originCity: trip.originCity || undefined,
       startDate: trip.startDate.toISOString().split('T')[0],
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: trip.travelersCount,
@@ -162,14 +177,18 @@ export class TripsService {
       notes: trip.notes || undefined
     };
 
-    // Step 2: AI Planning & Deterministic Validation
-    this.activeJobs.set(tripId, {
-      status: 'GENERATING',
-      progress: 60,
-      message: 'Generating optimal route schedule and validating physical transit times...'
-    });
+    // The planner reports every real stage it reaches (weather, geocoding, venue lookup,
+    // scheduling, OSRM validation), so polling shows true progress rather than a timer.
+    const reportStage: GenerationStageReporter = (key, message) => {
+      this.activeJobs.set(tripId, {
+        status: 'GENERATING',
+        progress: TripsService.STAGE_PROGRESS[key] ?? TripsService.STAGE_PROGRESS.queued,
+        message,
+        step: key
+      });
+    };
 
-    const outcome = await this.aiPlanner.planItinerary(requirements);
+    const outcome = await this.aiPlanner.planItinerary(requirements, reportStage);
 
     if (!outcome.itinerary) {
       throw new Error('Planner failed to generate candidate itinerary');
@@ -178,8 +197,9 @@ export class TripsService {
     // Step 3: Persist verified itinerary
     this.activeJobs.set(tripId, {
       status: 'GENERATING',
-      progress: 85,
-      message: 'Persisting verified schedule...'
+      progress: TripsService.STAGE_PROGRESS.persist,
+      message: 'Persisting verified schedule...',
+      step: 'persist'
     });
 
     const savedItinerary = await this.itinerariesService.saveVerifiedItinerary(
@@ -196,7 +216,8 @@ export class TripsService {
 
     this.activeJobs.set(tripId, {
       status: 'READY',
-      progress: 100,
+      progress: TripsService.STAGE_PROGRESS.ready,
+      step: 'ready',
       message: outcome.success
         ? 'Itinerary ready!'
         : 'Itinerary saved with unresolved checks. Treat the schedule as a draft.'
@@ -214,6 +235,7 @@ export class TripsService {
         status: inMemory.status,
         progressPercentage: inMemory.progress,
         currentStepMessage: inMemory.message,
+        currentStepKey: inMemory.step,
         errorMessage: inMemory.error
       };
     }
@@ -225,7 +247,8 @@ export class TripsService {
       tripId,
       status: trip.status as TripStatus,
       progressPercentage: trip.status === 'READY' ? 100 : 0,
-      currentStepMessage: trip.status === 'READY' ? 'Ready' : 'Draft'
+      currentStepMessage: trip.status === 'READY' ? 'Ready' : 'Draft',
+      currentStepKey: trip.status === 'READY' ? 'ready' : 'queued'
     };
   }
 
@@ -260,6 +283,8 @@ export class TripsService {
       id: trip.id,
       userId: trip.userId,
       destination: trip.destinationName,
+      originCity: trip.originCity || undefined,
+      currency: trip.currency,
       startDate: trip.startDate.toISOString().split('T')[0],
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: trip.travelersCount,
@@ -277,6 +302,7 @@ export class TripsService {
       trip: tripSummary,
       requirements: {
         destination: trip.destinationName,
+        originCity: trip.originCity || undefined,
         startDate: tripSummary.startDate,
         endDate: tripSummary.endDate,
         travelersCount: trip.travelersCount,

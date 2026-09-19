@@ -373,7 +373,7 @@ export default function PublicTripPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold text-[#18181B] relative z-10">
             <div className="bg-[#FAF8F5] p-3 border-2 border-[#18181B] rounded-lg">
               <span className="text-[10px] uppercase text-[#52525B] font-black block mb-0.5">Timeframe</span>
-              <span className="truncate block font-black">
+              <span className="block font-black text-[11px] sm:text-xs leading-snug break-words">
                 {formatDateRange(tripData.startDate, tripData.endDate)}
               </span>
             </div>

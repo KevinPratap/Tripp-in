@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -21,10 +21,14 @@ import {
   Share2,
   ExternalLink,
   Check,
-  Bookmark
+  Bookmark,
+  PlaneTakeoff,
+  Banknote
 } from 'lucide-react';
 import { unwrapTripDetails } from '@/lib/trip-contract';
 import { apiFetch } from '@/lib/api-client';
+import { inferCurrency, SUPPORTED_CURRENCIES } from '@/lib/currency';
+import GenerationTracker from '@/components/GenerationTracker';
 import { saveTripToHistory } from '@/lib/saved-trips';
 import MyTripsModal from '@/components/MyTripsModal';
 
@@ -45,17 +49,20 @@ function PlannerContent() {
   const initialDest = searchParams.get('destination') || 'Tokyo, Japan';
 
   const [destination, setDestination] = useState(initialDest);
+  const [originCity, setOriginCity] = useState('');
   const [startDate, setStartDate] = useState('2026-11-10');
   const [endDate, setEndDate] = useState('2026-11-12');
   const [travelers, setTravelers] = useState(2);
   const [budget, setBudget] = useState('2500');
   const [pace, setPace] = useState('MODERATE');
   const [currency, setCurrency] = useState('USD');
+  const [currencyTouched, setCurrencyTouched] = useState(false);
 
   // Generation & Status state
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Locking in coordinates...');
+  const [statusMessage, setStatusMessage] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
+  const [currentStepKey, setCurrentStepKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Results state
@@ -90,13 +97,24 @@ function PlannerContent() {
     }
   }, [searchParams]);
 
+  // The budget currency follows the destination until the traveller overrides it, so a
+  // Lisbon or Tokyo trip never opens with a dollar budget.
+  const inferredCurrency = useMemo(() => inferCurrency(destination), [destination]);
+
+  useEffect(() => {
+    if (!currencyTouched && inferredCurrency && inferredCurrency !== currency) {
+      setCurrency(inferredCurrency);
+    }
+  }, [inferredCurrency, currencyTouched, currency]);
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     setErrorMsg(null);
     setTripData(null);
     setRefineFeedback(null);
-    setProgressPercent(15);
+    setProgressPercent(10);
     setStatusMessage('Creating route parameter log...');
+    setCurrentStepKey('queued');
 
     try {
       // 1. Create Trip
@@ -104,6 +122,7 @@ function PlannerContent() {
         method: 'POST',
         body: JSON.stringify({
           destination,
+          originCity: originCity.trim() || undefined,
           startDate,
           endDate,
           travelersCount: Number(travelers),
@@ -144,11 +163,14 @@ function PlannerContent() {
         if (!statusRes.ok) continue;
 
         const statusData = await statusRes.json();
-        if (statusData.progressPercentage) {
-          setProgressPercent(Math.max(35, statusData.progressPercentage));
+        if (typeof statusData.progressPercentage === 'number') {
+          setProgressPercent(statusData.progressPercentage);
         }
         if (statusData.currentStepMessage) {
           setStatusMessage(statusData.currentStepMessage);
+        }
+        if (statusData.currentStepKey) {
+          setCurrentStepKey(statusData.currentStepKey);
         }
 
         if (statusData.status === 'READY') {
@@ -283,6 +305,28 @@ function PlannerContent() {
               </div>
             </div>
 
+            {/* Departure city (optional) */}
+            <div>
+              <label htmlFor="origin-input" className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
+                Departure City <span className="text-[#52525B]">(optional)</span>
+              </label>
+              <div className="relative">
+                <PlaneTakeoff className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#18181B]" />
+                <input
+                  id="origin-input"
+                  type="text"
+                  value={originCity}
+                  onChange={(e) => setOriginCity(e.target.value)}
+                  placeholder="e.g. Mumbai, India"
+                  className="w-full h-12 pl-10 pr-4 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                />
+              </div>
+              <p className="text-[11px] font-medium text-[#52525B] mt-1.5 leading-relaxed">
+                Arrival day is planned around the trip from here. It is also the start point of
+                your first day schedule.
+              </p>
+            </div>
+
             {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -339,11 +383,28 @@ function PlannerContent() {
               </div>
 
               <div>
-                <label htmlFor="budget-input" className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
-                  Budget ({currency})
-                </label>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label htmlFor="budget-input" className="block text-xs font-black uppercase tracking-wider text-[#18181B]">
+                    Budget
+                  </label>
+                  <select
+                    aria-label="Trip currency"
+                    value={currency}
+                    onChange={(e) => {
+                      setCurrency(e.target.value);
+                      setCurrencyTouched(true);
+                    }}
+                    className="h-8 px-2 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-xs font-black text-[#18181B] focus:bg-white focus:outline-none"
+                  >
+                    {SUPPORTED_CURRENCIES.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#18181B]" />
+                  <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#18181B]" />
                   <input
                     id="budget-input"
                     type="number"
@@ -352,6 +413,13 @@ function PlannerContent() {
                     className="w-full h-12 pl-9 pr-3 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg font-bold text-base sm:text-sm text-[#18181B] focus:bg-white focus:outline-none"
                   />
                 </div>
+                <p className="text-[11px] font-medium text-[#52525B] mt-1.5 leading-relaxed">
+                  {currencyTouched
+                    ? `Set to ${currency} by you.`
+                    : inferredCurrency
+                      ? `Inferred ${inferredCurrency} for ${destination.split(',')[0].trim()}. Override above if needed.`
+                      : `Currency not recognised for this destination, pick one above.`}
+                </p>
               </div>
             </div>
 
@@ -436,26 +504,14 @@ function PlannerContent() {
 
         {/* Right Panel: Output */}
         <section className="lg:col-span-7">
-          {/* Active Generation State */}
+          {/* Live generation tracker driven by real worker stages */}
           {isGenerating && (
-            <div className="comic-panel p-8 sm:p-12 rounded-2xl bg-white text-center space-y-6">
-              <div className="w-16 h-16 border-4 border-[#18181B] border-t-[#E11D48] rounded-full animate-spin mx-auto" />
-              <div className="space-y-2">
-                <span className="comic-tag bg-[#E11D48] text-white">ACTIVE ROUTING</span>
-                <h2 className="font-display font-black text-xl uppercase tracking-tight text-[#18181B]">
-                  {statusMessage}
-                </h2>
-                <p className="text-xs text-[#52525B] font-medium">
-                  Validating venue opening days, computing walking buffers, and testing temporal limits.
-                </p>
-              </div>
-              <div className="w-full bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg h-4 overflow-hidden p-0.5">
-                <div
-                  className="bg-[#E11D48] h-full rounded-xs transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
+            <GenerationTracker
+              currentStepKey={currentStepKey}
+              statusMessage={statusMessage}
+              progressPercent={progressPercent}
+              isGenerating={isGenerating}
+            />
           )}
 
           {/* Generated Result */}
@@ -647,19 +703,14 @@ function PlannerContent() {
             </div>
           )}
 
-          {/* Empty Placeholder State */}
+          {/* Idle and halted states, same tracker so the steps are visible before a run */}
           {!isGenerating && !itinerary && (
-            <div className="comic-panel rounded-2xl bg-white p-12 text-center space-y-4 h-full min-h-[460px] flex flex-col items-center justify-center">
-              <div className="w-14 h-14 bg-[#E11D48] text-white border-2 border-[#18181B] shadow-[3px_3px_0px_#18181B] flex items-center justify-center font-black text-2xl mb-2">
-                !
-              </div>
-              <h3 className="font-display font-black text-xl uppercase tracking-tight text-[#18181B]">
-                Awaiting Target Coordinates
-              </h3>
-              <p className="text-xs font-medium text-[#52525B] max-w-sm leading-relaxed">
-                Enter your city and travel window on the left. Tap &quot;Lock In Route&quot; to compile your verified conflict-free travel log.
-              </p>
-            </div>
+            <GenerationTracker
+              currentStepKey={currentStepKey}
+              statusMessage={statusMessage}
+              progressPercent={progressPercent}
+              errorMsg={errorMsg}
+            />
           )}
         </section>
       </main>

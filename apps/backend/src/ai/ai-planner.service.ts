@@ -8,7 +8,7 @@ import {
   validateItineraryV1
 } from '@trippin/itinerary-schema';
 import { PlaceService } from '../places/places.service';
-import { RouteService } from '../routes/routes.service';
+import { GenerationStageReporter } from '../common/generation/generation-stage';
 import { WeatherService } from '../weather/weather.service';
 import { ItineraryValidator } from '../engine/itinerary-validator';
 
@@ -33,7 +33,6 @@ export class AIPlannerService {
   constructor(
     private readonly config: ConfigService,
     private readonly placeService: PlaceService,
-    private readonly routeService: RouteService,
     private readonly weatherService: WeatherService,
     private readonly validator: ItineraryValidator
   ) {
@@ -88,14 +87,20 @@ export class AIPlannerService {
    * Main generation loop: Produces candidate itinerary, checks with deterministic validator,
    * and triggers auto-repair feedback loop if constraints are violated.
    */
-  async planItinerary(requirements: TripRequirement): Promise<PlanGenerationOutcome> {
+  async planItinerary(
+    requirements: TripRequirement,
+    onStage?: GenerationStageReporter
+  ): Promise<PlanGenerationOutcome> {
+    onStage?.('forecast', `Checking the weather window for ${requirements.destination}...`);
     const weather = await this.weatherService.getForecast(requirements.destination, 5);
+    onStage?.('geocoding', `Geocoding ${requirements.destination}...`);
     const destinationLocation = await this.placeService.geocodeDestination(requirements.destination);
     if (!destinationLocation) {
       this.logger.warn(
         `Destination "${requirements.destination}" could not be geocoded. Geographic containment checks will rely on venue clustering only.`
       );
     }
+    onStage?.('venues', 'Resolving venues and opening hours from OpenStreetMap...');
     const candidatePlaces = await this.placeService.searchPlaces(
       `${requirements.destination} attractions landmarks`,
       destinationLocation || undefined
@@ -120,6 +125,12 @@ export class AIPlannerService {
 
       this.logger.log(
         `AI planning iteration ${repairIterations} for destination "${requirements.destination}"...`
+      );
+      onStage?.(
+        'planning',
+        repairIterations === 0
+          ? 'Building the day by day schedule...'
+          : `Repairing the schedule, pass ${repairIterations} of ${maxRepairs}...`
       );
 
       // 1. Generate candidate from LLM or deterministic fallback generator
@@ -173,6 +184,10 @@ export class AIPlannerService {
       candidateItinerary = this.attachWeatherSummaries(candidateItinerary, weather);
 
       // 3. Deterministic Constraint Engine check
+      onStage?.(
+        'validation',
+        'Computing transit times with OSRM, then checking opening hours, pace and budget...'
+      );
       validationResult = await this.validator.validate(
         candidateItinerary,
         scopedRequirements
@@ -258,6 +273,7 @@ export class AIPlannerService {
 You are the expert Trippin' AI Travel Planner.
 Plan an optimal, feasible daily itinerary for:
 - Destination: ${requirements.destination}
+${requirements.originCity ? `- Departing from: ${requirements.originCity}` : ''}
 - Dates: ${requirements.startDate} to ${requirements.endDate}
 - Travelers: ${requirements.travelersCount}
 - Pace: ${requirements.pace || 'MODERATE'}
@@ -291,6 +307,11 @@ Rules:
 7. Give every day at least 2 stops (3 stops for a FAST pace).
 8. Price every activity in ${requirements.currency || 'USD'} and keep the running total within the stated budget.
 9. Only schedule venues from the Available Places list. If that list is empty or thin, plan fewer stops instead of inventing venue names.
+${
+  requirements.originCity
+    ? `10. The traveller departs from ${requirements.originCity}. Plan the arrival day around real travel time: keep the first day light, schedule nothing before the arrival transfer is realistically finished, and describe that transfer as an estimate rather than a booked time.`
+    : ''
+}
 `;
 
     const responseSchema = {
@@ -418,6 +439,7 @@ Rules:
 You are the expert Trippin' AI Travel Planner.
 Trip Requirements:
 - Destination: ${requirements.destination}
+${requirements.originCity ? `- Departing from: ${requirements.originCity}` : ''}
 - Dates: ${requirements.startDate} to ${requirements.endDate}
 - Travelers: ${requirements.travelersCount}
 - Pace: ${requirements.pace || 'MODERATE'}
@@ -451,6 +473,11 @@ Rules:
 7. Give every day at least 2 stops (3 stops for a FAST pace).
 8. Price every activity in ${requirements.currency || 'USD'} and keep the running total within the stated budget.
 9. Only schedule venues from the Available Places list. If that list is empty or thin, plan fewer stops instead of inventing venue names.
+${
+  requirements.originCity
+    ? `10. The traveller departs from ${requirements.originCity}. Plan the arrival day around real travel time: keep the first day light, schedule nothing before the arrival transfer is realistically finished, and describe that transfer as an estimate rather than a booked time.`
+    : ''
+}
 `;
 
     const systemPrompt = `You are the expert Trippin' AI Travel Planner.

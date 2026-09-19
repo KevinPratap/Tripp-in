@@ -34,6 +34,8 @@ export interface HomeFeedResponse {
 // 2. Trip Creation (POST /api/v1/trips)
 export interface CreateTripRequestDto {
   destination: string;
+  /** Optional departure city, used to plan the arrival day realistically. */
+  originCity?: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
   travelersCount: number;
@@ -66,9 +68,26 @@ export interface TripGenerationStatusResponse {
   status: TripStatus;
   progressPercentage: number;
   currentStepMessage: string;
+  /**
+   * Which real stage of the pipeline is running. The worker emits these as it reaches
+   * each step, so the planner can show true progress rather than an invented animation.
+   */
+  currentStepKey?: GenerationStageKey;
   itineraryId?: string;
   errorMessage?: string;
 }
+
+/** Ordered stages of a generation run. Keep the order in sync with the worker. */
+export type GenerationStageKey =
+  | 'queued'
+  | 'forecast'
+  | 'geocoding'
+  | 'venues'
+  | 'planning'
+  | 'validation'
+  | 'persist'
+  | 'ready'
+  | 'failed';
 
 // 5. Trip Details with Itinerary (GET /api/v1/trips/:id)
 export interface TripDetailsResponse {

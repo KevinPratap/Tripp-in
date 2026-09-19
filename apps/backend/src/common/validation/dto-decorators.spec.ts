@@ -33,6 +33,7 @@ const DTO_FIELDS: Array<[any, string[]]> = [
       'foodPreferences',
       'transportPreference',
       'pace',
+      'originCity',
       'notes'
     ]
   ],

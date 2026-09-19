@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PlaceService } from './places.service';
 
@@ -16,11 +16,5 @@ export class PlacesController {
   ) {
     const location = lat && lng ? { latitude: Number(lat), longitude: Number(lng) } : undefined;
     return this.placeService.searchPlaces(q || '', location);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get details and operating hours for a specific place' })
-  async getDetails(@Param('id') id: string) {
-    return this.placeService.getPlaceDetails(id);
   }
 }

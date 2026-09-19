@@ -56,6 +56,8 @@ export type TripStatus = 'DRAFT' | 'GENERATING' | 'READY' | 'FAILED' | 'ARCHIVED
 
 export interface TripRequirement {
   destination: string;
+  /** Optional departure city. Lets the engine plan the arrival day around real travel time. */
+  originCity?: string;
   startDate: string; // ISO 8601 YYYY-MM-DD
   endDate: string; // ISO 8601 YYYY-MM-DD
   travelersCount: number;
@@ -77,6 +79,9 @@ export interface TripSummary {
   id: string;
   userId: string;
   destination: string;
+  /** Departure city the traveller starts from, when they told us. */
+  originCity?: string;
+  currency?: string;
   startDate: string;
   endDate: string;
   travelersCount: number;

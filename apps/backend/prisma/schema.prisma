@@ -150,6 +150,7 @@ model Trip {
   status              String   @default("DRAFT") // DRAFT, GENERATING, READY, FAILED, ARCHIVED
   pace                String   @default("MODERATE")
   transportPreference String   @default("MIXED") @map("transport_preference")
+  originCity          String?  @map("origin_city")
   notes               String?
   heroImageUrl        String?  @map("hero_image_url")
   createdAt           DateTime @default(now()) @map("created_at")
