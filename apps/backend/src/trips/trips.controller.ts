@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { TripsService } from './trips.service';
 import { FirebaseAuthGuard, AuthenticatedUser } from '../common/guards/firebase-auth.guard';
 import { RateLimit } from '../common/guards/rate-limit.guard';
@@ -11,6 +11,7 @@ import {
   TripGenerationStatusResponse
 } from '@trippin/api-contracts';
 import { CreateTripRequestDto } from './dto/create-trip.dto';
+import { ReplanTripDto } from './dto/replan-trip.dto';
 
 @ApiTags('Trips')
 @ApiBearerAuth()
@@ -52,9 +53,33 @@ export class TripsController {
     return this.tripsService.getGenerationStatus(id);
   }
 
+  @Get(':id/versions')
+  @ApiOperation({ summary: 'List all historical and current itinerary versions for a trip' })
+  async getVersions(@Param('id') id: string) {
+    return this.tripsService.getTripVersions(id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get full trip details with verified itinerary' })
-  async getDetails(@Param('id') id: string): Promise<TripDetailsResponse> {
-    return this.tripsService.getTripDetails(id);
+  @ApiQuery({ name: 'version', required: false, description: 'Optional specific itinerary version to retrieve' })
+  async getDetails(
+    @Param('id') id: string,
+    @Query('version') version?: string
+  ): Promise<TripDetailsResponse> {
+    const verNum = version ? parseInt(version, 10) : undefined;
+    return this.tripsService.getTripDetails(id, Number.isNaN(verNum) ? undefined : verNum);
+  }
+
+  @Post(':id/replan')
+  @RateLimit({ limit: 6, windowMs: 60000 })
+  @ApiOperation({
+    summary: 'One-tap replan an existing itinerary',
+    description: 'Accepts intent triggers (running-late, rain, tired, swap-activity, add-stop, budget-cut) and returns a newly verified version'
+  })
+  async replan(
+    @Param('id') id: string,
+    @Body() dto: ReplanTripDto
+  ) {
+    return this.tripsService.replanTrip(id, dto);
   }
 }

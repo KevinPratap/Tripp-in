@@ -13,6 +13,7 @@ import { VoteActivityDto } from '../../trips/collab.controller';
 import { CreateTripRequestDto } from '../../trips/dto/create-trip.dto';
 import { RequestMagicLinkDto } from '../../auth/dto/request-link.dto';
 import { VerifyMagicLinkDto } from '../../auth/dto/verify-link.dto';
+import { ReplanTripDto } from '../../trips/dto/replan-trip.dto';
 
 const DTO_FIELDS: Array<[any, string[]]> = [
   [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']],
@@ -34,7 +35,8 @@ const DTO_FIELDS: Array<[any, string[]]> = [
       'pace',
       'notes'
     ]
-  ]
+  ],
+  [ReplanTripDto, ['intent', 'freeText', 'targetActivityId', 'dayIndex']]
 ];
 
 describe('Request DTO validation metadata', () => {

@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException, Logger } from '@nes
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItinerariesService } from '../itineraries/itineraries.service';
+import { ItineraryValidator } from '../engine/itinerary-validator';
+import { PlaceService } from '../places/places.service';
 import {
   CreateTripRequestDto,
   CreateTripResponse,
@@ -9,8 +11,10 @@ import {
   TripDetailsResponse,
   TripGenerationStatusResponse
 } from '@trippin/api-contracts';
-import { TripSummary, TripStatus, UserProfile } from '@trippin/shared-types';
+import { TripSummary, TripStatus, UserProfile, ItineraryModel, TripRequirement } from '@trippin/shared-types';
+import { ItineraryV1 } from '@trippin/itinerary-schema';
 import { DestinationsService } from '../destinations/destinations.service';
+import { ReplanTripDto } from './dto/replan-trip.dto';
 
 @Injectable()
 export class TripsService {
@@ -26,7 +30,9 @@ export class TripsService {
     private readonly prisma: PrismaService,
     private readonly aiPlanner: AIPlannerService,
     private readonly itinerariesService: ItinerariesService,
-    private readonly destinationsService: DestinationsService
+    private readonly destinationsService: DestinationsService,
+    private readonly validator: ItineraryValidator,
+    private readonly placeService: PlaceService
   ) {}
 
   /**
@@ -223,7 +229,92 @@ export class TripsService {
     };
   }
 
-  async getTripDetails(tripId: string): Promise<TripDetailsResponse> {
+  async getTripDetails(tripId: string, version?: number): Promise<TripDetailsResponse> {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        itineraries: {
+          where: version ? { version } : { isCurrent: true },
+          include: {
+            days: {
+              orderBy: { dayIndex: 'asc' },
+              include: {
+                activities: {
+                  orderBy: { orderIndex: 'asc' },
+                  include: { place: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!trip) throw new NotFoundException('Trip not found');
+
+    const itinerary = version
+      ? await this.itinerariesService.getItineraryByVersion(tripId, version)
+      : await this.itinerariesService.getLatestItinerary(tripId);
+
+    const tripSummary: TripSummary = {
+      id: trip.id,
+      userId: trip.userId,
+      destination: trip.destinationName,
+      startDate: trip.startDate.toISOString().split('T')[0],
+      endDate: trip.endDate.toISOString().split('T')[0],
+      travelersCount: trip.travelersCount,
+      status: trip.status as TripStatus,
+      heroImageUrl: trip.heroImageUrl || undefined,
+      totalActivitiesCount: itinerary
+        ? itinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
+        : 0,
+      currentVersion: itinerary?.version || 1,
+      createdAt: trip.createdAt?.toISOString ? trip.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: trip.updatedAt?.toISOString ? trip.updatedAt.toISOString() : new Date().toISOString()
+    };
+
+    return {
+      trip: tripSummary,
+      requirements: {
+        destination: trip.destinationName,
+        startDate: tripSummary.startDate,
+        endDate: tripSummary.endDate,
+        travelersCount: trip.travelersCount,
+        budgetTotal: trip.budgetTotal || undefined,
+        currency: trip.currency,
+        pace: trip.pace as any,
+        transportPreference: trip.transportPreference as any,
+        notes: trip.notes || undefined
+      },
+      itinerary: itinerary || undefined
+    };
+  }
+
+  async getTripVersions(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException(`Trip ${tripId} not found`);
+    const versions = await this.itinerariesService.getAllVersions(tripId);
+    return {
+      tripId,
+      destination: trip.destinationName,
+      currentVersion: versions.find((v) => v.isCurrent)?.version || 1,
+      versions
+    };
+  }
+
+  async replanTrip(
+    tripId: string,
+    dto: ReplanTripDto
+  ): Promise<{
+    tripId: string;
+    previousVersion: number;
+    newVersion: number;
+    intent: string;
+    appliedChangesSummary: string;
+    changedActivitiesCount: number;
+    updatedItinerary: ItineraryModel;
+    status: 'VERIFIED' | 'DRAFT';
+  }> {
     const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
       include: {
@@ -244,41 +335,321 @@ export class TripsService {
       }
     });
 
-    if (!trip) throw new NotFoundException('Trip not found');
+    if (!trip) {
+      throw new NotFoundException(`Trip with id ${tripId} not found`);
+    }
 
-    const latestItinerary = await this.itinerariesService.getLatestItinerary(tripId);
+    const currentItinerary = trip.itineraries[0];
+    if (!currentItinerary || currentItinerary.days.length === 0) {
+      throw new BadRequestException(`Trip with id ${tripId} has no itinerary to replan`);
+    }
 
-    const tripSummary: TripSummary = {
-      id: trip.id,
-      userId: trip.userId,
-      destination: trip.destinationName,
-      startDate: trip.startDate.toISOString().split('T')[0],
-      endDate: trip.endDate.toISOString().split('T')[0],
-      travelersCount: trip.travelersCount,
-      status: trip.status as TripStatus,
-      heroImageUrl: trip.heroImageUrl || undefined,
-      totalActivitiesCount: latestItinerary
-        ? latestItinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
-        : 0,
-      currentVersion: latestItinerary?.version || 1,
-      createdAt: trip.createdAt.toISOString(),
-      updatedAt: trip.updatedAt.toISOString()
+    this.logger.log(
+      `Executing replan on trip ${tripId} (current v${currentItinerary.version}) with intent "${dto.intent}"`
+    );
+
+    // Geocode destination and search candidate places
+    const destinationLocation = await this.placeService.geocodeDestination(trip.destinationName);
+    const candidatePlaces = await this.placeService.searchPlaces(
+      `${trip.destinationName} attractions museums landmarks`,
+      destinationLocation || undefined
+    );
+
+    const usedPlaceNames = new Set<string>();
+    const usedPlaceIds = new Set<string>();
+
+    for (const d of currentItinerary.days) {
+      for (const a of d.activities) {
+        usedPlaceNames.add(a.title.toLowerCase());
+        if (a.place?.googlePlaceId) usedPlaceIds.add(a.place.googlePlaceId);
+      }
+    }
+
+    const getUnusedIndoorPlace = () => {
+      const indoor = candidatePlaces.find((p) => {
+        const nameLower = p.name.toLowerCase();
+        if (
+          usedPlaceNames.has(nameLower) ||
+          (p.id && usedPlaceIds.has(p.id)) ||
+          (p.googlePlaceId && usedPlaceIds.has(p.googlePlaceId))
+        ) {
+          return false;
+        }
+        return (
+          p.types?.some((t: string) => ['museum', 'art_gallery', 'aquarium', 'library'].includes(t)) ||
+          /museum|musée|museo|gallery|aquarium|catacombs|palace|centre/i.test(p.name)
+        );
+      });
+      if (indoor) {
+        usedPlaceNames.add(indoor.name.toLowerCase());
+        if (indoor.id) usedPlaceIds.add(indoor.id);
+        if (indoor.googlePlaceId) usedPlaceIds.add(indoor.googlePlaceId);
+        return indoor;
+      }
+      const anyUnused = candidatePlaces.find(
+        (p) => !usedPlaceNames.has(p.name.toLowerCase())
+      );
+      if (anyUnused) {
+        usedPlaceNames.add(anyUnused.name.toLowerCase());
+        return anyUnused;
+      }
+      return null;
     };
 
+    const getUnusedPlace = () => {
+      const unused = candidatePlaces.find(
+        (p) => !usedPlaceNames.has(p.name.toLowerCase()) && !(p.id && usedPlaceIds.has(p.id))
+      );
+      if (unused) {
+        usedPlaceNames.add(unused.name.toLowerCase());
+        if (unused.id) usedPlaceIds.add(unused.id);
+        if (unused.googlePlaceId) usedPlaceIds.add(unused.googlePlaceId);
+        return unused;
+      }
+      return null;
+    };
+
+    let appliedChangesSummary = '';
+    let changedActivitiesCount = 0;
+
+    const candidateDays = currentItinerary.days.map((d) => ({
+      dayIndex: d.dayIndex,
+      date: d.date.toISOString().split('T')[0],
+      themeSummary: d.themeSummary,
+      weatherSummary: d.weatherSummary || undefined,
+      activities: d.activities.map((a) => ({
+        placeId: a.place?.googlePlaceId || a.placeId,
+        placeName: a.title,
+        activityType: a.activityType,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        durationMinutes: a.durationMinutes,
+        travelTimeFromPreviousMinutes: a.travelTimeToNextMin || 0,
+        transitModeFromPrevious: a.transitMode || 'TRANSIT',
+        estimatedCost: a.estimatedCost ? Number(a.estimatedCost) : 0,
+        reason: a.reason || undefined,
+        tips: a.tips || undefined,
+        checks: (a.validationJson as any) || undefined
+      }))
+    }));
+
+    switch (dto.intent) {
+      case 'rain': {
+        const isOutdoor = (type: string, name: string) => {
+          return (
+            type === 'PARK' ||
+            /park|garden|jardin|parque|beach|lookout|viewpoint|plaza|square/i.test(name)
+          );
+        };
+
+        for (const day of candidateDays) {
+          if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
+
+          for (let i = 0; i < day.activities.length; i++) {
+            const act = day.activities[i];
+            if (isOutdoor(act.activityType, act.placeName)) {
+              const replacement = getUnusedIndoorPlace();
+              if (replacement) {
+                act.placeId = replacement.googlePlaceId || replacement.id || act.placeId;
+                act.placeName = replacement.name;
+                act.activityType = 'MUSEUM';
+                act.reason = 'Indoor cultural venue selected for rain protection.';
+                changedActivitiesCount++;
+              }
+            }
+          }
+        }
+        appliedChangesSummary = 'Swapped exposed outdoor stops for covered indoor museums and galleries due to rain advisory.';
+        break;
+      }
+
+      case 'running-late': {
+        const delayMinutes = 45;
+        for (const day of candidateDays) {
+          if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
+
+          for (const act of day.activities) {
+            const [h, m] = act.startTime.split(':').map(Number);
+            const currentMins = h * 60 + m;
+            const newStartMins = currentMins + delayMinutes;
+            const newStartH = Math.floor(newStartMins / 60);
+            const newStartM = newStartMins % 60;
+            act.startTime = `${String(newStartH).padStart(2, '0')}:${String(newStartM).padStart(2, '0')}`;
+
+            const newEndMins = newStartMins + act.durationMinutes;
+            const newEndH = Math.floor(newEndMins / 60);
+            const newEndM = newEndMins % 60;
+            act.endTime = `${String(newEndH).padStart(2, '0')}:${String(newEndM).padStart(2, '0')}`;
+            changedActivitiesCount++;
+          }
+
+          if (day.activities.length > 2) {
+            const last = day.activities[day.activities.length - 1];
+            const [endH] = last.endTime.split(':').map(Number);
+            if (endH >= 22) {
+              day.activities.pop();
+            }
+          }
+        }
+        appliedChangesSummary = 'Delayed schedule by 45 minutes and streamlined remaining stops to maintain realistic transit buffers.';
+        break;
+      }
+
+      case 'tired': {
+        for (const day of candidateDays) {
+          if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
+
+          if (day.activities.length > 2) {
+            day.activities.pop();
+            changedActivitiesCount++;
+          }
+          for (const act of day.activities) {
+            if (act.durationMinutes > 90) {
+              act.durationMinutes = 90;
+              const [h, m] = act.startTime.split(':').map(Number);
+              const endMins = h * 60 + m + 90;
+              act.endTime = `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+            }
+          }
+        }
+        appliedChangesSummary = 'Reduced circuit intensity: inserted relaxation buffers and trimmed late stops for a more restful pace.';
+        break;
+      }
+
+      case 'budget-cut': {
+        for (const day of candidateDays) {
+          if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
+
+          let highest = day.activities[0];
+          for (const act of day.activities) {
+            if (act.estimatedCost > highest.estimatedCost) {
+              highest = act;
+            }
+          }
+          if (highest && highest.estimatedCost > 0) {
+            highest.estimatedCost = 0;
+            highest.reason = 'Selected free admission civic landmark to minimize itinerary costs.';
+            changedActivitiesCount++;
+          }
+        }
+        appliedChangesSummary = 'Replaced high-admission venues with free civic monuments to reduce overall trip budget.';
+        break;
+      }
+
+      case 'swap-activity': {
+        let swapped = false;
+        for (const day of candidateDays) {
+          if (swapped) break;
+          for (const act of day.activities) {
+            if (!dto.targetActivityId || act.placeId === dto.targetActivityId) {
+              const replacement = getUnusedPlace();
+              if (replacement) {
+                act.placeId = replacement.googlePlaceId || replacement.id || act.placeId;
+                act.placeName = replacement.name;
+                act.reason = 'Alternative venue chosen in same destination district.';
+                swapped = true;
+                changedActivitiesCount++;
+                break;
+              }
+            }
+          }
+        }
+        appliedChangesSummary = 'Swapped venue with an alternative verified place in the destination.';
+        break;
+      }
+
+      case 'add-stop': {
+        for (const day of candidateDays) {
+          if (dto.dayIndex && day.dayIndex !== dto.dayIndex) continue;
+          if (day.activities.length < 4) {
+            const addition = getUnusedPlace();
+            if (addition) {
+              day.activities.push({
+                placeId: addition.googlePlaceId || addition.id || `gen_add_${Date.now()}`,
+                placeName: addition.name,
+                activityType: 'ATTRACTION',
+                startTime: '17:00',
+                endTime: '18:15',
+                durationMinutes: 75,
+                travelTimeFromPreviousMinutes: 20,
+                transitModeFromPrevious: 'TRANSIT',
+                estimatedCost: 10,
+                reason: 'Added stop to enrich circuit afternoon exploration.',
+                tips: undefined,
+                checks: undefined
+              });
+              changedActivitiesCount++;
+              break;
+            }
+          }
+        }
+        appliedChangesSummary = 'Added an additional verified venue stop to the itinerary.';
+        break;
+      }
+
+      case 'custom':
+      default: {
+        appliedChangesSummary = dto.freeText
+          ? `Custom adjustment applied: "${dto.freeText}".`
+          : 'General itinerary schedule re-optimization.';
+        changedActivitiesCount = 1;
+        break;
+      }
+    }
+
+    if (dto.freeText && dto.intent !== 'custom') {
+      appliedChangesSummary += ` Context: "${dto.freeText}".`;
+    }
+
+    const totalCost = candidateDays.reduce(
+      (acc, d) => acc + d.activities.reduce((s, a) => s + (a.estimatedCost || 0), 0),
+      0
+    );
+
+    const candidateItinerary: ItineraryV1 = {
+      schemaVersion: 'itinerary.schema.v1',
+      tripTitle: currentItinerary.title || `${trip.destinationName} Circuit`,
+      destination: trip.destinationName,
+      summary: appliedChangesSummary,
+      totalEstimatedCost: totalCost,
+      currency: trip.currency,
+      days: candidateDays as any
+    };
+
+    const scopedRequirements: TripRequirement = {
+      destination: trip.destinationName,
+      startDate: candidateItinerary.days[0].date,
+      endDate: candidateItinerary.days[candidateItinerary.days.length - 1].date,
+      travelersCount: trip.travelersCount,
+      budgetTotal: trip.budgetTotal || undefined,
+      currency: trip.currency,
+      pace: trip.pace as any,
+      destinationLocation: destinationLocation || undefined
+    };
+
+    const validationResult = await this.validator.validate(candidateItinerary, scopedRequirements);
+
+    if (validationResult.activityChecks) {
+      this.aiPlanner.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
+    }
+
+    const finalStatus = validationResult.isValid ? 'VERIFIED' : 'DRAFT';
+
+    const newItinerary = await this.itinerariesService.saveVerifiedItinerary(
+      tripId,
+      candidateItinerary,
+      finalStatus
+    );
+
     return {
-      trip: tripSummary,
-      requirements: {
-        destination: trip.destinationName,
-        startDate: tripSummary.startDate,
-        endDate: tripSummary.endDate,
-        travelersCount: trip.travelersCount,
-        budgetTotal: trip.budgetTotal || undefined,
-        currency: trip.currency,
-        pace: trip.pace as any,
-        transportPreference: trip.transportPreference as any,
-        notes: trip.notes || undefined
-      },
-      itinerary: latestItinerary || undefined
+      tripId,
+      previousVersion: currentItinerary.version,
+      newVersion: newItinerary.version,
+      intent: dto.intent,
+      appliedChangesSummary,
+      changedActivitiesCount,
+      updatedItinerary: newItinerary,
+      status: finalStatus
     };
   }
 

@@ -264,6 +264,7 @@ Plan an optimal, feasible daily itinerary for:
 - Budget: ${requirements.budgetTotal || 'Flexible'} ${requirements.currency || 'USD'}
 - Travel Styles: ${(requirements.travelStyles || ['Cultural']).join(', ')}
 - Interests: ${(requirements.interests || ['Sightseeing', 'Food']).join(', ')}
+${requirements.notes ? `- Special Directives / Replan Intent: ${requirements.notes}` : ''}
 
 Available Verified Places in ${requirements.destination}:
 ${places.map((p) => `- PlaceID: "${p.id || p.googlePlaceId}", Name: "${p.name}", Hours: ${JSON.stringify(p.openingHours?.weekdayDescriptions || 'Open daily 09:00 - 18:00')}`).join('\n')}
@@ -423,6 +424,7 @@ Trip Requirements:
 - Budget: ${requirements.budgetTotal || 'Flexible'} ${requirements.currency || 'USD'}
 - Travel Styles: ${(requirements.travelStyles || ['Cultural']).join(', ')}
 - Interests: ${(requirements.interests || ['Sightseeing', 'Food']).join(', ')}
+${requirements.notes ? `- Special Directives / Replan Intent: ${requirements.notes}` : ''}
 
 Available Verified Places in ${requirements.destination}:
 ${places.map((p) => `- PlaceID: "${p.id || p.googlePlaceId}", Name: "${p.name}", Hours: ${JSON.stringify(p.openingHours?.weekdayDescriptions || 'Open daily 09:00 - 18:00')}`).join('\n')}
@@ -580,7 +582,7 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
     } as ItineraryV1;
   }
 
-  private attachActivityChecks(
+  public attachActivityChecks(
     itinerary: ItineraryV1,
     checksMap?: Record<string, any[]>
   ): ItineraryV1 {
