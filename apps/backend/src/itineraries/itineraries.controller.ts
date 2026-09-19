@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ItinerariesService } from './itineraries.service';
 import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 import { ModifyItineraryRequestDto, ModifyItineraryResponse } from '@trippin/api-contracts';
 
 @ApiTags('Itineraries')
@@ -12,6 +13,7 @@ export class ItinerariesController {
   constructor(private readonly itinerariesService: ItinerariesService) {}
 
   @Post(':id/modify')
+  @RateLimit({ limit: 6, windowMs: 60000 })
   @ApiOperation({
     summary: 'Conversationally modify an itinerary (e.g. "Day 2 is too busy")',
     description: 'Triggers AI re-planning on affected activities and produces a new verified version (vN+1)'

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, UseGuards, HttpStatus, HttpCode } f
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TripsService } from './trips.service';
 import { FirebaseAuthGuard, AuthenticatedUser } from '../common/guards/firebase-auth.guard';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
 import {
   CreateTripRequestDto,
@@ -19,6 +20,7 @@ export class TripsController {
   constructor(private readonly tripsService: TripsService) {}
 
   @Post()
+  @RateLimit({ limit: 10, windowMs: 60000 })
   @ApiOperation({ summary: 'Create a new trip in DRAFT status' })
   async create(
     @CurrentUser() user: AuthenticatedUser,
@@ -28,6 +30,7 @@ export class TripsController {
   }
 
   @Post(':id/generate')
+  @RateLimit({ limit: 5, windowMs: 60000 })
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     summary: 'Trigger asynchronous AI itinerary generation job',

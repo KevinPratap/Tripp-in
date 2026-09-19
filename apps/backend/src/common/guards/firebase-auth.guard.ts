@@ -14,6 +14,21 @@ export interface AuthenticatedUser {
   email: string;
 }
 
+/** Header the web and Android clients use to identify one browser or install. */
+export const GUEST_SESSION_HEADER = 'x-guest-session';
+
+/**
+ * Authentication, honestly named.
+ *
+ * No Firebase project is wired up yet, so this guard does not verify third party
+ * tokens. What it does instead:
+ *
+ *  - a real session token (Bearer) is looked up in the database, never invented;
+ *  - `dev_` tokens and X-Guest-Session values map to their own guest account, so
+ *    every browser and device gets a separate identity with its own trips;
+ *  - reads stay public, because a trip link is meant to be shareable;
+ *  - anything that writes needs an identity, otherwise it is a 401.
+ */
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
   private readonly logger = new Logger(FirebaseAuthGuard.name);
@@ -25,58 +40,107 @@ export class FirebaseAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-
-    // Check development bypass flag
+    const method = String(request.method || 'GET').toUpperCase();
+    const isRead = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
     const allowBypass = this.config.get<string>('AUTH_BYPASS_DEV') === 'true';
 
-    if (!authHeader) {
-      if (allowBypass) {
-        // Find or create default guest traveler
-        const travelerUser = await this.getOrCreateTravelerUser();
-        request.user = travelerUser;
+    const authHeader: string | undefined = request.headers?.authorization;
+    const guestHeaderRaw = request.headers?.[GUEST_SESSION_HEADER] as string | undefined;
+
+    // 1. Explicit session token
+    if (authHeader) {
+      const [scheme, token] = authHeader.split(' ');
+      if (scheme !== 'Bearer' || !token) {
+        throw new UnauthorizedException(
+          'Invalid Authorization format. Expected Bearer <token>'
+        );
+      }
+
+      const existing = await this.prisma.user
+        .findUnique({ where: { firebaseUid: token } })
+        .catch(() => null);
+      if (existing) {
+        request.user = this.toAuthUser(existing);
         return true;
       }
-      throw new UnauthorizedException('Missing Authorization header');
+
+      if (allowBypass && token.startsWith('dev_')) {
+        request.user = await this.getOrCreateGuest(token);
+        return true;
+      }
+
+      if (isRead) {
+        // A stale token should not break a public trip page.
+        request.user = await this.getDemoUser();
+        return true;
+      }
+
+      throw new UnauthorizedException('Unknown session token. Start a new session.');
     }
 
-    const [bearer, token] = authHeader.split(' ');
-    if (bearer !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid Authorization format. Expected Bearer <token>');
-    }
-
-    if (allowBypass && token.startsWith('dev_')) {
-      const devUser = await this.getOrCreateTravelerUser(token);
-      request.user = devUser;
+    // 2. Guest session header: one identity per browser or app install
+    if (guestHeaderRaw) {
+      request.user = await this.getOrCreateGuest(guestHeaderRaw);
       return true;
     }
 
-    try {
-      // Authenticated traveler session
-      const user = await this.getOrCreateTravelerUser(token);
-      request.user = user;
+    // 3. No identity supplied
+    if (isRead) {
+      request.user = await this.getDemoUser();
       return true;
-    } catch (error) {
-      this.logger.error(`Token verification failed: ${(error as Error).message}`);
-      throw new UnauthorizedException('Invalid or expired authentication token');
     }
+
+    if (allowBypass) {
+      // Local development: a header-less write gets its own dev identity rather
+      // than silently merging into the shared demo account.
+      request.user = await this.getOrCreateGuest('local-dev');
+      return true;
+    }
+
+    throw new UnauthorizedException(
+      `This endpoint needs an identity. Send the ${GUEST_SESSION_HEADER} header.`
+    );
   }
 
-  private async getOrCreateTravelerUser(tokenIdentifier = 'traveler-session'): Promise<AuthenticatedUser> {
-    try {
-      let user = await this.prisma.user.findFirst({
-        where: { email: 'traveler@trippin.ai' }
-      });
+  private toAuthUser(user: {
+    id: string;
+    firebaseUid: string;
+    email: string;
+  }): AuthenticatedUser {
+    return { id: user.id, firebaseUid: user.firebaseUid, email: user.email };
+  }
 
+  private normalizeSessionId(raw: string): string {
+    return String(raw)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')
+      .slice(0, 64);
+  }
+
+  /** Finds or creates the account that belongs to one browser or install. */
+  private async getOrCreateGuest(
+    sessionIdentifier: string
+  ): Promise<AuthenticatedUser> {
+    const sessionId = this.normalizeSessionId(sessionIdentifier);
+    if (!sessionId) {
+      throw new UnauthorizedException('Empty session identifier');
+    }
+
+    const firebaseUid = `guest:${sessionId}`;
+    const email = `guest+${sessionId}@trippin.ai`;
+
+    try {
+      let user = await this.prisma.user.findUnique({ where: { firebaseUid } });
       if (!user) {
         user = await this.prisma.user.create({
           data: {
-            firebaseUid: `uid-${tokenIdentifier}`,
-            email: 'traveler@trippin.ai',
+            firebaseUid,
+            email,
             profile: {
               create: {
                 displayName: 'Traveler',
-                photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300'
+                photoUrl:
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300'
               }
             },
             preference: {
@@ -90,19 +154,29 @@ export class FirebaseAuthGuard implements CanActivate {
           }
         });
       }
+      return this.toAuthUser(user);
+    } catch (error) {
+      this.logger.error(
+        `Could not resolve guest session ${sessionId}: ${(error as Error).message}`
+      );
+      // Last resort so a database blip does not take the planner offline.
+      return {
+        id: '00000000-0000-0000-0000-000000000002',
+        firebaseUid,
+        email
+      };
+    }
+  }
 
-      return {
-        id: user.id,
-        firebaseUid: user.firebaseUid,
-        email: user.email
-      };
+  /** The seeded demo account, used for public reads so the home feed has content. */
+  private async getDemoUser(): Promise<AuthenticatedUser | undefined> {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { email: 'traveler@trippin.ai' }
+      });
+      return user ? this.toAuthUser(user) : undefined;
     } catch {
-      // Fallback session identifier if database is momentarily reconnecting
-      return {
-        id: '00000000-0000-0000-0000-000000000001',
-        firebaseUid: 'trippin-traveler-session-001',
-        email: 'traveler@trippin.ai'
-      };
+      return undefined;
     }
   }
 }

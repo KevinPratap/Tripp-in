@@ -50,6 +50,16 @@ export class CollabService {
     vote: number,
     comment?: string
   ): Promise<TripCollabResponse> {
+    // A vote must point at a real stop on this trip, otherwise anyone can create
+    // phantom entries in the collaboration payload.
+    const activity = await this.prisma.activity.findFirst({
+      where: { id: activityId, day: { itinerary: { tripId } } },
+      select: { id: true }
+    });
+    if (!activity) {
+      throw new NotFoundException(`Activity ${activityId} is not part of trip ${tripId}`);
+    }
+
     const data = await this.getCollabData(tripId);
     const activities = data.activities;
 

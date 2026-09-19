@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { TripsModule } from './trips/trips.module';
 import { PlacesModule } from './places/places.module';
 import { RoutesModule } from './routes/routes.module';
@@ -30,6 +32,11 @@ import { RedisService } from './common/redis/redis.service';
     SDUIModule,
     HealthModule
   ],
-  providers: [PrismaService, RedisService]
+  providers: [
+    PrismaService,
+    RedisService,
+    // Global sliding window limiter. AI routes carry a tighter budget set with @RateLimit.
+    { provide: APP_GUARD, useClass: RateLimitGuard }
+  ]
 })
 export class AppModule {}

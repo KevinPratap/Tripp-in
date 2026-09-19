@@ -67,6 +67,10 @@ export interface TripRequirement {
   transportPreference?: TransportPreference;
   pace?: Pace;
   notes?: string;
+  /** Geocoded destination centre, used for geographic sanity checks */
+  destinationLocation?: GeoLocation;
+  /** Maximum distance (km) a venue may sit from the destination cluster */
+  maxVenueRadiusKm?: number;
 }
 
 export interface TripSummary {
@@ -114,6 +118,8 @@ export interface PlaceModel {
   priceLevel?: number; // 0 to 4
   photoUrls: string[];
   openingHours?: PlaceOpeningHours;
+  /** True when openingHours were derived from the venue category instead of a real source */
+  openingHoursEstimated?: boolean;
   websiteUrl?: string;
   phoneNumber?: string;
 }
@@ -189,6 +195,7 @@ export interface ItineraryDayModel {
   dayIndex: number; // 1, 2, 3...
   summary?: string;
   weather?: WeatherDayForecast;
+  weatherSummary?: string;
   activities: ActivityModel[];
 }
 
@@ -198,6 +205,10 @@ export interface ItineraryModel {
   version: number;
   status: 'DRAFT' | 'VERIFIED' | 'ARCHIVED';
   createdAt: string;
+  title?: string;
+  summary?: string;
+  totalEstimatedCost?: number;
+  currency?: string;
   days: ItineraryDayModel[];
 }
 
@@ -229,7 +240,12 @@ export interface ValidationViolation {
     | 'INVALID_DURATION'
     | 'EXCEEDS_BUDGET'
     | 'EXCEEDS_PACE'
-    | 'INVALID_TIME_BOUNDS';
+    | 'INVALID_TIME_BOUNDS'
+    | 'PLACE_OUTSIDE_DESTINATION'
+    | 'CROSS_DAY_HOP_UNREALISTIC'
+    | 'REPEATED_VENUE'
+    | 'DAY_TOO_SPARSE'
+    | 'CURRENCY_MISMATCH';
   message: string;
   dayIndex: number;
   activityIndices: number[];

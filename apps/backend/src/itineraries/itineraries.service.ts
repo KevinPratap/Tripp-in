@@ -18,7 +18,11 @@ export class ItinerariesService {
   /**
    * Persists a verified itinerary as a new version for a trip
    */
-  async saveVerifiedItinerary(tripId: string, verified: ItineraryV1): Promise<ItineraryModel> {
+  async saveVerifiedItinerary(
+    tripId: string,
+    verified: ItineraryV1,
+    status: 'VERIFIED' | 'DRAFT' = 'VERIFIED'
+  ): Promise<ItineraryModel> {
     // 1. Check existing latest version
     const latest = await this.prisma.itinerary.findFirst({
       where: { tripId },
@@ -70,7 +74,7 @@ export class ItinerariesService {
         tripId,
         version: nextVersion,
         isCurrent: true,
-        status: 'VERIFIED',
+        status,
         title: verified.tripTitle,
         summary: verified.summary,
         totalEstimatedCost: verified.totalEstimatedCost,
@@ -80,6 +84,7 @@ export class ItinerariesService {
             dayIndex: d.dayIndex,
             date: new Date(d.date),
             themeSummary: d.themeSummary,
+            weatherSummary: (d as any).weatherSummary,
             activities: {
               create: d.activities.map((a, idx) => ({
                 placeId: a.placeId,
@@ -162,7 +167,8 @@ export class ItinerariesService {
     // Save as version N+1
     const newItinerary = await this.saveVerifiedItinerary(
       existing.tripId,
-      outcome.itinerary
+      outcome.itinerary,
+      outcome.success ? 'VERIFIED' : 'DRAFT'
     );
 
     return {
@@ -198,11 +204,19 @@ export class ItinerariesService {
       version: raw.version,
       status: raw.status as any,
       createdAt: raw.createdAt.toISOString(),
+      title: raw.title || undefined,
+      summary: raw.summary || undefined,
+      totalEstimatedCost:
+        raw.totalEstimatedCost === null || raw.totalEstimatedCost === undefined
+          ? undefined
+          : Number(raw.totalEstimatedCost),
+      currency: raw.currency || undefined,
       days: (raw.days || []).map((d: any) => ({
         id: d.id,
         date: d.date.toISOString().split('T')[0],
         dayIndex: d.dayIndex,
         summary: d.themeSummary,
+        weatherSummary: d.weatherSummary || undefined,
         activities: (d.activities || []).map((a: any) => ({
           id: a.id,
           placeId: a.placeId,
@@ -230,7 +244,8 @@ export class ItinerariesService {
                 },
                 types: a.place.types,
                 rating: a.place.rating,
-                photoUrls: a.place.photoUrls
+                photoUrls: a.place.photoUrls,
+                openingHours: a.place.openingHoursJson || undefined
               }
             : undefined
         }))

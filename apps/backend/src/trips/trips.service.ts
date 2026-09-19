@@ -170,7 +170,8 @@ export class TripsService {
 
     const savedItinerary = await this.itinerariesService.saveVerifiedItinerary(
       tripId,
-      outcome.itinerary
+      outcome.itinerary,
+      outcome.success ? 'VERIFIED' : 'DRAFT'
     );
 
     // Update trip status to READY
@@ -182,9 +183,13 @@ export class TripsService {
     this.activeJobs.set(tripId, {
       status: 'READY',
       progress: 100,
-      message: 'Itinerary ready!'
+      message: outcome.success
+        ? 'Itinerary ready!'
+        : 'Itinerary saved with unresolved checks. Treat the schedule as a draft.'
     });
-    this.logger.log(`🎉 Trip ${tripId} generation completed successfully!`);
+    this.logger.log(
+      `Trip ${tripId} generation completed (${outcome.success ? 'verified' : 'draft, validation warnings remain'}).`
+    );
   }
 
   async getGenerationStatus(tripId: string): Promise<TripGenerationStatusResponse> {

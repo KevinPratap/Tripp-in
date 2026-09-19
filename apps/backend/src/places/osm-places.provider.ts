@@ -21,12 +21,19 @@ export class OSMPlacesProvider implements PlaceProvider {
         this.searchNominatim(`${cleanCity} attraction`, params.location),
         this.searchNominatim(`${cleanCity} museum`, params.location)
       ]);
+      // Photon has a different rate budget than Nominatim, so it contributes the
+      // parks and food stops that give the planner enough variety to avoid repeats.
+      const [parks, food] = await Promise.all([
+        this.searchPhoton(`${cleanCity} park`, params.location),
+        this.searchPhoton(`${cleanCity} restaurant`, params.location)
+      ]);
 
-      const combined = [...attractions, ...museums];
+      const combined = [...attractions, ...museums, ...parks, ...food];
+      const inArea = this.filterByDistance(combined, params.location);
       // Deduplicate by name or coordinates
       const seen = new Set<string>();
       const places: PlaceModel[] = [];
-      for (const p of combined) {
+      for (const p of inArea) {
         const key = p.name.toLowerCase().trim();
         if (!seen.has(key)) {
           seen.add(key);
@@ -108,7 +115,7 @@ export class OSMPlacesProvider implements PlaceProvider {
     const data = await res.json();
     const features = data.features || [];
 
-    return features
+    const mapped = features
       .filter((f: any) => f.properties?.name && f.geometry?.coordinates)
       .map((f: any, idx: number) => {
         const props = f.properties;
@@ -128,20 +135,21 @@ export class OSMPlacesProvider implements PlaceProvider {
           formattedAddress: address,
           location: { latitude: lat, longitude: lon },
           types: [category, props.osm_key || 'point_of_interest'].filter(Boolean),
-          rating: 4.4 + (Math.abs((lat * 1000) % 5) / 10),
-          userRatingsTotal: Math.floor(1200 + Math.abs((lon * 500) % 8000)),
           priceLevel: this.estimatePriceLevel(category),
           photoUrls: [this.getPhotoForCategory(category, idx)],
-          openingHours: this.generateOpeningHours(category)
-        };
+          openingHours: this.buildOpeningHours(category),
+          openingHoursEstimated: true
+        } as PlaceModel;
       });
+
+    return this.filterByDistance(mapped, location);
   }
 
   private async searchNominatim(query: string, location?: GeoLocation): Promise<PlaceModel[]> {
     let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&extratags=1&limit=10`;
     if (location) {
-      const delta = 0.15;
-      url += `&viewbox=${location.longitude - delta},${location.latitude + delta},${location.longitude + delta},${location.latitude - delta}`;
+      const delta = 0.6; // roughly 65 km around the destination centre
+      url += `&viewbox=${location.longitude - delta},${location.latitude + delta},${location.longitude + delta},${location.latitude - delta}&bounded=1`;
     }
 
     const res = await fetch(url, {
@@ -161,6 +169,7 @@ export class OSMPlacesProvider implements PlaceProvider {
       const osmId = `osm_${item.osm_type?.[0]?.toUpperCase() || 'N'}_${item.osm_id || item.place_id}`;
       const name = item.namedetails?.name || item.name || item.display_name.split(',')[0];
       const category = item.type || item.class || 'attraction';
+      const realHours: string | undefined = item.extratags?.opening_hours;
 
       return {
         id: osmId,
@@ -170,12 +179,11 @@ export class OSMPlacesProvider implements PlaceProvider {
         formattedAddress: item.display_name,
         location: { latitude: lat, longitude: lon },
         types: [category, item.class].filter(Boolean),
-        rating: 4.5,
-        userRatingsTotal: 2500,
         priceLevel: this.estimatePriceLevel(category),
         photoUrls: [this.getPhotoForCategory(category, idx)],
-        openingHours: this.generateOpeningHours(category)
-      };
+        openingHours: this.buildOpeningHours(category, realHours),
+        openingHoursEstimated: !realHours
+      } as PlaceModel;
     });
   }
 
@@ -192,12 +200,123 @@ export class OSMPlacesProvider implements PlaceProvider {
       formattedAddress: d.calculated_postcode ? `${name}, ${d.calculated_postcode}` : name,
       location: { latitude: lat, longitude: lon },
       types: [category],
-      rating: 4.6,
-      userRatingsTotal: 3400,
       priceLevel: this.estimatePriceLevel(category),
       photoUrls: [this.getPhotoForCategory(category, 0)],
-      openingHours: this.generateOpeningHours(category)
+      openingHours: this.buildOpeningHours(category, d.extratags?.opening_hours),
+      openingHoursEstimated: !d.extratags?.opening_hours
+    } as PlaceModel;
+  }
+
+  /**
+   * Returns the real opening hours when OpenStreetMap publishes them, otherwise an
+   * explicitly marked estimate. Nothing here is presented as verified data.
+   */
+  private buildOpeningHours(category: string, realHours?: string): PlaceOpeningHours {
+    if (realHours && realHours.trim().length > 0) {
+      const parsed = this.parseOsmOpeningHours(realHours);
+      return {
+        weekdayDescriptions: parsed
+          ? [realHours.trim()]
+          : [realHours.trim(), 'Hours string from OpenStreetMap could not be machine read, so only a sane visiting window is enforced.'],
+        periods: parsed || []
+      } as PlaceOpeningHours;
+    }
+    const estimate = this.generateOpeningHours(category);
+    return {
+      weekdayDescriptions: [
+        ...(estimate.weekdayDescriptions || []).map(
+          (line) => `${line} (typical hours, not verified)`
+        ),
+        'Opening hours for this venue are not published in OpenStreetMap.'
+      ],
+      periods: []
+    } as PlaceOpeningHours;
+  }
+
+  /**
+   * Best effort parser for the simple OpenStreetMap opening_hours shapes
+   * ("Mo-Fr 09:00-17:00", "Sa,Su 10:00-14:00", "24/7"). Returns null when the
+   * string uses syntax we cannot represent, so callers fall back to a window check.
+   */
+  private parseOsmOpeningHours(raw: string): PlaceOpeningHours['periods'] | null {
+    const DAY_TOKENS: Record<string, number> = {
+      su: 0,
+      mo: 1,
+      tu: 2,
+      we: 3,
+      th: 4,
+      fr: 5,
+      sa: 6
     };
+    const value = raw.trim();
+    if (!value || /off|PH|sunrise|sunset|week|\[|\]/.test(value)) return null;
+
+    if (/^24\/7$/.test(value)) {
+      return [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+        open: { day, time: '00:00' },
+        close: { day, time: '23:59' }
+      }));
+    }
+
+    const periods: Array<{ open: { day: number; time: string }; close: { day: number; time: string } }> = [];
+    const rules = value.split(';').map((r) => r.trim()).filter(Boolean);
+
+    for (const rule of rules) {
+      const match = rule.match(/^([A-Za-z,\-\s]+)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+      if (!match) return null;
+      const [, dayPart, openTime, closeTime] = match;
+      const days = new Set<number>();
+
+      for (const chunk of dayPart.split(',').map((c) => c.trim()).filter(Boolean)) {
+        const range = chunk.match(/^([A-Za-z]{2})-([A-Za-z]{2})$/);
+        if (range) {
+          const start = DAY_TOKENS[range[1].toLowerCase()];
+          const end = DAY_TOKENS[range[2].toLowerCase()];
+          if (start === undefined || end === undefined) return null;
+          let day = start;
+          for (let guard = 0; guard < 7; guard++) {
+            days.add(day);
+            if (day === end) break;
+            day = (day + 1) % 7;
+          }
+        } else {
+          const single = DAY_TOKENS[chunk.toLowerCase()];
+          if (single === undefined) return null;
+          days.add(single);
+        }
+      }
+
+      for (const day of days) {
+        periods.push({ open: { day, time: openTime }, close: { day, time: closeTime } });
+      }
+    }
+
+    return periods.length > 0 ? periods : null;
+  }
+
+  /** Drops venues that are implausibly far from the requested centre. */
+  private filterByDistance(
+    places: PlaceModel[],
+    location?: GeoLocation,
+    maxKm = 120
+  ): PlaceModel[] {
+    if (!location) return places;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const distanceKm = (a: GeoLocation, b: GeoLocation) => {
+      const dLat = toRad(b.latitude - a.latitude);
+      const dLon = toRad(b.longitude - a.longitude);
+      const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+      return 2 * 6371 * Math.asin(Math.sqrt(h));
+    };
+    const kept = places.filter((p) => distanceKm(p.location, location) <= maxKm);
+    if (kept.length !== places.length) {
+      this.logger.debug(
+        `Dropped ${places.length - kept.length} venue(s) further than ${maxKm} km from the requested centre.`
+      );
+    }
+    return kept;
   }
 
   private estimatePriceLevel(category: string): number {

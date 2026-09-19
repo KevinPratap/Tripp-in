@@ -90,9 +90,21 @@ export class AIPlannerService {
    */
   async planItinerary(requirements: TripRequirement): Promise<PlanGenerationOutcome> {
     const weather = await this.weatherService.getForecast(requirements.destination, 5);
+    const destinationLocation = await this.placeService.geocodeDestination(requirements.destination);
+    if (!destinationLocation) {
+      this.logger.warn(
+        `Destination "${requirements.destination}" could not be geocoded. Geographic containment checks will rely on venue clustering only.`
+      );
+    }
     const candidatePlaces = await this.placeService.searchPlaces(
-      `${requirements.destination} attractions landmarks`
+      `${requirements.destination} attractions landmarks`,
+      destinationLocation || undefined
     );
+    // Carry the anchor into validation so a venue on another continent cannot pass.
+    const scopedRequirements: TripRequirement = {
+      ...requirements,
+      destinationLocation: destinationLocation || undefined
+    };
 
     let repairIterations = 0;
     const maxRepairs = 3;
@@ -157,10 +169,13 @@ export class AIPlannerService {
         continue;
       }
 
+      // 2b. Attach the live forecast to each day so the client can show it.
+      candidateItinerary = this.attachWeatherSummaries(candidateItinerary, weather);
+
       // 3. Deterministic Constraint Engine check
       validationResult = await this.validator.validate(
         candidateItinerary,
-        requirements
+        scopedRequirements
       );
 
       if (validationResult.isValid) {
@@ -182,9 +197,39 @@ export class AIPlannerService {
       repairIterations++;
     }
 
-    // Return the best candidate even if some non-fatal warnings remain
+    // Return the best candidate even if some non-fatal warnings remain, but do not
+    // pretend it is verified. The caller stores it as DRAFT in that case.
+    if (!validationResult || validationResult.violations.length > 0) {
+      const deterministic = this.generateDeterministicCandidate(requirements, candidatePlaces);
+      const deterministicSchema = validateItineraryV1(deterministic);
+      if (deterministicSchema.success) {
+        const deterministicResult = await this.validator.validate(
+          deterministic,
+          scopedRequirements
+        );
+        if (deterministicResult.isValid) {
+          this.logger.log(
+            'Repair loop exhausted, deterministic fallback produced a fully verified schedule.'
+          );
+          return {
+            success: true,
+            itinerary: this.attachWeatherSummaries(deterministic, weather),
+            validationResult: deterministicResult,
+            repairIterations,
+            modelUsed: 'heuristic-deterministic-engine'
+          };
+        }
+        validationResult = deterministicResult;
+        candidateItinerary = deterministic;
+      }
+    }
+
+    if (candidateItinerary) {
+      candidateItinerary = this.attachWeatherSummaries(candidateItinerary, weather);
+    }
+
     return {
-      success: validationResult ? validationResult.violations.length === 0 : false,
+      success: false,
       itinerary: candidateItinerary || undefined,
       validationResult: validationResult || undefined,
       repairIterations,
@@ -235,6 +280,10 @@ Rules:
 3. Do NOT schedule activities when the venue is closed on that day of the week!
 4. Ensure activities do not overlap.
 5. Use the exact placeId and placeName from the Available Places list above.
+6. Never schedule the same venue twice in one trip. Every stop must be a different place.
+7. Give every day at least 2 stops (3 stops for a FAST pace).
+8. Price every activity in ${requirements.currency || 'USD'} and keep the running total within the stated budget.
+9. Only schedule venues from the Available Places list. If that list is empty or thin, plan fewer stops instead of inventing venue names.
 `;
 
     const responseSchema = {
@@ -390,6 +439,10 @@ Rules:
 3. Do NOT schedule activities when the venue is closed on that day of the week!
 4. Ensure activities do not overlap.
 5. Use the exact placeId and placeName from the Available Places list above.
+6. Never schedule the same venue twice in one trip. Every stop must be a different place.
+7. Give every day at least 2 stops (3 stops for a FAST pace).
+8. Price every activity in ${requirements.currency || 'USD'} and keep the running total within the stated budget.
+9. Only schedule venues from the Available Places list. If that list is empty or thin, plan fewer stops instead of inventing venue names.
 `;
 
     const systemPrompt = `You are the expert Trippin' AI Travel Planner.
@@ -497,6 +550,28 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
     }
 
     return JSON.parse(cleaned.trim());
+  }
+
+  /**
+   * Adds a short readable forecast line to each day. Nothing is invented: when the
+   * forecast service has no data for a date, the day keeps no summary.
+   */
+  private attachWeatherSummaries(itinerary: ItineraryV1, weather: any[]): ItineraryV1 {
+    if (!weather || weather.length === 0) return itinerary;
+    return {
+      ...itinerary,
+      days: itinerary.days.map((day) => {
+        const match = weather.find((w: any) => String(w.date || '').slice(0, 10) === day.date);
+        if (!match) return day;
+        const temperature =
+          typeof match.temperatureCelsius === 'number'
+            ? `${Math.round(match.temperatureCelsius)}C`
+            : '';
+        const base = [match.condition, temperature].filter(Boolean).join(', ');
+        const summary = match.advisoryNote ? `${base} - ${match.advisoryNote}` : base;
+        return summary ? ({ ...day, weatherSummary: summary } as any) : day;
+      })
+    } as ItineraryV1;
   }
 
   /**

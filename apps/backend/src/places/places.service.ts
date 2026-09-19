@@ -32,6 +32,50 @@ export class PlaceService {
     return places;
   }
 
+  /**
+   * Resolves a free-text destination to coordinates. Used to bound place search
+   * and to give the deterministic engine a geographic anchor.
+   */
+  async geocodeDestination(destination: string): Promise<GeoLocation | null> {
+    if (!destination) return null;
+    const cacheKey = `geo:destination:${destination.toLowerCase().trim()}`;
+    const cached = await this.redis.get<GeoLocation>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+        destination
+      )}&format=json&limit=1`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'TrippinAI-Production/1.0 (contact@trippin.ai)',
+          'Accept-Language': 'en'
+        },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (!res.ok) return null;
+
+      const list = await res.json();
+      if (!Array.isArray(list) || list.length === 0) return null;
+
+      const location: GeoLocation = {
+        latitude: parseFloat(list[0].lat),
+        longitude: parseFloat(list[0].lon)
+      };
+      if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+        return null;
+      }
+
+      await this.redis.set(cacheKey, location, 604800); // a week: cities rarely move
+      return location;
+    } catch (err) {
+      this.logger.warn(
+        `Could not geocode destination "${destination}": ${(err as Error).message}`
+      );
+      return null;
+    }
+  }
+
   async getPlaceDetails(placeId: string): Promise<PlaceModel | null> {
     const cacheKey = `places:details:${placeId}`;
     const cached = await this.redis.get<PlaceModel>(cacheKey);
