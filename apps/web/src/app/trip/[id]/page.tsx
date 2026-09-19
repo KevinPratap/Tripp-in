@@ -700,11 +700,9 @@ export default function PublicTripPage() {
                           const photo = a.place?.photoUrls?.[0];
                           if (!photo) {
                             return (
-                              <div className="mb-3 h-14 rounded-lg border-2 border-dashed border-[#18181B]/40 flex items-center justify-center px-3">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#52525B] text-center">
-                                  No verified photo of this place yet. We only show real photos.
-                                </span>
-                              </div>
+                              <p className="mb-2 text-[9px] font-bold uppercase tracking-widest text-[#A1A1AA]">
+                                No public photo of this place yet. We only show real photos.
+                              </p>
                             );
                           }
                           const isCommons = photo.includes('/wiki/Special:FilePath/');
