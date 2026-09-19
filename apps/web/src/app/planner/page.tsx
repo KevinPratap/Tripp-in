@@ -150,9 +150,12 @@ function PlannerContent() {
         throw new Error(`Failed to execute route engine (HTTP ${genRes.status})`);
       }
 
-      // 3. Poll status
+      // 3. Poll status until the worker reports a terminal stage.
+      // The budget is generous on purpose: a cold run (geocoding, OSM venues, OSRM matrix,
+      // model call, validation) takes 70 to 120 seconds locally, and the old 60 second
+      // budget gave up mid run and left the panel empty with the engine still working.
       let attempts = 0;
-      const maxAttempts = 30;
+      const maxAttempts = 120;
       let completed = false;
 
       while (attempts < maxAttempts && !completed) {
@@ -191,6 +194,12 @@ function PlannerContent() {
 
       const fullTrip = await detailsRes.json();
       const unwrapped = unwrapTripDetails(fullTrip);
+      if (!unwrapped?.itinerary) {
+        // The engine is still working on a slow run. Say so instead of showing an empty panel.
+        setStatusMessage('Still assembling. Open the trip dossier in My Trips to see the result.');
+        setProgressPercent((prev) => Math.max(prev, 90));
+        return;
+      }
       setTripData(unwrapped);
       if (unwrapped?.id) {
         saveTripToHistory(unwrapped);
@@ -394,7 +403,7 @@ function PlannerContent() {
                       setCurrency(e.target.value);
                       setCurrencyTouched(true);
                     }}
-                    className="h-8 px-2 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-xs font-black text-[#18181B] focus:bg-white focus:outline-none"
+                    className="h-11 sm:h-9 px-2 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-base sm:text-xs font-black text-[#18181B] focus:bg-white focus:outline-none"
                   >
                     {SUPPORTED_CURRENCIES.map((code) => (
                       <option key={code} value={code}>
