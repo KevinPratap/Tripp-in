@@ -132,7 +132,7 @@ export default function PublicTripPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="comic-btn-secondary p-2 rounded-lg"
+              className="comic-btn-secondary p-2 min-h-11 min-w-11 flex items-center justify-center rounded-lg"
               aria-label="Back to home"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -381,7 +381,7 @@ export default function PublicTripPage() {
                             href={navUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="comic-btn-secondary px-3 py-1.5 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
+                            className="comic-btn-secondary px-3 py-1.5 min-h-11 rounded-md text-[11px] font-black uppercase tracking-wider flex items-center gap-1 hover:text-[#E11D48]"
                           >
                             <Navigation className="w-3 h-3 text-[#E11D48]" />
                             <span>Open Navigation</span>
