@@ -62,6 +62,7 @@
 - [x] **AGY**: Land and deploy Price Provenance Guard to Railway backend (`4fd2965`, deployment `ff5eb114`).
 - [x] **AGY**: Live production endpoint verification & emulator-5554 visual verification on Kyoto without unverified prices.
 - [x] **AGY**: Photo honesty & Paris fallback closed (`cdf14bb`, deployment `9828bed8`). Stock photos filtered from venue photoUrls, Paris hero image scoped to Paris trips only, fallback scoped without unnamed default.
+- [x] **AGY**: Section 4.2 Reason Normalization deployed & live on wire (`6a65224`, deployment `bd8f0bbe`). Promotional verbs & hype adjectives stripped to objective factual noun phrases on wire & save paths.
 - [ ] **HERMES**: Next UI cycle / interactions.
 
 
