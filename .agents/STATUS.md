@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T03:10:00Z
-**Mainline Commit**: `c00859c` (`feat(android): revamp UI/UX flow with hero boarding pass, segmented explore tabs, and collectible passport stamps`)
+**Last Updated**: 2026-09-20T03:45:00Z
+**Mainline Commit**: `ae1361c`
 **Active Head**: `main`
 
 ---
@@ -10,29 +10,40 @@
 
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `apps/android` | **HERMES** | **AVAILABLE FOR REBASE** | Clean commit `c00859c` on `main`. Hermes can now rebase `flat-android-identity` onto `main`. |
-| `apps/web` | **HERMES / AGY** | **CLEAN / STABLE** | Shipped commit `97f4b2e` live on web production. |
-| `apps/backend` | **AGY** | **VERIFIED** | 73/73 tests passing (100%), verified destinations service. |
+| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. Building 4-tab IA (`Trips`, `Plan`, `Group`, `You`). |
+| `apps/android` (Network) | **AGY** | **ACTIVE BUILD** | `core/network/**`. Retrofit models & API client for travellers, join, and options. |
+| `apps/backend` | **AGY** | **ACTIVE BUILD** | Traveller CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, multi-objective options. |
+| `packages/shared-types` | **AGY** | **ACTIVE BUILD** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`. |
 
 ---
 
 ## 2. Recent Decisions & Alignments
 
-1. **Passport Stamp Mechanic**:
-   - **Council Decision**: Adopted across Web and Android. Plan arriving stamped is an owned artifact.
-   - **Android State**: Android now has the Passport Screen with collectible stamps (Tokyo, Paris, Rome, Kyoto, Lisbon, London) that dynamically flip from `UNVISITED` to `STAMPED` when an itinerary is created, plus active trip counter and bookmarked spots counter.
-   - **Hermes Motion Integration**: Hermes built the `TrippinStamp` and `ArriveOnEnter` shared vocabulary with cubic-bezier `(0.22, 1, 0.36, 1)` and 600ms settle on branch `flat-android-identity`. This is ready to be rebased onto `main`!
+1. **Frozen Interface (`.agents/INTERFACE.md`)**:
+   - `TravellerDto` fields: `id`, `name`, `budgetCap`, `interests`, `dislikes`, `pace`, `joinedAt`.
+   - Fixed vocabulary: `culture`, `food`, `nightlife`, `nature`, `adventure`, `shopping`, `museums`, `history`, `photography`, `wellness`, `relaxation`, `landmark`.
+   - Endpoints:
+     - `GET /api/v1/trips/:id/travellers`
+     - `POST /api/v1/trips/:id/travellers`
+     - `PATCH /api/v1/trips/:id/travellers/:tid`
+     - `DELETE /api/v1/trips/:id/travellers/:tid`
+     - `POST /api/v1/trips/join`
+   - Trip additions: `trip.travellers`, `trip.perTravellerCost`, `trip.options`, `stop.support`.
 
-2. **Cost Display**:
-   - Total settled range with an honest drawn underline (no counting up from zero). Fully aligned.
-
-3. **No Gradients / Tactile Brutalism**:
-   - Flat panels, Newsprint Cream (`#FAF8F5`), Carbon Ink (`#18181B`), Action Crimson (`#E11D48`), 4px ink drop-shadows.
+2. **Non-Negotiable Truth Invariants**:
+   - Zero invented counts: `support.want` and `support.total` count real travellers only.
+   - `overCap` is honest: computed against that traveller's own budgetCap.
+   - An option may only exist if the engine actually produced it under that objective.
+   - Costs remain honest ranges with sources.
 
 ---
 
-## 3. Pending Action Items
+## 3. Active Task List
 
 - [x] **AGY**: Commit Android overhaul files to `main` (`c00859c`).
-- [ ] **HERMES**: Rebase `flat-android-identity` onto `main` (bringing in the unified easing, `ArriveOnEnter`, `TrippinStamp` animation, and the refined haptic helper).
-- [ ] **HERMES / AGY**: Install the rebased APK onto emulator and verify side-by-side motion and layout.
+- [x] **AGY**: Multi-agent collaboration protocol & bus (`ae1361c`).
+- [ ] **AGY**: Implement backend Traveller model, CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, and multi-objective options.
+- [ ] **AGY**: Implement Android network DTOs & `ApiService` endpoints in `core/network/**`.
+- [ ] **HERMES**: Implement 4-tab Android UI (`Trips`, `Plan`, `Group`, `You`) on `flat-android-identity`.
+- [ ] **AGY / HERMES**: Integration test on emulator.
+
