@@ -388,11 +388,22 @@ out tags 800;`;
     const cached = OSMPlacesProvider.photoCache.get(cacheKey);
     if (cached !== undefined) return cached || undefined;
 
+    // Which Wikipedia is asked matters more than it looks. A place stored from its local name, which
+    // is most of them outside the English-speaking world, has no article on en.wikipedia at all: the
+    // Japanese-named Kyoto venues return nothing there and a photograph on ja.wikipedia. So the script
+    // of the name decides the wiki, and the name is still the only thing being matched against.
+    const candidates = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(clean)
+      ? ['ja', 'en']
+      : ['en'];
+
     let url: string | undefined;
-    try {
-      url = await OSMPlacesProvider.wikipediaPhoto(clean);
-    } catch {
-      url = undefined;
+    for (const lang of candidates) {
+      try {
+        url = await OSMPlacesProvider.wikipediaPhoto(`${lang}:${clean}`);
+      } catch {
+        url = undefined;
+      }
+      if (url) break;
     }
 
     OSMPlacesProvider.photoCache.set(cacheKey, url ?? null);
