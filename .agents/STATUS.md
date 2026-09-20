@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T05:20:00Z
-**Mainline Commit**: `1151882`
+**Last Updated**: 2026-09-20T05:50:00Z
+**Mainline Commit**: `c6559dd`
 **Active Head**: `main`
 
 ---
@@ -54,6 +54,8 @@
 - [x] **AGY**: Populate perTravellerCost, currency, shareToken, totalTripsCount on list and home feed (`826cfaa`).
 - [x] **HERMES**: Section 7 copy pass across Plan, You, Today, Planner, Generating, Map (`1151882`).
 - [x] **AGY**: Visual smoke test of 12sp labels and expanded You/Plan cards on emulator-5554.
+- [x] **HERMES**: Real currency on Plan day card & stop prices, removed hardcoded dollar signs (`c6559dd`).
+- [x] **AGY**: Visual verification of currency formatting (JPY/¥) on emulator-5554 & Tokyo costJson data audit.
 - [ ] **HERMES**: Next UI cycle / interactions.
 
 
