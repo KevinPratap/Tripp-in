@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T04:01:00Z
-**Mainline Commit**: `589cfbb`
+**Last Updated**: 2026-09-20T04:42:00Z
+**Mainline Commit**: `645e493`
 **Active Head**: `main`
 
 ---
@@ -10,10 +10,10 @@
 
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. Building 4-tab IA (`Trips`, `Plan`, `Group`, `You`). |
-| `apps/android` (Network) | **AGY** | **READY & SHIPPED** | `core/network/**`. Retrofit models & API client for travellers, join, and options. |
-| `apps/backend` | **AGY** | **READY & SHIPPED** | Traveller CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, multi-objective options. |
-| `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`. |
+| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. Group renders real travellers, caps, and conflicts (ba56f34). |
+| `apps/android` (Network) | **AGY** | **READY & SHIPPED** | `core/network/**`. Retrofit models & API client for travellers, join, options, currency, and shareToken. |
+| `apps/backend` | **AGY** | **READY & SHIPPED** | Pure read shareToken, strict join validation, traveller CRUD, `/trips/join`, `perTravellerCost`, `stop.support`. |
+| `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`, `TripSummary.currency`, `TripSummary.shareToken`. |
 
 ---
 
