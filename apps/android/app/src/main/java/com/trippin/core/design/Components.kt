@@ -135,7 +135,7 @@ fun TrippinSegmentedTabs(
                         text = option,
                         color = pillTextColor,
                         fontWeight = FontWeight.Black,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         letterSpacing = 0.5.sp
                     )
                 }
@@ -166,7 +166,7 @@ fun TrippinStatusBadge(
             text = status.uppercase(),
             color = textColor,
             fontWeight = FontWeight.Black,
-            fontSize = 9.sp,
+            fontSize = 12.sp,
             letterSpacing = 0.5.sp
         )
     }

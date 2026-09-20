@@ -241,7 +241,7 @@ fun TripPlannerScreen(
                                     Text(
                                         text = interest.uppercase(),
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         color = if (isSelected) ComicPaper else ComicBlack,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
