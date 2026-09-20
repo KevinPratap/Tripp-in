@@ -324,6 +324,16 @@ fun TodayScreen(
                                             }
                                         }
                                         HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                                    } else {
+                                        // Half of a real trip's stops have no genuine photograph of
+                                        // the venue on Wikidata, and a stand-in image is not allowed.
+                                        // The plate names the place in its own letters instead.
+                                        PlacePlate(
+                                            title = currentStop.title,
+                                            category = currentStop.type,
+                                            height = 160.dp
+                                        )
+                                        HorizontalDivider(thickness = 2.dp, color = ComicBlack)
                                     }
 
                                     Column(modifier = Modifier.padding(18.dp)) {
@@ -513,6 +523,22 @@ fun TodayScreen(
                                                 contentDescription = act.title,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                    } else {
+                                        // Same plate as the stop cards, at thumbnail size: the
+                                        // monogram reads as the venue without a photograph of it.
+                                        Box(
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .border(1.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                        ) {
+                                            PlacePlate(
+                                                title = act.title,
+                                                category = act.type,
+                                                height = 54.dp
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))

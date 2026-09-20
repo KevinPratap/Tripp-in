@@ -887,6 +887,17 @@ fun ActivityComicCard(
                         }
                     }
                     HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                } else {
+                    // No real photograph of this venue exists, so no photograph is shown. The plate
+                    // names the place in its own letters and its own category instead of using a
+                    // stand-in image, and the same 2dp rule closes the header as on a card that has
+                    // a photograph.
+                    PlacePlate(
+                        title = activity.title,
+                        category = activity.type,
+                        height = 150.dp
+                    )
+                    HorizontalDivider(thickness = 2.dp, color = ComicBlack)
                 }
 
                 Column(modifier = Modifier.padding(14.dp)) {

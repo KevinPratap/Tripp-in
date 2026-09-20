@@ -24,7 +24,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 
 /**
@@ -296,5 +298,73 @@ fun rememberCommitHaptic(): () -> Unit {
     val haptic = LocalHapticFeedback.current
     return remember(haptic) { { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } }
 }
+
+/**
+ * The plate a venue gets when no real photograph of it exists.
+ *
+ * Design system section 5: a photograph is shown only when it belongs to that venue, and when none
+ * exists nothing is substituted. So instead of a stand-in image this draws the venue's own initials
+ * large in ink, with the venue's own category underneath as a caption, on the neutral surface the
+ * Trips row already uses for its own no-photo mark. Both facts come off the wire and neither is
+ * invented: the initials from the venue's name, the category from the type the place was recorded
+ * as. One plate on every surface is the point: a stop with a photograph and a stop without one read
+ * as one card design rather than a card and a gap.
+ *
+ * [height] is passed in so the plate matches the photograph it replaces on that screen, and the
+ * initials scale with it. Under 100dp the caption is dropped and only the monogram is drawn, because
+ * a 54dp thumbnail has no room for a category line and a squeezed one reads as clipped text.
+ */
+@Composable
+fun PlacePlate(
+    title: String,
+    category: String?,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
+    val initials = placeInitials(title)
+    val caption = category?.trim()?.takeIf { it.isNotBlank() }?.uppercase()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(NeutralInkSurface),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = initials,
+            color = Ink,
+            style = if (height >= 100.dp) {
+                TrippinType.Display.copy(letterSpacing = 4.sp)
+            } else {
+                TrippinType.Heading.copy(letterSpacing = 1.sp)
+            }
+        )
+        if (caption != null && height >= 100.dp) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = caption,
+                color = InkMuted,
+                style = TrippinType.Caption.copy(letterSpacing = 1.sp)
+            )
+        }
+    }
+}
+
+/**
+ * At most two letters, taken from the venue's own name. Connector words are skipped so Catacombs of
+ * Paris reads CP and not CO. A one word name keeps its first letter.
+ */
+internal fun placeInitials(title: String): String {
+    val words = title.split(Regex("[^\\p{L}]+"))
+        .filter { it.isNotBlank() && it.lowercase() !in PLATE_SKIP_WORDS }
+    return words.take(2).map { it.first().uppercaseChar() }.joinToString("")
+}
+
+/** Words a venue name uses to join its own nouns. They carry no letter worth printing. */
+private val PLATE_SKIP_WORDS = setOf(
+    "of", "the", "and", "a", "an", "de", "du", "des", "la", "le", "les", "di", "del",
+    "el", "los", "las", "y", "et", "da", "do", "van", "von"
+)
 
 
