@@ -549,11 +549,12 @@ Rules:
 5. Use the exact placeId and placeName from the Available Places list above.
 6. Never schedule the same venue twice in one trip. Every stop must be a different place.
 7. Give every day at least 2 stops (3 stops for a FAST pace).
-8. Price every activity in ${requirements.currency || 'USD'} and keep the running total within the stated budget.
+8. Activity reasons must state factual, plain descriptions of what is at the venue or what the stop entails (e.g. 'Preserved palace grounds and historical architecture'). Never use promotional verbs ('Explore', 'Discover', 'Appreciate', 'Enjoy') or marketing adjectives ('majestic', 'breathtaking', 'magical', 'must-see', 'world-famous', 'fascinating').
 9. Only schedule venues from the Available Places list. If that list is empty or thin, plan fewer stops instead of inventing venue names.
+10. Zero emojis, zero em dashes or en dashes anywhere.
 ${
   requirements.originCity
-    ? `10. The traveller departs from ${requirements.originCity}. Plan the arrival day around real travel time: keep the first day light, schedule nothing before the arrival transfer is realistically finished, and describe that transfer as an estimate rather than a booked time.`
+    ? `11. The traveller departs from ${requirements.originCity}. Plan the arrival day around real travel time: keep the first day light, schedule nothing before the arrival transfer is realistically finished, and describe that transfer as an estimate rather than a booked time.`
     : ''
 }
 `;
@@ -581,8 +582,7 @@ You MUST output ONLY a valid JSON object strictly matching this schema:
           "durationMinutes": 180,
           "travelTimeFromPreviousMinutes": 0,
           "transitModeFromPrevious": "TRANSIT",
-          "estimatedCost": 25,
-          "reason": "Compelling reason matching traveler interests"
+          "reason": "Plain factual description of the venue or activity"
         }
       ]
     }

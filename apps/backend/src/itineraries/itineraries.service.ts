@@ -109,7 +109,7 @@ export class ItinerariesService {
                   transitMode: a.transitModeFromPrevious,
                   estimatedCost: hasPriceProvenance && a.estimatedCost != null ? Number(a.estimatedCost) : null,
                   currency: verified.currency,
-                  reason: a.reason,
+                  reason: cleanPlainReason(a.reason),
                   tips: a.tips,
                   orderIndex: idx,
                   validationJson: (a as any).checks || undefined
@@ -304,7 +304,7 @@ export class ItinerariesService {
               ? Number(a.estimatedCost)
               : undefined,
           currency: hasPriceProvenance ? (a.currency || raw.currency || undefined) : undefined,
-          reason: a.reason,
+          reason: cleanPlainReason(a.reason),
           tips: a.tips,
           bookingUrl: a.bookingUrl,
           checks: (a.validationJson as any) || undefined,
@@ -352,3 +352,32 @@ export class ItinerariesService {
     };
   }
 }
+
+function cleanPlainReason(reason?: string | null): string | undefined {
+  if (!reason || typeof reason !== 'string') return undefined;
+
+  let cleaned = reason
+    .replace(/[—–]/g, '-')
+    .replace(
+      /\b(majestic|breathtaking|magical|must-see|world-famous|fascinating|stunning|incredible|unmatched|splendid|legendary|iconic|immersive|exquisite|magnificent|sublime)\b/gi,
+      ''
+    )
+    .replace(/^Enjoy\s+panoramic\s+views\s+of\s+/i, 'Panoramic views of ')
+    .replace(/^Immersive\s+cultural\s+experience\s+learning\s+about\s+/i, 'Exhibits on ')
+    .replace(
+      /^(Explore\s+(the\s+)?|Discover\s+(the\s+|extensive\s+)?|Appreciate\s+(the\s+)?|Experience\s+(the\s+)?|Enjoy\s+(a\s+)?)/i,
+      ''
+    )
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (cleaned.length > 0) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    if (!cleaned.endsWith('.')) {
+      cleaned += '.';
+    }
+  }
+
+  return cleaned || undefined;
+}
+
