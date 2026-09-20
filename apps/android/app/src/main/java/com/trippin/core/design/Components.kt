@@ -24,9 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 
 /**
@@ -61,7 +59,7 @@ fun TrippinButton(
         ) {
             Text(
                 text = text.uppercase(),
-                style = MaterialTheme.typography.titleMedium,
+                style = TrippinType.Label,
                 color = PureWhite
             )
         }
@@ -125,9 +123,7 @@ fun TrippinSegmentedTabs(
                     Text(
                         text = option,
                         color = pillTextColor,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 12.sp,
-                        letterSpacing = 0.5.sp
+                        style = TrippinType.Label
                     )
                 }
             }
@@ -156,9 +152,7 @@ fun TrippinStatusBadge(
         Text(
             text = status.uppercase(),
             color = textColor,
-            fontWeight = FontWeight.Black,
-            fontSize = 12.sp,
-            letterSpacing = 0.5.sp
+            style = TrippinType.Caption
         )
     }
 }
@@ -235,24 +229,20 @@ fun TrippinStamp(
         Text(
             text = title.uppercase(),
             color = ComicRed,
-            fontWeight = FontWeight.Black,
-            fontSize = 13.sp,
-            letterSpacing = 1.sp
+            style = TrippinType.Label
         )
         subtitle?.let {
             Text(
                 text = it.uppercase(),
                 color = ComicRed,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
+                style = TrippinType.Caption
             )
         }
         detail?.let {
             Text(
                 text = it.uppercase(),
                 color = ComicMuted,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
+                style = TrippinType.Caption
             )
         }
     }

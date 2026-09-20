@@ -18,9 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.trippin.core.design.*
 import com.trippin.core.network.NetworkModule
@@ -56,8 +54,7 @@ fun MapScreen(
                     Column {
                         Text(
                             text = destination.uppercase(),
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
+                            style = TrippinType.Heading
                         )
                         Text(
                             text = "OpenStreetMap route",
@@ -119,16 +116,14 @@ fun MapScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "${firstAct.title} ${if (secondAct != null && secondAct != firstAct) "→ " + secondAct.title else ""}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
+                                style = TrippinType.Heading,
                                 color = ComicBlack
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Day 1, ${firstAct.startTime} to ${firstAct.endTime}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = ComicRed,
-                                fontWeight = FontWeight.Bold
+                                style = TrippinType.Caption,
+                                color = ComicRed
                             )
                         }
                         Button(
@@ -144,7 +139,7 @@ fun MapScreen(
                         ) {
                             Icon(Icons.Default.Directions, contentDescription = null, tint = ComicPaper)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Take me there", fontWeight = FontWeight.Black, color = ComicPaper)
+                            Text("Take me there", style = TrippinType.Label, color = ComicPaper)
                         }
                     }
                 }

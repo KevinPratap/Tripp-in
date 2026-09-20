@@ -22,9 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,6 +32,7 @@ import androidx.navigation.navArgument
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicRed
+import com.trippin.core.design.TrippinType
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.SessionStore
 import com.trippin.feature.auth.SignInScreen
@@ -128,7 +127,7 @@ fun TrippinAppShell() {
                     }
                     NavigationBarItem(
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label, fontWeight = FontWeight.Bold) },
+                        label = { Text(tab.label, style = TrippinType.Label) },
                         selected = selected,
                         colors = itemColors,
                         onClick = {
@@ -328,13 +327,12 @@ private fun NoTripSelected(headline: String, body: String) {
     ) {
         Text(
             text = headline,
-            fontWeight = FontWeight.Black,
-            fontSize = 26.sp,
+            style = TrippinType.Display,
             color = ComicInk
         )
         Text(
             text = body,
-            fontSize = 14.sp,
+            style = TrippinType.Body,
             color = ComicInk.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 8.dp)
         )

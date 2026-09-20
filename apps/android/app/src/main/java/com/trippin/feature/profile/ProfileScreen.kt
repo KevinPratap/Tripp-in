@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.SavedSpotsManager
@@ -72,9 +71,8 @@ fun ProfileScreen(
                         )
                         Text(
                             text = "Signed in",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ComicRed,
-                            fontWeight = FontWeight.Bold
+                            style = TrippinType.Caption,
+                            color = ComicRed
                         )
                     }
                 },
@@ -127,7 +125,7 @@ fun ProfileScreen(
                                         )
                                         Text(
                                             text = "$tripCount $tripWord · ${SavedSpotsManager.savedSpots.size} $placeWord",
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = TrippinType.Caption,
                                             color = ComicMuted
                                         )
                                     }

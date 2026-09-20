@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.SavedSpotsManager
 import com.trippin.core.cache.TripCacheManager
@@ -244,7 +243,7 @@ fun ItineraryScreen(
                             onDismissRequest = { showMoreMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Today", fontWeight = FontWeight.Bold) },
+                                text = { Text("Today", style = TrippinType.Label) },
                                 leadingIcon = { Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicRed) },
                                 onClick = {
                                     showMoreMenu = false
@@ -252,7 +251,7 @@ fun ItineraryScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (isLocked) "Unlock the plan" else "Lock the plan", fontWeight = FontWeight.Bold) },
+                                text = { Text(if (isLocked) "Unlock the plan" else "Lock the plan", style = TrippinType.Label) },
                                 leadingIcon = {
                                     Icon(
                                         if (isLocked) Icons.Default.LockOpen else Icons.Default.Lock,
@@ -267,7 +266,7 @@ fun ItineraryScreen(
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Delete trip", color = ComicRed, fontWeight = FontWeight.Bold) },
+                                text = { Text("Delete trip", color = ComicRed, style = TrippinType.Label) },
                                 leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = ComicRed) },
                                 onClick = {
                                     showMoreMenu = false
@@ -291,7 +290,7 @@ fun ItineraryScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = ComicRed)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Loading the plan...", fontWeight = FontWeight.Bold)
+                    Text("Loading the plan...", style = TrippinType.Body)
                 }
             }
         } else if (loadError != null && tripDetails == null) {
@@ -303,15 +302,15 @@ fun ItineraryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Could not load the plan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Black)
+                    Text("Could not load the plan", color = MaterialTheme.colorScheme.error, style = TrippinType.Title)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(loadError!!, style = MaterialTheme.typography.bodyMedium)
+                    Text(loadError!!, style = TrippinType.Body)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
                     ) {
-                        Text("Retry", fontWeight = FontWeight.Bold)
+                        Text("Retry", style = TrippinType.Label)
                     }
                 }
             }
@@ -394,9 +393,8 @@ fun ItineraryScreen(
                     if (replanStatusMsg != null) {
                         Text(
                             text = replanStatusMsg ?: "",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = TrippinType.Body,
                             color = ComicRed,
-                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
@@ -420,6 +418,7 @@ fun ItineraryScreen(
                                     text = {
                                         Text(
                                             text = "DAY ${day.dayIndex}",
+                                            style = TrippinType.Label,
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
                                             color = if (isSelected) ComicRed else ComicBlack
                                         )
@@ -501,7 +500,7 @@ fun ItineraryScreen(
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
                                                     text = day.summary,
-                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    style = TrippinType.Body,
                                                     color = ComicBlack
                                                 )
                                             }
@@ -592,18 +591,18 @@ fun ItineraryScreen(
         if (showEditDialog) {
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
-                title = { Text("Change the plan", fontWeight = FontWeight.Black) },
+                title = { Text("Change the plan", style = TrippinType.Heading) },
                 text = {
                     Column {
                         Text(
                             "Say what you want different. For example: shift the museum to the afternoon, or add a coffee break at 3pm.",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = TrippinType.Body
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = editInstruction,
                             onValueChange = { editInstruction = it },
-                            placeholder = { Text("e.g. Add a coffee break at 3pm") },
+                            placeholder = { Text("e.g. Add a coffee break at 3pm", style = TrippinType.Body) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
                         )
@@ -612,7 +611,7 @@ fun ItineraryScreen(
                             Text(
                                 message,
                                 color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
+                                style = TrippinType.Body
                             )
                         }
                     }
@@ -653,13 +652,13 @@ fun ItineraryScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("Apply", fontWeight = FontWeight.Bold)
+                            Text("Apply", style = TrippinType.Label)
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showEditDialog = false }) {
-                        Text("Cancel")
+                        Text("Cancel", style = TrippinType.Label)
                     }
                 }
             )
@@ -669,11 +668,11 @@ fun ItineraryScreen(
         if (showScrapDialog) {
             AlertDialog(
                 onDismissRequest = { if (!isScrapping) showScrapDialog = false },
-                title = { Text("Delete this trip", fontWeight = FontWeight.Black) },
+                title = { Text("Delete this trip", style = TrippinType.Heading) },
                 text = {
                     Text(
                         "This deletes the trip and its plan. It cannot be undone.",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = TrippinType.Body
                     )
                 },
                 confirmButton = {
@@ -689,7 +688,7 @@ fun ItineraryScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("Delete", fontWeight = FontWeight.Bold)
+                            Text("Delete", style = TrippinType.Label)
                         }
                     }
                 },
@@ -698,7 +697,7 @@ fun ItineraryScreen(
                         enabled = !isScrapping,
                         onClick = { showScrapDialog = false }
                     ) {
-                        Text("Keep")
+                        Text("Keep", style = TrippinType.Label)
                     }
                 }
             )

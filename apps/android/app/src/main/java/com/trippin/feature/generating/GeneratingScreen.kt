@@ -6,8 +6,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.trippin.core.design.TrippinType
 import kotlinx.coroutines.delay
 
 @Composable
@@ -57,20 +57,19 @@ fun GeneratingScreen(
             if (errorMessage != null) {
                 Text(
                     text = "Could not build the plan",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = TrippinType.Title,
                     color = MaterialTheme.colorScheme.error
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = errorMessage!!,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = TrippinType.Body,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = { onGenerationComplete(tripId) }) {
-                    Text("Continue anyway")
+                    Text("Continue anyway", style = TrippinType.Label)
                 }
             } else {
                 CircularProgressIndicator(
@@ -82,14 +81,13 @@ fun GeneratingScreen(
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "Building your plan",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = TrippinType.Display,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = statusMessage,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = TrippinType.Body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

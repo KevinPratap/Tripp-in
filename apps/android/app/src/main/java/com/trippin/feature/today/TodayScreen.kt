@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -160,7 +159,7 @@ fun TodayScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Loading today's plan...",
-                        fontWeight = FontWeight.Bold,
+                        style = TrippinType.Body,
                         color = ComicBlack
                     )
                 }
@@ -177,16 +176,16 @@ fun TodayScreen(
                     Text(
                         "You are offline",
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Black
+                        style = TrippinType.Title
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(loadError ?: "", style = MaterialTheme.typography.bodyMedium)
+                    Text(loadError ?: "", style = TrippinType.Body)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
                     ) {
-                        Text("Retry", fontWeight = FontWeight.Bold)
+                        Text("Retry", style = TrippinType.Label)
                     }
                 }
             }
@@ -230,8 +229,7 @@ fun TodayScreen(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "DAY ${activeDay?.dayIndex ?: 1} - ${activeDay?.date ?: todayDateStr}",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Black,
+                                            style = TrippinType.Label,
                                             color = ComicBlack
                                         )
                                     }
@@ -239,7 +237,7 @@ fun TodayScreen(
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = activeDay.weatherSummary,
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = TrippinType.Caption,
                                             color = ComicMuted
                                         )
                                     }
@@ -351,7 +349,7 @@ fun TodayScreen(
                                             Spacer(modifier = Modifier.height(6.dp))
                                             Text(
                                                 text = currentStop.reason,
-                                                style = MaterialTheme.typography.bodyMedium,
+                                                style = TrippinType.Body,
                                                 color = ComicBlack.copy(alpha = 0.8f)
                                             )
                                         }
@@ -361,7 +359,7 @@ fun TodayScreen(
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
                                                 text = address,
-                                                style = MaterialTheme.typography.bodySmall,
+                                                style = TrippinType.Body,
                                                 color = ComicMuted
                                             )
                                         }
@@ -386,8 +384,7 @@ fun TodayScreen(
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
                                                         text = "${currentStop.travelTimeFromPreviousMinutes} min travel, from OSRM",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.Bold,
+                                                        style = TrippinType.Caption,
                                                         color = ComicBlack
                                                     )
                                                 }
@@ -466,7 +463,7 @@ fun TodayScreen(
                             ) {
                                 Text(
                                     text = "That is every stop for today.",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = TrippinType.Body,
                                     color = ComicMuted,
                                     modifier = Modifier.padding(16.dp)
                                 )
@@ -509,8 +506,7 @@ fun TodayScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "${act.startTime} - ${act.endTime}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
+                                            style = TrippinType.Label,
                                             color = ComicRed
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
