@@ -268,6 +268,41 @@ fun TrippinStamp(
 }
 
 /**
+ * Applies the stamp settle (600ms, the same one TrippinStamp uses) to any content. Used where a
+ * screen has its own stamp artwork and only needs the landing, so the motion stays one behaviour
+ * instead of a re-implementation per screen.
+ */
+@Composable
+fun StampLanding(
+    delayMillis: Int = 0,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var landed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (delayMillis > 0) kotlinx.coroutines.delay(delayMillis.toLong())
+        landed = true
+    }
+    val scale by animateFloatAsState(
+        targetValue = if (landed) 1f else 1.18f,
+        animationSpec = tween(durationMillis = 600, easing = TrippinSettle),
+        label = "stampLandingScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (landed) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = TrippinSettle),
+        label = "stampLandingAlpha"
+    )
+    Box(
+        modifier = modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            this.alpha = alpha
+        }
+    ) { content() }
+}
+
+/**
  * The only haptic this app uses: one light physical acknowledgement that something committed.
  * LongPress is the commit-level haptic; TextHandleMove belongs on a text cursor, not a button.
  */

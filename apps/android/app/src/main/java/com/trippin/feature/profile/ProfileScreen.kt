@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -173,8 +174,14 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                items(passportCities) { (city, country) ->
+                                itemsIndexed(passportCities) { index, entry ->
+                                    val (city, country) = entry
                                     val isVisited = trips.any { it.destination.contains(city, ignoreCase = true) }
+                                    /*
+                                     * A stamp lands when the trip is real: the same 600ms settle the
+                                     * rest of the app uses, staggered so the booklet fills in order.
+                                     */
+                                    StampLanding(delayMillis = index * 40) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = if (isVisited) ComicRed.copy(alpha = 0.08f) else ComicPaper,
@@ -208,6 +215,7 @@ fun ProfileScreen(
                                                 color = if (isVisited) ComicRed else ComicMuted
                                             )
                                         }
+                                    }
                                     }
                                 }
                             }

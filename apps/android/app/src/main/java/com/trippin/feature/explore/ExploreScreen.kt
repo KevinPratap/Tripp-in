@@ -87,7 +87,7 @@ fun ExploreScreen(
         scope.launch {
             isSearching = true
             errorMessage = null
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             try {
                 results = NetworkModule.apiService.searchPlaces(query)
                 hasSearched = true
@@ -144,7 +144,7 @@ fun ExploreScreen(
                     options = listOf("DISCOVER PLACES", "SAVED SPOTS (${savedSpots.size})"),
                     selectedIndex = selectedTab,
                     onOptionSelected = { index ->
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         selectedTab = index
                     }
                 )
@@ -244,7 +244,7 @@ fun ExploreScreen(
                                     val isSelected = selectedCategory == cat
                                     Surface(
                                         onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             selectedCategory = cat
                                         },
                                         shape = RoundedCornerShape(6.dp),
@@ -328,7 +328,7 @@ fun ExploreScreen(
                                 },
                                 onCopyAddress = {
                                     clipboardManager.setText(AnnotatedString("${place.name}, ${place.formattedAddress}"))
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
                                 },
                                 onOpenMap = {
@@ -386,7 +386,7 @@ fun ExploreScreen(
                                 val isSelected = selectedCategory == cat
                                 Surface(
                                     onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         selectedCategory = cat
                                     },
                                     shape = RoundedCornerShape(6.dp),
@@ -464,7 +464,7 @@ fun ExploreScreen(
                                 },
                                 onCopyAddress = {
                                     clipboardManager.setText(AnnotatedString("${place.name}, ${place.formattedAddress}"))
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
                                 },
                                 onOpenMap = {
