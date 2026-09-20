@@ -29,9 +29,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicRed
+import com.trippin.core.design.Ink
 import com.trippin.core.design.TrippinType
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.SessionStore
@@ -105,11 +107,13 @@ fun TrippinAppShell() {
     Scaffold(
         bottomBar = {
             val itemColors = NavigationBarItemDefaults.colors(
-                selectedIconColor = ComicRed,
-                selectedTextColor = ComicInk,
-                indicatorColor = ComicRed.copy(alpha = 0.15f),
-                unselectedIconColor = ComicInk.copy(alpha = 0.55f),
-                unselectedTextColor = ComicInk.copy(alpha = 0.55f)
+                selectedIconColor = AccentCrimson,
+                selectedTextColor = Ink,
+                // No pill behind the selected tab. A translucent crimson blob was the one Material
+                // default left on the screen, and it read as an afterthought next to flat surfaces.
+                indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                unselectedIconColor = Ink.copy(alpha = 0.42f),
+                unselectedTextColor = Ink.copy(alpha = 0.42f)
             )
             NavigationBar(
                 containerColor = ComicPanel,

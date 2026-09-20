@@ -31,6 +31,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
+import com.trippin.core.design.AccentCrimson
+import com.trippin.core.design.DangerCrimson
+import com.trippin.core.design.Ink
+import com.trippin.core.design.InkMuted
+import com.trippin.core.design.NeutralInk
+import com.trippin.core.design.NeutralInkSurface
+import com.trippin.core.design.Panel
+import com.trippin.core.design.Paper
+import com.trippin.core.design.WarnAmber
+import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicMuted
 import com.trippin.core.design.ComicPanel
@@ -222,31 +232,40 @@ fun TripsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Trips",
-                            style = TrippinType.Title,
-                            letterSpacing = 0.5.sp,
-                            color = ComicInk
-                        )
+            // One black block per screen, carrying the display-size word and the only
+            // always-available action. Everything below it is a quiet white surface, so there is
+            // exactly one loud object on this screen for the eye to land on first.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ComicInk)
+                    .padding(start = 20.dp, end = 14.dp, top = 20.dp, bottom = 16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "TRIPS", style = TrippinType.Title, color = ComicPaper)
                         if (trips.isNotEmpty()) {
                             Text(
-                                text = tripCountLine(trips.size, ordered.count { it.second != TripState.FINISHED }),
+                                text = tripCountLine(
+                                    trips.size,
+                                    ordered.count { it.second != TripState.FINISHED }
+                                ),
                                 style = TrippinType.Caption,
-                                color = ComicMuted,
+                                color = ComicPaper.copy(alpha = 0.72f),
+                                modifier = Modifier.padding(top = 6.dp)
                             )
                         }
                     }
-                },
-                navigationIcon = {},
-                actions = {
-                    IconButton(onClick = { onNavigateToPlanner(null) }) {
-                        Icon(Icons.Default.Add, contentDescription = "New trip", tint = ComicRed)
+                    IconButton(
+                        onClick = { onNavigateToPlanner(null) },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .border(1.5.dp, ComicPaper.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "New trip", tint = AccentCrimson)
                     }
                 }
-            )
+            }
         }
     ) { padding ->
         PullToRefreshBox(
@@ -258,26 +277,46 @@ fun TripsScreen(
                 .background(ComicPaper)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Box(
+                // The same four states as words with a rule under the selected one. The control
+                // this replaces was a 2dp box holding a 2dp box holding a pill: three frames to say
+                // which filter is on.
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    TrippinSegmentedTabs(
-                        options = STATE_FILTERS,
-                        selectedIndex = selectedFilter,
-                        onOptionSelected = { index ->
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            selectedFilter = index
+                    STATE_FILTERS.forEachIndexed { index, label ->
+                        val isOn = index == selectedFilter
+                        Column(
+                            modifier = Modifier
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedFilter = index
+                                }
+                                .padding(bottom = 6.dp)
+                        ) {
+                            Text(
+                                text = label.uppercase(),
+                                style = TrippinType.Label,
+                                color = if (isOn) ComicInk else ComicMuted
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .width(if (isOn) 22.dp else 0.dp)
+                                    .height(3.dp)
+                                    .background(AccentCrimson)
+                            )
                         }
-                    )
+                    }
                 }
 
                 when {
                     isLoading && trips.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = ComicRed)
+                                CircularProgressIndicator(color = AccentCrimson)
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text("Loading your trips", style = TrippinType.Label)
                             }
@@ -326,8 +365,8 @@ fun TripsScreen(
 
                     else -> {
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(visible, key = { it.first.id }) { (trip, state) ->
@@ -350,7 +389,7 @@ fun TripsScreen(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(ComicRed)
+                                                .background(DangerCrimson)
                                                 .padding(horizontal = 20.dp),
                                             contentAlignment = Alignment.CenterEnd
                                         ) {
@@ -371,7 +410,7 @@ fun TripsScreen(
                                         }
                                     }
                                 ) {
-                                    TripCard(
+                                    TripRow(
                                         trip = trip,
                                         state = state,
                                         today = today,
@@ -426,7 +465,7 @@ fun TripsScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = DangerCrimson),
                         enabled = !isDeleting,
                         onClick = { handleDeleteTrip(pendingDelete.id) }
                     ) {
@@ -493,7 +532,7 @@ fun TripsScreen(
                 confirmButton = {
                     if (inviteCode != null) {
                         Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                             onClick = {
                                 copyToClipboard(context, "Tripp'in invite code", inviteCode.orEmpty())
                             }
@@ -554,7 +593,7 @@ fun TripsScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                         enabled = !joinBusy && joinCode.isNotBlank() && joinName.isNotBlank(),
                         onClick = { join(joinCode, joinName) }
                     ) {
@@ -641,7 +680,7 @@ private fun SuggestionCard(
                 Text(
                     text = "Plan a trip here",
                     style = TrippinType.Label,
-                    color = ComicRed
+                    color = AccentCrimson
                 )
             }
         }
@@ -731,7 +770,7 @@ private fun EmptyTripsPanel(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onPlan,
-                    colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .height(44.dp)
@@ -745,7 +784,7 @@ private fun EmptyTripsPanel(
 }
 
 @Composable
-private fun TripCard(
+private fun TripRow(
     trip: TripSummaryDto,
     state: TripState,
     today: LocalDate,
@@ -754,226 +793,140 @@ private fun TripCard(
     onDelete: () -> Unit,
     onInvite: () -> Unit
 ) {
-    val heroImageUrl = trip.heroImageUrl?.takeIf { it.isNotBlank() }
+    val photo = trip.heroImageUrl?.takeIf { it.isNotBlank() }
     val countdown = countdownLine(trip, today)
     val cost = costLine(trip)
+    val start = parseDate(trip.startDate)
+    val facts = listOfNotNull(countdown, travellersLine(trip)).joinToString(" \u00b7 ")
     val needsYou = needsYouLine(trip, state)
-    val isLive = parseDate(trip.startDate)?.let { start ->
-        parseDate(trip.endDate)?.let { end -> !today.isBefore(start) && !today.isAfter(end) }
-    } ?: false
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(2.dp, ComicInk, RoundedCornerShape(12.dp)),
-            color = ComicPanel,
-            shape = RoundedCornerShape(12.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpen() },
+        color = Panel,
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                // The top band is ink when the engine sent no photo, so the card never leans on a
-                // stand-in image. Destination and dates sit on a dark band either way.
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(if (heroImageUrl != null) 132.dp else 104.dp)
-                        .background(ComicInk)
-                ) {
-                    if (heroImageUrl != null) {
-                        AsyncImage(
-                            model = heroImageUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, ComicInk.copy(alpha = 0.85f)),
-                                        startY = 40f
-                                    )
-                                )
-                        )
-                    }
+            // The date, because that is the fact a traveller scans a list for, in tabular figures so
+            // a column of trips lines up instead of wobbling.
+            Column(modifier = Modifier.width(52.dp)) {
+                Text(
+                    text = start?.dayOfMonth?.toString() ?: "--",
+                    style = TrippinType.Numeric.copy(fontSize = 24.sp),
+                    color = Ink
+                )
+                Text(
+                    text = start?.month?.name?.take(3)?.uppercase() ?: "",
+                    style = TrippinType.Caption,
+                    color = InkMuted
+                )
+            }
 
-                    TripStateChip(
-                        state = state,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(10.dp)
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = trip.destination, style = TrippinType.Heading, color = Ink)
+                if (facts.isNotBlank()) {
+                    Text(
+                        text = facts,
+                        style = TrippinType.Caption,
+                        color = InkMuted,
+                        modifier = Modifier.padding(top = 3.dp)
                     )
-
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    ) {
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RowStateChip(state)
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (needsYou != null && state != TripState.DRAFT) {
+                        // Reachable from here, so the row may mention it. A row must never promise
+                        // something it cannot deliver.
                         Text(
-                            text = trip.destination.uppercase(),
-                            style = TrippinType.Title,
-                            color = ComicPaper
+                            text = "Invite",
+                            style = TrippinType.Label,
+                            color = AccentCrimson,
+                            modifier = Modifier
+                                .clickable { onInvite() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
+                    } else if (cost != null) {
+                        Text(text = cost, style = TrippinType.NumericSmall, color = Ink)
+                    } else {
                         Text(
-                            text = "${dateRangeLine(trip)} · ${travellersLine(trip)}",
+                            text = if (trip.totalActivitiesCount > 0) "Not priced yet" else "No plan yet",
                             style = TrippinType.Caption,
-                            color = ComicPaper.copy(alpha = 0.9f),
+                            color = InkMuted
                         )
                     }
                 }
+            }
 
-                HorizontalDivider(thickness = 2.dp, color = ComicInk)
+            Spacer(modifier = Modifier.width(12.dp))
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOpen() }
-                        .padding(14.dp)
-                ) {
-                    if (countdown != null) {
-                        Text(
-                            text = countdown,
-                            style = TrippinType.Label,
-                            color = ComicRed
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    if (cost != null) {
-                        Text(
-                            text = cost,
-                            style = TrippinType.Body,
-                            color = ComicInk
-                        )
-                        Text(
-                            text = if (trip.currency.isNullOrBlank()) {
-                                "Per person, from the engine's day rates and entry fees. The trip does " +
-                                    "not state a currency, so these are plain numbers."
-                            } else {
-                                "Per person, from the engine's day rates and entry fees."
-                            },
-                            style = TrippinType.Body,
-                            color = ComicMuted
-                        )
-                    } else {
-                        Text(
-                            text = "Cost not estimated yet",
-                            style = TrippinType.Label,
-                            color = ComicMuted
-                        )
-                    }
-
-                    if (needsYou != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = needsYou,
-                                style = TrippinType.Label,
-                                color = ComicRed,
-                                modifier = Modifier.weight(1f)
-                            )
-                            // A draft has no plan to share yet, so the offer only appears when the
-                            // trip is something people can actually be invited to.
-                            if (state != TripState.DRAFT) {
-                                OutlinedButton(
-                                    onClick = onInvite,
-                                    modifier = Modifier
-                                        .height(36.dp)
-                                        .border(2.dp, ComicInk, RoundedCornerShape(8.dp)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed)
-                                ) {
-                                    Text("Invite", style = TrippinType.Label)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = onOpen,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .border(1.5.dp, ComicInk, RoundedCornerShape(8.dp)),
-                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Open trip", style = TrippinType.Label)
-                        }
-
-                        if (isLive) {
-                            OutlinedButton(
-                                onClick = onToday,
-                                modifier = Modifier
-                                    .height(44.dp)
-                                    .border(1.5.dp, ComicInk, RoundedCornerShape(8.dp)),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed)
-                            ) {
-                                Text("Today", style = TrippinType.Label)
-                            }
-                        }
-
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .border(1.5.dp, ComicInk.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                        ) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete trip", tint = ComicRed)
-                        }
-                    }
+            // A real photograph of the destination when the wire carries one, and the city's own two
+            // letters when it does not. Never a blank box, and never somebody else's city.
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(NeutralInkSurface),
+                contentAlignment = Alignment.Center
+            ) {
+                if (photo != null) {
+                    AsyncImage(
+                        model = photo,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = initialsOf(trip.destination),
+                        style = TrippinType.Heading,
+                        color = InkMuted
+                    )
                 }
             }
         }
     }
 }
 
+/** The two letters a row shows when there is no photograph, so the fallback stays a mark. */
+private fun initialsOf(destination: String): String =
+    destination.substringBefore(',')
+        .trim()
+        .take(2)
+        .uppercase()
 /**
- * The state chip. The label is one of the four derived states and nothing else, so a card can never
- * print a status the engine did not earn.
+ * The state chip. The label is one of the four derived states and nothing else, so a row can never
+ * print a status the engine did not earn. None of these is crimson: crimson is for what you tap.
  */
 @Composable
-private fun TripStateChip(state: TripState, modifier: Modifier = Modifier) {
+private fun RowStateChip(state: TripState) {
     val background = when (state) {
-        TripState.DRAFT -> ComicYellow
-        TripState.DECIDING -> ComicRed
-        TripState.LOCKED -> ComicPaper
-        TripState.FINISHED -> ComicMuted
+        TripState.DRAFT -> NeutralInkSurface
+        TripState.DECIDING -> WarnAmberSurface
+        TripState.LOCKED -> Ink
+        TripState.FINISHED -> NeutralInkSurface
     }
     val textColor = when (state) {
-        TripState.DRAFT -> ComicInk
-        TripState.DECIDING -> ComicPaper
-        TripState.LOCKED -> ComicInk
-        TripState.FINISHED -> ComicPaper
+        TripState.DRAFT -> NeutralInk
+        TripState.DECIDING -> WarnAmber
+        TripState.LOCKED -> Paper
+        TripState.FINISHED -> InkMuted
     }
-
     Box(
-        modifier = modifier
-            .background(background, RoundedCornerShape(4.dp))
-            .border(1.5.dp, ComicInk, RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+        modifier = Modifier
+            .background(background, RoundedCornerShape(5.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(
-            text = state.label,
-            color = textColor,
-            style = TrippinType.Caption,
-            letterSpacing = 0.5.sp
-        )
+        Text(text = state.label.uppercase(), style = TrippinType.Caption, color = textColor)
     }
 }
 
