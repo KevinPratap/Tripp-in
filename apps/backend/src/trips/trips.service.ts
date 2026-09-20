@@ -548,7 +548,7 @@ export class TripsService {
         durationMinutes: a.durationMinutes,
         travelTimeFromPreviousMinutes: a.travelTimeToNextMin || 0,
         transitModeFromPrevious: a.transitMode || 'TRANSIT',
-        estimatedCost: a.estimatedCost ? Number(a.estimatedCost) : 0,
+        estimatedCost: a.estimatedCost ? Number(a.estimatedCost) : undefined,
         reason: a.reason || undefined,
         tips: a.tips || undefined,
         checks: (a.validationJson as any) || undefined
@@ -689,7 +689,7 @@ export class TripsService {
                 durationMinutes: 75,
                 travelTimeFromPreviousMinutes: 20,
                 transitModeFromPrevious: 'TRANSIT',
-                estimatedCost: 10,
+                estimatedCost: undefined,
                 reason: 'Added stop to enrich circuit afternoon exploration.',
                 tips: undefined,
                 checks: undefined
@@ -717,10 +717,15 @@ export class TripsService {
       appliedChangesSummary += ` Context: "${dto.freeText}".`;
     }
 
-    const totalCost = candidateDays.reduce(
-      (acc, d) => acc + d.activities.reduce((s, a) => s + (a.estimatedCost || 0), 0),
-      0
+    const hasAnyCost = candidateDays.some((d) =>
+      d.activities.some((a) => a.estimatedCost !== undefined)
     );
+    const totalCost = hasAnyCost
+      ? candidateDays.reduce(
+          (acc, d) => acc + d.activities.reduce((s, a) => s + (a.estimatedCost || 0), 0),
+          0
+        )
+      : undefined;
 
     const candidateItinerary: ItineraryV1 = {
       schemaVersion: 'itinerary.schema.v1',

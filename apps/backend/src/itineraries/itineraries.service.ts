@@ -87,22 +87,34 @@ export class ItinerariesService {
             themeSummary: d.themeSummary,
             weatherSummary: (d as any).weatherSummary,
             activities: {
-              create: d.activities.map((a, idx) => ({
-                placeId: a.placeId,
-                title: a.placeName,
-                activityType: a.activityType,
-                startTime: a.startTime,
-                endTime: a.endTime,
-                durationMinutes: a.durationMinutes,
-                travelTimeToNextMin: a.travelTimeFromPreviousMinutes,
-                transitMode: a.transitModeFromPrevious,
-                estimatedCost: a.estimatedCost,
-                currency: verified.currency,
-                reason: a.reason,
-                tips: a.tips,
-                orderIndex: idx,
-                validationJson: (a as any).checks || undefined
-              }))
+              create: d.activities.map((a, idx) => {
+                const checks = (a as any).checks || [];
+                const hasPriceProvenance =
+                  Array.isArray(checks) &&
+                  checks.some(
+                    (c: any) =>
+                      (c.code === 'ENTRY_FEE' || c.code === 'PRICE' || c.code === 'COST') &&
+                      c.status === 'confirmed' &&
+                      Boolean(c.source)
+                  );
+
+                return {
+                  placeId: a.placeId,
+                  title: a.placeName,
+                  activityType: a.activityType,
+                  startTime: a.startTime,
+                  endTime: a.endTime,
+                  durationMinutes: a.durationMinutes,
+                  travelTimeToNextMin: a.travelTimeFromPreviousMinutes,
+                  transitMode: a.transitModeFromPrevious,
+                  estimatedCost: hasPriceProvenance && a.estimatedCost != null ? Number(a.estimatedCost) : null,
+                  currency: verified.currency,
+                  reason: a.reason,
+                  tips: a.tips,
+                  orderIndex: idx,
+                  validationJson: (a as any).checks || undefined
+                };
+              })
             }
           }))
         }
@@ -251,29 +263,33 @@ export class ItinerariesService {
   }
 
   private mapToItineraryModel(raw: any): ItineraryModel {
-    return {
-      id: raw.id,
-      tripId: raw.tripId,
-      version: raw.version,
-      status: raw.status as any,
-      isLocked: Boolean(raw.isLocked),
-      lockedAt: raw.lockedAt ? raw.lockedAt.toISOString() : undefined,
-      createdAt: raw.createdAt.toISOString(),
-      title: raw.title || undefined,
-      summary: raw.summary || undefined,
-      totalEstimatedCost:
-        raw.totalEstimatedCost === null || raw.totalEstimatedCost === undefined
-          ? undefined
-          : Number(raw.totalEstimatedCost),
-      currency: raw.currency || undefined,
-      cost: (raw.costJson as any) || undefined,
-      days: (raw.days || []).map((d: any) => ({
-        id: d.id,
-        date: d.date.toISOString().split('T')[0],
-        dayIndex: d.dayIndex,
-        summary: d.themeSummary,
-        weatherSummary: d.weatherSummary || undefined,
-        activities: (d.activities || []).map((a: any) => ({
+    const rawCostJson = (raw.costJson as any) || undefined;
+    const hasProvenTripCost = Boolean(
+      rawCostJson && (rawCostJson.total || rawCostJson.breakdown)
+    );
+
+    let anyActivityHasPriceProvenance = false;
+
+    const days = (raw.days || []).map((d: any) => ({
+      id: d.id,
+      date: d.date.toISOString().split('T')[0],
+      dayIndex: d.dayIndex,
+      summary: d.themeSummary,
+      weatherSummary: d.weatherSummary || undefined,
+      activities: (d.activities || []).map((a: any) => {
+        const checks = Array.isArray(a.validationJson) ? a.validationJson : [];
+        const hasPriceProvenance = checks.some(
+          (c: any) =>
+            (c.code === 'ENTRY_FEE' || c.code === 'PRICE' || c.code === 'COST') &&
+            c.status === 'confirmed' &&
+            Boolean(c.source)
+        );
+
+        if (hasPriceProvenance) {
+          anyActivityHasPriceProvenance = true;
+        }
+
+        return {
           id: a.id,
           placeId: a.placeId,
           title: a.title,
@@ -283,8 +299,11 @@ export class ItinerariesService {
           durationMinutes: a.durationMinutes,
           travelTimeFromPreviousMinutes: a.travelTimeToNextMin,
           transitModeFromPrevious: a.transitMode as any,
-          estimatedCost: a.estimatedCost,
-          currency: a.currency,
+          estimatedCost:
+            hasPriceProvenance && a.estimatedCost !== null && a.estimatedCost !== undefined
+              ? Number(a.estimatedCost)
+              : undefined,
+          currency: hasPriceProvenance ? (a.currency || raw.currency || undefined) : undefined,
           reason: a.reason,
           tips: a.tips,
           bookingUrl: a.bookingUrl,
@@ -305,8 +324,29 @@ export class ItinerariesService {
                 openingHours: a.place.openingHoursJson || undefined
               }
             : undefined
-        }))
-      }))
+        };
+      })
+    }));
+
+    const showItineraryCost = hasProvenTripCost || anyActivityHasPriceProvenance;
+
+    return {
+      id: raw.id,
+      tripId: raw.tripId,
+      version: raw.version,
+      status: raw.status as any,
+      isLocked: Boolean(raw.isLocked),
+      lockedAt: raw.lockedAt ? raw.lockedAt.toISOString() : undefined,
+      createdAt: raw.createdAt.toISOString(),
+      title: raw.title || undefined,
+      summary: raw.summary || undefined,
+      totalEstimatedCost:
+        showItineraryCost && raw.totalEstimatedCost !== null && raw.totalEstimatedCost !== undefined
+          ? Number(raw.totalEstimatedCost)
+          : undefined,
+      currency: showItineraryCost ? (raw.currency || undefined) : undefined,
+      cost: rawCostJson,
+      days
     };
   }
 }
