@@ -33,20 +33,19 @@ import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.DangerCrimson
+import com.trippin.core.design.GoodInk
+import com.trippin.core.design.GoodInkSurface
 import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
 import com.trippin.core.design.NeutralInk
 import com.trippin.core.design.NeutralInkSurface
 import com.trippin.core.design.Panel
-import com.trippin.core.design.Paper
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicMuted
 import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicPaper
-import com.trippin.core.design.ComicRed
-import com.trippin.core.design.ComicYellow
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.network.DestinationCardDto
@@ -906,19 +905,21 @@ private fun initialsOf(destination: String): String =
 /**
  * The state chip. The label is one of the four derived states and nothing else, so a row can never
  * print a status the engine did not earn. None of these is crimson: crimson is for what you tap.
+ * A locked plan is the named good state, so it takes the good ink on the good surface, the same
+ * pair the locked banner on the Plan screen uses.
  */
 @Composable
 private fun RowStateChip(state: TripState) {
     val background = when (state) {
         TripState.DRAFT -> NeutralInkSurface
         TripState.DECIDING -> WarnAmberSurface
-        TripState.LOCKED -> Ink
+        TripState.LOCKED -> GoodInkSurface
         TripState.FINISHED -> NeutralInkSurface
     }
     val textColor = when (state) {
         TripState.DRAFT -> NeutralInk
         TripState.DECIDING -> WarnAmber
-        TripState.LOCKED -> Paper
+        TripState.LOCKED -> GoodInk
         TripState.FINISHED -> InkMuted
     }
     Box(

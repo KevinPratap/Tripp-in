@@ -130,7 +130,7 @@ fun TodayScreen(
                         Text(
                             text = if (activities.isEmpty()) "Nothing planned for today" else "${activities.size} ${if (activities.size == 1) "stop" else "stops"} today",
                             style = TrippinType.Caption,
-                            color = ComicRed
+                            color = InkMuted
                         )
                     }
                 },
@@ -224,7 +224,7 @@ fun TodayScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
-                                                .background(ComicRed, RoundedCornerShape(2.dp))
+                                                .background(Ink, RoundedCornerShape(2.dp))
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
@@ -379,7 +379,7 @@ fun TodayScreen(
                                                         Icons.Default.Directions,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(16.dp),
-                                                        tint = ComicRed
+                                                        tint = InkMuted
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(

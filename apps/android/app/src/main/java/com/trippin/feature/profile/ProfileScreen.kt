@@ -70,9 +70,11 @@ fun ProfileScreen(
                             style = TrippinType.Heading
                         )
                         Text(
-                            text = "Signed in",
+                            // The session is the only source of truth here, so this line cannot
+                            // report a sign in that has not happened.
+                            text = if (account == null) "Not signed in, guest on this device" else "Signed in",
                             style = TrippinType.Caption,
-                            color = ComicRed
+                            color = InkMuted
                         )
                     }
                 },
@@ -110,7 +112,7 @@ fun ProfileScreen(
                                         modifier = Modifier
                                             .size(44.dp)
                                             .clip(CircleShape)
-                                            .background(ComicRed)
+                                            .background(Ink)
                                             .border(1.5.dp, ComicInk, CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {

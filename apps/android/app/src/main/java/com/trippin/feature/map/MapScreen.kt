@@ -59,7 +59,7 @@ fun MapScreen(
                         Text(
                             text = "OpenStreetMap route",
                             style = TrippinType.Caption,
-                            color = ComicRed
+                            color = InkMuted
                         )
                     }
                 },
@@ -123,7 +123,7 @@ fun MapScreen(
                             Text(
                                 text = "Day 1, ${firstAct.startTime} to ${firstAct.endTime}",
                                 style = TrippinType.Caption,
-                                color = ComicRed
+                                color = InkMuted
                             )
                         }
                         Button(

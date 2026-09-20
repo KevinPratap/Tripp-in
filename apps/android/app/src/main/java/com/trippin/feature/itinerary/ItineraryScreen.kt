@@ -70,6 +70,9 @@ fun ItineraryScreen(
     var isLocking by remember { mutableStateOf(false) }
     var isReplanning by remember { mutableStateOf(false) }
     var replanStatusMsg by remember { mutableStateOf<String?>(null) }
+    // Beside the message, because the line carries three meanings and one colour cannot hold
+    // them: a run in progress, a run that worked, a run that failed.
+    var replanFailed by remember { mutableStateOf(false) }
     var showScrapDialog by remember { mutableStateOf(false) }
     var isScrapping by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -165,6 +168,7 @@ fun ItineraryScreen(
             try {
                 isReplanning = true
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                replanFailed = false
                 replanStatusMsg = "Replanning..."
                 NetworkModule.apiService.replanTrip(tripId, ReplanRequestDto(intent = intentKey))
                 val updated = NetworkModule.apiService.getTripDetails(tripId)
@@ -172,6 +176,7 @@ fun ItineraryScreen(
                 TripCacheManager.putTrip(tripId, updated)
                 replanStatusMsg = "Plan updated."
             } catch (e: Exception) {
+                replanFailed = true
                 replanStatusMsg = "Could not replan: ${e.message}"
             } finally {
                 isReplanning = false
@@ -208,7 +213,7 @@ fun ItineraryScreen(
                         Text(
                             text = planSubtitle,
                             style = TrippinType.Caption,
-                            color = if (isLocked) ComicBlack else ComicRed
+                            color = if (isLocked) GoodInk else InkMuted
                         )
                     }
                 },
@@ -266,8 +271,8 @@ fun ItineraryScreen(
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Delete trip", color = ComicRed, style = TrippinType.Label) },
-                                leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = ComicRed) },
+                                text = { Text("Delete trip", color = DangerCrimson, style = TrippinType.Label) },
+                                leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DangerCrimson) },
                                 onClick = {
                                     showMoreMenu = false
                                     showScrapDialog = true
@@ -394,7 +399,11 @@ fun ItineraryScreen(
                         Text(
                             text = replanStatusMsg ?: "",
                             style = TrippinType.Body,
-                            color = ComicRed,
+                            color = when {
+                                replanFailed -> DangerCrimson
+                                isReplanning -> InkMuted
+                                else -> GoodInk
+                            },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
@@ -484,7 +493,7 @@ fun ItineraryScreen(
                                                 Text(
                                                     text = "Day ${day.dayIndex} · ${day.date}",
                                                     style = TrippinType.Label,
-                                                    color = ComicRed
+                                                    color = Ink
                                                 )
                                                 if (dayTotal != null && dayTotal > 0) {
                                                     Text(
@@ -780,13 +789,13 @@ fun ActivityComicCard(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .background(ComicRed, RoundedCornerShape(2.dp))
+                        .background(Ink, RoundedCornerShape(2.dp))
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "${activity.travelTimeFromPreviousMinutes} min travel from the stop before",
                     style = TrippinType.Caption,
-                    color = ComicRed
+                    color = InkMuted
                 )
             }
         }
@@ -874,7 +883,7 @@ fun ActivityComicCard(
                                 Text(
                                     text = formatAmount(stopMoney.value, stopMoney.currency),
                                     style = TrippinType.Label,
-                                    color = ComicRed
+                                    color = Ink
                                 )
                             }
 
