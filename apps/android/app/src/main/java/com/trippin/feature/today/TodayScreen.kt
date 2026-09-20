@@ -260,9 +260,8 @@ fun TodayScreen(
                                         Text(
                                             text = "Today",
                                             color = ComicBlack,
-                                            fontWeight = FontWeight.Black,
+                                            style = TrippinType.Caption,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            fontSize = 12.sp
                                         )
                                     }
                                 }
@@ -310,8 +309,7 @@ fun TodayScreen(
                                                 Text(
                                                     text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
                                                     color = ComicPaper,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
+                                                    style = TrippinType.Caption,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
@@ -333,16 +331,14 @@ fun TodayScreen(
                                                 Text(
                                                     text = "Now",
                                                     color = ComicPaper,
-                                                    fontWeight = FontWeight.Black,
+                                                    style = TrippinType.Caption,
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                    fontSize = 12.sp
                                                 )
                                             }
 
                                             Text(
                                                 text = "${currentStop.startTime} - ${currentStop.endTime}",
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 14.sp,
+                                                style = TrippinType.Label,
                                                 color = ComicBlack
                                             )
                                         }
@@ -350,8 +346,7 @@ fun TodayScreen(
                                         Spacer(modifier = Modifier.height(12.dp))
                                         Text(
                                             text = currentStop.title,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 20.sp,
+                                            style = TrippinType.Title,
                                             color = ComicBlack,
                                             lineHeight = 24.sp
                                         )
@@ -442,8 +437,7 @@ fun TodayScreen(
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = "Take me there",
-                                                    fontWeight = FontWeight.Black,
-                                                    fontSize = 13.sp,
+                                                    style = TrippinType.Label,
                                                     color = ComicPaper
                                                 )
                                             }
@@ -458,8 +452,7 @@ fun TodayScreen(
                     item {
                         Text(
                             text = "Later today",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             letterSpacing = 1.sp,
                             color = ComicMuted,
                             modifier = Modifier.padding(top = 8.dp)

@@ -82,8 +82,7 @@ fun TripPlannerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Where to",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicBlack
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -111,8 +110,7 @@ fun TripPlannerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Travellers and budget",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicBlack
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -169,8 +167,7 @@ fun TripPlannerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Pace",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicBlack
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -194,8 +191,7 @@ fun TripPlannerScreen(
                                     ) {
                                         Text(
                                             text = pace,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 12.sp,
+                                            style = TrippinType.Caption,
                                             color = if (isSelected) ComicPaper else ComicBlack
                                         )
                                     }
@@ -218,8 +214,7 @@ fun TripPlannerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Your interests",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicBlack
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -240,8 +235,7 @@ fun TripPlannerScreen(
                                 ) {
                                     Text(
                                         text = interest.uppercase(),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
+                                        style = TrippinType.Caption,
                                         color = if (isSelected) ComicPaper else ComicBlack,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
@@ -311,8 +305,7 @@ fun TripPlannerScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             "Building your plan...",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicPaper
                         )
                     } else {
@@ -320,8 +313,7 @@ fun TripPlannerScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Build my plan",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 14.sp,
+                            style = TrippinType.Label,
                             letterSpacing = 1.sp,
                             color = ComicPaper
                         )

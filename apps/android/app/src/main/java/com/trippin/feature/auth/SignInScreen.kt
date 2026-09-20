@@ -68,8 +68,7 @@ fun SignInScreen(onSignedIn: () -> Unit) {
     val scope = rememberCoroutineScope()
     val canSubmit = email.contains('@') && email.contains('.') && !busy
 
-    fun signIn() {
-        val address = email.trim()
+    fun signInWith(address: String) {
         scope.launch {
             busy = true
             error = null
@@ -109,6 +108,8 @@ fun SignInScreen(onSignedIn: () -> Unit) {
             }
         }
     }
+
+    fun signIn() = signInWith(email.trim())
 
     Column(
         modifier = Modifier

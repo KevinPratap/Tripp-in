@@ -499,8 +499,7 @@ fun ItineraryScreen(
                                                     Text(
                                                         text = "Stops total " +
                                                             formatAmount(dayTotal, dayCurrency),
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = 12.sp,
+                                                        style = TrippinType.Caption,
                                                         color = ComicBlack
                                                     )
                                                 }
@@ -523,14 +522,12 @@ fun ItineraryScreen(
                                             ) {
                                                 Text(
                                                     text = "${activities.size} ${if (activities.size == 1) "stop" else "stops"} · $visitedCount visited",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
+                                                    style = TrippinType.Caption,
                                                     color = ComicMuted
                                                 )
                                                 Text(
                                                     text = "Swipe for other days",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
+                                                    style = TrippinType.Caption,
                                                     color = ComicMuted
                                                 )
                                             }
@@ -545,7 +542,7 @@ fun ItineraryScreen(
                                                 Text(
                                                     text = "No day total: some stops here do not " +
                                                         "say which currency their amount is in.",
-                                                    fontSize = 12.sp,
+                                                    style = TrippinType.Body,
                                                     color = ComicMuted
                                                 )
                                             }
@@ -748,8 +745,7 @@ fun QuickReplanChip(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                style = TrippinType.Caption,
                 color = if (enabled) ComicBlack else ComicMuted
             )
         }
@@ -841,8 +837,7 @@ fun ActivityComicCard(
                             Text(
                                 text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
                                 color = ComicPaper,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = TrippinType.Caption,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -865,16 +860,14 @@ fun ActivityComicCard(
                                 Text(
                                     text = String.format("%02d", index),
                                     color = ComicPaper,
-                                    fontWeight = FontWeight.Black,
+                                    style = TrippinType.Caption,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    fontSize = 12.sp
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "${activity.startTime} - ${activity.endTime}",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 13.sp,
+                                style = TrippinType.Label,
                                 color = ComicBlack
                             )
                         }
@@ -891,8 +884,7 @@ fun ActivityComicCard(
                             if (stopMoney != null) {
                                 Text(
                                     text = formatAmount(stopMoney.value, stopMoney.currency),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
+                                    style = TrippinType.Label,
                                     color = ComicRed
                                 )
                             }
@@ -924,8 +916,7 @@ fun ActivityComicCard(
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = if (isVisited) "Visited" else "Mark visited",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Black,
+                                        style = TrippinType.Caption,
                                         color = if (isVisited) ComicPaper else ComicBlack
                                     )
                                 }

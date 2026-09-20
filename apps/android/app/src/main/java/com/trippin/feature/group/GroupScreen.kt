@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.ArriveOnEnter
+import com.trippin.core.design.TrippinType
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicMuted
 import com.trippin.core.design.ComicPanel
@@ -91,8 +92,7 @@ fun GroupScreen(tripId: String) {
             Column {
                 Text(
                     text = "Group",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 26.sp,
+                    style = TrippinType.Title,
                     color = ComicInk
                 )
                 Text(
@@ -101,14 +101,14 @@ fun GroupScreen(tripId: String) {
                         trip == null -> "This trip is not available offline yet"
                         else -> trip.destination
                     },
-                    fontSize = 14.sp,
+                    style = TrippinType.Label,
                     color = ComicInk.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
                 if (trip != null) {
                     Text(
                         text = "${trip.startDate} to ${trip.endDate}",
-                        fontSize = 13.sp,
+                        style = TrippinType.Label,
                         color = ComicMuted,
                         modifier = Modifier.padding(top = 2.dp)
                     )
@@ -123,8 +123,7 @@ fun GroupScreen(tripId: String) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "People on this trip",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp,
+                        style = TrippinType.Body,
                         color = ComicInk
                     )
                     Text(
@@ -134,8 +133,7 @@ fun GroupScreen(tripId: String) {
                             joined == 1 -> "1 person has added their details"
                             else -> "$joined people have added their details"
                         },
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
+                        style = TrippinType.Title,
                         color = ComicRed,
                         modifier = Modifier.padding(top = 6.dp)
                     )
@@ -143,7 +141,7 @@ fun GroupScreen(tripId: String) {
                         Text(
                             text = "The trip was set up for $plannedFor people, so " +
                                 "${plannedFor - joined} more can still add theirs.",
-                            fontSize = 12.sp,
+                            style = TrippinType.Body,
                             color = ComicMuted,
                             modifier = Modifier.padding(top = 6.dp)
                         )
@@ -151,7 +149,7 @@ fun GroupScreen(tripId: String) {
                     Text(
                         text = "Each person sets their own budget cap, interests and pace. " +
                             "Nothing is guessed on their behalf.",
-                        fontSize = 12.sp,
+                        style = TrippinType.Body,
                         color = ComicMuted,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -166,14 +164,13 @@ fun GroupScreen(tripId: String) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "What each person wants",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 15.sp,
+                            style = TrippinType.Body,
                             color = ComicInk
                         )
                         Text(
                             text = "Nothing is set yet. Once someone sets a budget cap and their " +
                                 "interests, they appear here and the group's conflicts appear below.",
-                            fontSize = 12.sp,
+                            style = TrippinType.Caption,
                             color = ComicMuted,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -223,7 +220,7 @@ fun GroupScreen(tripId: String) {
                         )
                     }
                 },
-                fontSize = 12.sp,
+                style = TrippinType.Body,
                 color = ComicMuted
             )
         }
@@ -235,8 +232,7 @@ fun GroupScreen(tripId: String) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "This trip",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 15.sp,
+                            style = TrippinType.Body,
                             color = ComicInk
                         )
                         Text(
@@ -247,7 +243,7 @@ fun GroupScreen(tripId: String) {
                                 append(" · ")
                                 append(trip.status.lowercase().replaceFirstChar { it.uppercase() })
                             },
-                            fontSize = 12.sp,
+                            style = TrippinType.Caption,
                             color = ComicMuted,
                             modifier = Modifier.padding(top = 6.dp)
                         )
@@ -277,8 +273,7 @@ private fun TravellerCard(
             ) {
                 Text(
                     text = traveller.name.ifBlank { "No name set" },
-                    fontWeight = FontWeight.Black,
-                    fontSize = 16.sp,
+                    style = TrippinType.Body,
                     color = ComicInk
                 )
                 if (overCap) {
@@ -291,8 +286,7 @@ private fun TravellerCard(
                         Text(
                             text = "Over their cap",
                             color = ComicInk,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 12.sp
+                            style = TrippinType.Caption,
                         )
                     }
                 }
@@ -325,7 +319,7 @@ private fun TravellerCard(
 
             Text(
                 text = "Their share of this plan",
-                fontSize = 12.sp,
+                style = TrippinType.Caption,
                 color = ComicMuted,
                 modifier = Modifier.padding(top = 12.dp)
             )
@@ -336,8 +330,7 @@ private fun TravellerCard(
                     else -> "${formatAmount(share.shareMin, currency)} to " +
                         formatAmount(share.shareMax, currency)
                 },
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                style = TrippinType.Body,
                 color = ComicInk,
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -345,7 +338,7 @@ private fun TravellerCard(
             if (cap != null && share != null && share.overCap) {
                 Text(
                     text = overByLine(cap, share.shareMax, currency),
-                    fontSize = 12.sp,
+                    style = TrippinType.Caption,
                     color = ComicInk,
                     modifier = Modifier.padding(top = 6.dp)
                 )
@@ -404,8 +397,7 @@ private fun DecisionsCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Decisions needing the group",
-                fontWeight = FontWeight.Black,
-                fontSize = 15.sp,
+                style = TrippinType.Body,
                 color = ComicInk
             )
 
@@ -418,7 +410,7 @@ private fun DecisionsCard(
                         "Nothing is in conflict right now. Nobody's cap is below their share, " +
                             "and no stop is on anyone's avoid list."
                     },
-                    fontSize = 12.sp,
+                    style = TrippinType.Body,
                     color = ComicMuted,
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -430,14 +422,14 @@ private fun DecisionsCard(
                         "${formatAmount(conflict.cap, currency)}. This plan comes to " +
                         "${formatAmount(conflict.share.shareMax, currency)} for them at the top " +
                         "of the range.",
-                    fontSize = 13.sp,
+                    style = TrippinType.Label,
                     color = ComicInk,
                     modifier = Modifier.padding(top = 12.dp)
                 )
                 Text(
                     text = overByLine(conflict.cap, conflict.share.shareMax, currency) +
                         " The plan can be trimmed, their cap can be raised, or they can skip a stop.",
-                    fontSize = 12.sp,
+                    style = TrippinType.Body,
                     color = ComicMuted,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -446,14 +438,13 @@ private fun DecisionsCard(
             stopConflicts.forEach { conflict ->
                 Text(
                     text = "${conflict.dayLabel}: ${conflict.title}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    style = TrippinType.Label,
                     color = ComicInk,
                     modifier = Modifier.padding(top = 12.dp)
                 )
                 Text(
                     text = "${conflict.counts}, and ${conflict.who} listed this as something to avoid.",
-                    fontSize = 12.sp,
+                    style = TrippinType.Caption,
                     color = ComicMuted,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -462,14 +453,14 @@ private fun DecisionsCard(
             if (paceConflict) {
                 Text(
                     text = "Pace differs: " + paces.joinToString(", ") { "${it.first} is ${it.second}" } + ".",
-                    fontSize = 13.sp,
+                    style = TrippinType.Label,
                     color = ComicInk,
                     modifier = Modifier.padding(top = 12.dp)
                 )
                 Text(
                     text = "A day that suits one pace will feel long or short to the other, so " +
                         "agree on a pace before the days are rebuilt.",
-                    fontSize = 12.sp,
+                    style = TrippinType.Body,
                     color = ComicMuted,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -479,7 +470,7 @@ private fun DecisionsCard(
                 Text(
                     text = "This trip has no cost estimate yet, so a cap cannot be checked " +
                         "against a share.",
-                    fontSize = 12.sp,
+                    style = TrippinType.Body,
                     color = ComicMuted,
                     modifier = Modifier.padding(top = 12.dp)
                 )
@@ -496,15 +487,14 @@ private fun DetailRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            fontSize = 12.sp,
+            style = TrippinType.Caption,
             color = ComicMuted,
             modifier = Modifier.padding(end = 12.dp)
         )
         Text(
             text = value,
-            fontSize = 12.sp,
+            style = TrippinType.Caption,
             color = ComicInk,
-            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f, fill = false)
         )

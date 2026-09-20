@@ -143,8 +143,7 @@ fun ProfileScreen(
                             // Collectible Stamps
                             Text(
                                 text = "Where you have been",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                style = TrippinType.Caption,
                                 color = ComicMuted,
                                 letterSpacing = 1.sp
                             )
@@ -158,7 +157,7 @@ fun ProfileScreen(
                             if (trips.isEmpty()) {
                                 Text(
                                     text = "Trips you take show up here as stamps.",
-                                    fontSize = 13.sp,
+                                    style = TrippinType.Label,
                                     color = ComicMuted
                                 )
                             } else {
@@ -191,14 +190,12 @@ fun ProfileScreen(
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
                                                         text = trip.destination.uppercase(),
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = 12.sp,
+                                                        style = TrippinType.Caption,
                                                         color = ComicInk
                                                     )
                                                     Text(
                                                         text = monthYear(trip.startDate),
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 12.sp,
+                                                        style = TrippinType.Caption,
                                                         color = ComicRed
                                                     )
                                                 }
@@ -229,8 +226,7 @@ fun ProfileScreen(
                         ) {
                             Text(
                                 text = "This device",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                style = TrippinType.Caption,
                                 color = ComicMuted,
                                 letterSpacing = 1.sp
                             )
@@ -252,7 +248,7 @@ fun ProfileScreen(
                         Text(
                             text = "Your trips are kept on this account, so the same account sees the " +
                                 "same trips on any phone. Nothing is tied to this device.",
-                            style = TrippinType.Caption,
+                            style = TrippinType.Body,
                             color = ComicMuted
                         )
 
@@ -363,15 +359,13 @@ fun ProfileScreen(
                             Column {
                                 Text(
                                     text = "Where our numbers come from",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp,
+                                    style = TrippinType.Caption,
                                     color = ComicMuted,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
                                     text = "Built from map data, opening hours and travel times",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    style = TrippinType.Caption,
                                     color = ComicInk
                                 )
                             }

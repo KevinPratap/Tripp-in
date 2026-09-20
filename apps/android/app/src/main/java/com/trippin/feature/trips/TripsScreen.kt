@@ -228,17 +228,15 @@ fun TripsScreen(
                     Column {
                         Text(
                             text = "Trips",
-                            fontWeight = FontWeight.Black,
+                            style = TrippinType.Title,
                             letterSpacing = 0.5.sp,
-                            fontSize = 20.sp,
                             color = ComicInk
                         )
                         if (trips.isNotEmpty()) {
                             Text(
                                 text = tripCountLine(trips.size, ordered.count { it.second != TripState.FINISHED }),
-                                fontSize = 12.sp,
+                                style = TrippinType.Caption,
                                 color = ComicMuted,
-                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -368,8 +366,7 @@ fun TripsScreen(
                                                 Text(
                                                     "Delete",
                                                     color = ComicPaper,
-                                                    fontWeight = FontWeight.Black,
-                                                    fontSize = 14.sp
+                                                    style = TrippinType.Label,
                                                 )
                                             }
                                         }
@@ -425,7 +422,7 @@ fun TripsScreen(
                 text = {
                     Text(
                         "Delete the trip to ${pendingDelete.destination}? Its plan goes with it.",
-                        fontSize = 14.sp
+                        style = TrippinType.Label,
                     )
                 },
                 confirmButton = {
@@ -487,7 +484,7 @@ fun TripsScreen(
                                 Text(
                                     text = "Copied to the clipboard. Send it to your friends, and they " +
                                         "tap Join a trip on the Trips screen and enter it.",
-                                    style = TrippinType.Caption,
+                                    style = TrippinType.Body,
                                     color = ComicMuted
                                 )
                             }
@@ -723,14 +720,13 @@ private fun EmptyTripsPanel(
             ) {
                 Text(
                     text = title,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 18.sp,
+                    style = TrippinType.Heading,
                     color = ComicInk
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = body,
-                    fontSize = 14.sp,
+                    style = TrippinType.Label,
                     color = ComicMuted
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -819,15 +815,13 @@ private fun TripCard(
                     ) {
                         Text(
                             text = trip.destination.uppercase(),
-                            fontWeight = FontWeight.Black,
-                            fontSize = 22.sp,
+                            style = TrippinType.Title,
                             color = ComicPaper
                         )
                         Text(
                             text = "${dateRangeLine(trip)} · ${travellersLine(trip)}",
-                            fontSize = 12.sp,
+                            style = TrippinType.Caption,
                             color = ComicPaper.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -843,8 +837,7 @@ private fun TripCard(
                     if (countdown != null) {
                         Text(
                             text = countdown,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            style = TrippinType.Label,
                             color = ComicRed
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -853,8 +846,7 @@ private fun TripCard(
                     if (cost != null) {
                         Text(
                             text = cost,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 15.sp,
+                            style = TrippinType.Body,
                             color = ComicInk
                         )
                         Text(
@@ -864,14 +856,13 @@ private fun TripCard(
                             } else {
                                 "Per person, from the engine's day rates and entry fees."
                             },
-                            fontSize = 12.sp,
+                            style = TrippinType.Body,
                             color = ComicMuted
                         )
                     } else {
                         Text(
                             text = "Cost not estimated yet",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = TrippinType.Label,
                             color = ComicMuted
                         )
                     }
@@ -981,8 +972,7 @@ private fun TripStateChip(state: TripState, modifier: Modifier = Modifier) {
         Text(
             text = state.label,
             color = textColor,
-            fontWeight = FontWeight.Black,
-            fontSize = 12.sp,
+            style = TrippinType.Caption,
             letterSpacing = 0.5.sp
         )
     }
