@@ -52,15 +52,13 @@ fun ProfileScreen(
         "guest-" + android.os.Build.MODEL.replace(" ", "-").lowercase()
     }
 
-    val trips = TripCacheManager.homeFeedState.value?.recentTrips ?: emptyList()
-    val passportCities = listOf(
-        "Tokyo" to "Japan",
-        "Paris" to "France",
-        "Rome" to "Italy",
-        "Kyoto" to "Japan",
-        "Lisbon" to "Portugal",
-        "London" to "United Kingdom"
-    )
+    val feed = TripCacheManager.homeFeedState.value
+    val trips = feed?.recentTrips ?: emptyList()
+    // The count the server reports, falling back to what is on this device. The list in the feed is
+    // capped, so the fallback is only ever a lower bound.
+    val tripCount = feed?.totalTripsCount ?: trips.size
+    val tripWord = if (tripCount == 1) "trip" else "trips"
+    val placeWord = if (SavedSpotsManager.savedSpots.size == 1) "saved place" else "saved places"
 
     Scaffold(
         topBar = {
@@ -68,13 +66,13 @@ fun ProfileScreen(
                 title = {
                     Column {
                         Text(
-                            text = "FIELD PASSPORT & DESK",
+                            text = "You",
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp,
                             fontSize = 17.sp
                         )
                         Text(
-                            text = "TRAVELER CREDENTIALS & AUDIT",
+                            text = "Not signed in, guest on this device",
                             style = MaterialTheme.typography.labelSmall,
                             color = ComicRed,
                             fontWeight = FontWeight.Bold
@@ -130,89 +128,87 @@ fun ProfileScreen(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
-                                            text = "OFFICIAL TRAVEL PASSPORT",
+                                            text = "Your trips",
                                             fontWeight = FontWeight.Black,
                                             fontSize = 14.sp,
                                             color = ComicInk
                                         )
                                         Text(
-                                            text = "${trips.size} Itineraries · ${SavedSpotsManager.savedSpots.size} Saved Spots",
+                                            text = "$tripCount $tripWord · ${SavedSpotsManager.savedSpots.size} $placeWord",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = ComicMuted
                                         )
                                     }
                                 }
 
-                                Surface(
-                                    color = ComicYellow,
-                                    shape = RoundedCornerShape(4.dp),
-                                    modifier = Modifier.border(1.dp, ComicInk, RoundedCornerShape(4.dp))
-                                ) {
-                                    Text(
-                                        text = "ACTIVE",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 9.sp,
-                                        color = ComicInk,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(18.dp))
 
                             // Collectible Stamps
                             Text(
-                                text = "COLLECTIBLE DISPATCH STAMPS",
+                                text = "Where you have been",
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 color = ComicMuted,
                                 letterSpacing = 1.sp
                             )
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                itemsIndexed(passportCities) { index, entry ->
-                                    val (city, country) = entry
-                                    val isVisited = trips.any { it.destination.contains(city, ignoreCase = true) }
-                                    /*
-                                     * A stamp lands when the trip is real: the same 600ms settle the
-                                     * rest of the app uses, staggered so the booklet fills in order.
-                                     */
-                                    StampLanding(delayMillis = index * 40) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isVisited) ComicRed.copy(alpha = 0.08f) else ComicPaper,
-                                        modifier = Modifier.border(
-                                            width = if (isVisited) 2.dp else 1.dp,
-                                            color = if (isVisited) ComicRed else ComicInk.copy(alpha = 0.25f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isVisited) Icons.Default.CheckCircle else Icons.Default.Public,
-                                                contentDescription = null,
-                                                tint = if (isVisited) ComicRed else ComicMuted,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = city.uppercase(),
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 11.sp,
-                                                color = if (isVisited) ComicInk else ComicMuted
-                                            )
-                                            Text(
-                                                text = if (isVisited) "STAMPED" else "UNVISITED",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.sp,
-                                                color = if (isVisited) ComicRed else ComicMuted
-                                            )
+                            /*
+                             * One stamp per trip that exists, and nothing else. Offering a stamp for a
+                             * city nobody has been to is a promise the app cannot keep, so there is no
+                             * standing list of city names here any more.
+                             */
+                            if (trips.isEmpty()) {
+                                Text(
+                                    text = "Trips you take show up here as stamps.",
+                                    fontSize = 13.sp,
+                                    color = ComicMuted
+                                )
+                            } else {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    itemsIndexed(trips) { index, trip ->
+                                        /*
+                                         * A stamp lands when the trip is real: the same 600ms settle the
+                                         * rest of the app uses, staggered so they fill in order.
+                                         */
+                                        StampLanding(delayMillis = index * 40) {
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = ComicRed.copy(alpha = 0.08f),
+                                                modifier = Modifier.border(
+                                                    width = 2.dp,
+                                                    color = ComicRed,
+                                                    shape = RoundedCornerShape(8.dp)
+                                                )
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = ComicRed,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = trip.destination.uppercase(),
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 12.sp,
+                                                        color = ComicInk
+                                                    )
+                                                    Text(
+                                                        text = monthYear(trip.startDate),
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        color = ComicRed
+                                                    )
+                                                }
+                                            }
                                         }
-                                    }
                                     }
                                 }
                             }
@@ -237,25 +233,12 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "GUEST CREDENTIALS",
+                                text = "This device",
                                 fontWeight = FontWeight.Black,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = ComicMuted,
                                 letterSpacing = 1.sp
                             )
-                            Surface(
-                                color = ComicPaper,
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.border(1.dp, ComicInk, RoundedCornerShape(4.dp))
-                            ) {
-                                Text(
-                                    text = "SECURE LOCAL",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 8.sp,
-                                    color = ComicInk,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -264,6 +247,12 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             color = ComicInk
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Not signed in. Trips made on this phone are kept under this id.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ComicMuted
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -274,9 +263,9 @@ fun ProfileScreen(
                             OutlinedButton(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Guest Session", guestSession))
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("This device", guestSession))
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    Toast.makeText(context, "Session ID copied", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Id copied", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -286,7 +275,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = ComicInk)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("COPY ID", fontWeight = FontWeight.Black, fontSize = 11.sp, color = ComicInk)
+                                Text("Copy id", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicInk)
                             }
 
                             Button(
@@ -300,7 +289,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("MY TRIPS", fontWeight = FontWeight.Black, fontSize = 11.sp, color = ComicPaper)
+                                Text("My trips", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicPaper)
                             }
                         }
                     }
@@ -318,15 +307,15 @@ fun ProfileScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "SYNC WITH WEB DISPATCH",
+                            text = "Sign in",
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = ComicMuted,
                             letterSpacing = 1.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Access your verified itineraries on web browser via passwordless login.",
+                            text = "See your plans on the web. We email you a link, so there is nothing to remember.",
                             style = MaterialTheme.typography.bodySmall,
                             color = ComicMuted
                         )
@@ -340,7 +329,7 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth().border(1.dp, ComicInk, RoundedCornerShape(6.dp))
                             ) {
                                 Text(
-                                    text = "Dispatch link sent to $magicEmail. Check your inbox.",
+                                    text = "Link sent to $magicEmail. Check your inbox.",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     color = ComicInk,
@@ -384,7 +373,7 @@ fun ProfileScreen(
                                     .fillMaxWidth()
                                     .height(40.dp)
                             ) {
-                                Text("SEND DISPATCH MAGIC LINK", fontWeight = FontWeight.Black, fontSize = 11.sp, color = ComicPaper)
+                                Text("Send link", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicPaper)
                             }
                         }
                     }
@@ -410,14 +399,14 @@ fun ProfileScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "RUNTIME ENGINE GUARANTEES",
+                                    text = "Where our numbers come from",
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = ComicMuted,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
-                                    text = "Deterministic physics and zero fake data",
+                                    text = "Built from map data, opening hours and travel times",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ComicInk
@@ -435,13 +424,13 @@ fun ProfileScreen(
                             HorizontalDivider(thickness = 1.dp, color = ComicInk.copy(alpha = 0.15f))
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            EngineRow(title = "OSRM Routing Engine", desc = "Deterministic physics transit calculation", status = "CONNECTED")
+                            EngineRow(title = "Travel times", desc = "Drive times and distances, from OSRM")
                             Spacer(modifier = Modifier.height(10.dp))
-                            EngineRow(title = "OpenStreetMap Photon", desc = "Verified GPS coords and real venues", status = "CONNECTED")
+                            EngineRow(title = "Places and opening hours", desc = "Real venues with their coordinates and hours, from OpenStreetMap")
                             Spacer(modifier = Modifier.height(10.dp))
-                            EngineRow(title = "Open-Meteo Forecast", desc = "Live forecasts for dates in window", status = "CONNECTED")
+                            EngineRow(title = "Weather", desc = "Forecasts for dates inside the forecast window, from Open-Meteo")
                             Spacer(modifier = Modifier.height(10.dp))
-                            EngineRow(title = "Google Gemini 2.5 Flash", desc = "Free tier runtime itinerary synthesizer", status = "CONNECTED")
+                            EngineRow(title = "The plan itself", desc = "Written by Google Gemini 2.5 Flash from the checked data above")
                         }
                     }
                 }
@@ -451,27 +440,28 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun EngineRow(title: String, desc: String, status: String) {
+private fun EngineRow(title: String, desc: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = ComicInk)
-            Text(desc, fontSize = 10.sp, color = ComicMuted)
-        }
-        Surface(
-            color = ComicRed,
-            shape = RoundedCornerShape(4.dp)
-        ) {
-            Text(
-                text = status,
-                color = ComicPaper,
-                fontWeight = FontWeight.Black,
-                fontSize = 8.sp,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            )
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ComicInk)
+            Text(desc, fontSize = 12.sp, color = ComicMuted)
         }
     }
 }
+
+/** Sep 2026 out of 2026-09-27. Formatting only: nothing is claimed that the date does not say. */
+private fun monthYear(date: String): String {
+    val parts = date.split("-")
+    val year = parts.getOrNull(0) ?: return date
+    val monthNumber = parts.getOrNull(1)?.toIntOrNull() ?: return date
+    val monthName = MONTH_NAMES.getOrNull(monthNumber - 1) ?: return date
+    return "$monthName $year"
+}
+
+private val MONTH_NAMES = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+)

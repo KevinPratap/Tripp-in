@@ -55,13 +55,14 @@ fun MapScreen(
                 title = {
                     Column {
                         Text(
-                            text = "$destination RADAR".uppercase(),
+                            text = destination.uppercase(),
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "OPENSTREETMAP INK ROUTE",
+                            text = "OpenStreetMap route",
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 12.sp,
                             color = ComicRed,
                             fontWeight = FontWeight.Bold
                         )
@@ -78,7 +79,7 @@ fun MapScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
                         context.startActivity(intent)
                     }) {
-                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open Web Ticket", tint = ComicRed)
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser", tint = ComicRed)
                     }
                 }
             )
@@ -126,7 +127,7 @@ fun MapScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Day 1 Transit Leg · ${firstAct.startTime} to ${firstAct.endTime}",
+                                text = "Day 1, ${firstAct.startTime} to ${firstAct.endTime}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = ComicRed,
                                 fontWeight = FontWeight.Bold
@@ -145,7 +146,7 @@ fun MapScreen(
                         ) {
                             Icon(Icons.Default.Directions, contentDescription = null, tint = ComicPaper)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("NAVIGATE", fontWeight = FontWeight.Black, color = ComicPaper)
+                            Text("Take me there", fontWeight = FontWeight.Black, color = ComicPaper)
                         }
                     }
                 }

@@ -40,14 +40,15 @@ fun TripPlannerScreen(
                 title = {
                     Column {
                         Text(
-                            text = "PLAN FIELD TICKET",
+                            text = "Plan a trip",
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp,
                             fontSize = 17.sp
                         )
                         Text(
-                            text = "DETERMINISTIC VERIFICATION",
+                            text = "Checked against opening hours and travel times",
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 12.sp,
                             color = ComicRed,
                             fontWeight = FontWeight.Bold
                         )
@@ -80,7 +81,7 @@ fun TripPlannerScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "TARGET DESTINATION",
+                            text = "Where to",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             color = ComicBlack
@@ -109,7 +110,7 @@ fun TripPlannerScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "CREW SIZE & BUDGET",
+                            text = "Travellers and budget",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             color = ComicBlack
@@ -120,10 +121,10 @@ fun TripPlannerScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedTextField(
-                                value = "$travelersCount travelers",
+                                value = "$travelersCount ${if (travelersCount == 1) "traveller" else "travellers"}",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Travelers") },
+                                label = { Text("Travellers") },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp),
                                 trailingIcon = {
@@ -167,7 +168,7 @@ fun TripPlannerScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "ITINERARY TEMPO",
+                            text = "Pace",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             color = ComicBlack
@@ -194,7 +195,7 @@ fun TripPlannerScreen(
                                         Text(
                                             text = pace,
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 11.sp,
+                                            fontSize = 12.sp,
                                             color = if (isSelected) ComicPaper else ComicBlack
                                         )
                                     }
@@ -216,7 +217,7 @@ fun TripPlannerScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "INTERESTS & FOCUS",
+                            text = "Your interests",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             color = ComicBlack
@@ -288,7 +289,7 @@ fun TripPlannerScreen(
                                 com.trippin.core.network.NetworkModule.apiService.triggerGeneration(res.tripId)
                                 onTripCreated(res.tripId)
                             } catch (e: Exception) {
-                                submitError = "Connection error: ${e.message ?: "Failed to deploy"}"
+                                submitError = "Could not create the trip: ${e.message ?: "the app could not reach the server"}"
                                 isSubmitting = false
                             }
                         }
@@ -309,7 +310,7 @@ fun TripPlannerScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            "DEPLOYING VERIFICATION ENGINE...",
+                            "Building your plan...",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             color = ComicPaper
@@ -318,7 +319,7 @@ fun TripPlannerScreen(
                         Icon(Icons.Default.Bolt, contentDescription = null, tint = ComicPaper)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "BUILD FIELD SCHEDULE",
+                            "Build my plan",
                             fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
                             letterSpacing = 1.sp,

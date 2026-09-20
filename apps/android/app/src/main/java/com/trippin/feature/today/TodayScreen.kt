@@ -67,7 +67,7 @@ fun TodayScreen(
                 TripCacheManager.putTrip(tripId, fetched)
             } catch (e: Exception) {
                 if (tripDetails == null) {
-                    loadError = e.message ?: "Failed loading live today view"
+                    loadError = e.message ?: "Could not load today's plan"
                 }
             } finally {
                 isLoading = false
@@ -125,13 +125,14 @@ fun TodayScreen(
                 title = {
                     Column {
                         Text(
-                            text = "TODAY // $destinationName".uppercase(),
+                            text = "Today · $destinationName".uppercase(),
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp,
                             fontSize = 17.sp
                         )
                         Text(
-                            text = "REAL-TIME FIELD DISPATCH",
+                            text = if (activities.isEmpty()) "Nothing planned for today" else "${activities.size} ${if (activities.size == 1) "stop" else "stops"} today",
+                            fontSize = 12.sp,
                             style = MaterialTheme.typography.labelSmall,
                             color = ComicRed,
                             fontWeight = FontWeight.Bold
@@ -145,7 +146,7 @@ fun TodayScreen(
                 },
                 actions = {
                     IconButton(onClick = { onOpenMap(tripId) }) {
-                        Icon(Icons.Default.Map, contentDescription = "Route Map", tint = ComicBlack)
+                        Icon(Icons.Default.Map, contentDescription = "Map", tint = ComicBlack)
                     }
                 }
             )
@@ -162,7 +163,7 @@ fun TodayScreen(
                     CircularProgressIndicator(color = ComicRed)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "Connecting live field GPS...",
+                        "Loading today's plan...",
                         fontWeight = FontWeight.Bold,
                         color = ComicBlack
                     )
@@ -178,7 +179,7 @@ fun TodayScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "CONNECTION LOST",
+                        "You are offline",
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Black
                     )
@@ -189,7 +190,7 @@ fun TodayScreen(
                         onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
                     ) {
-                        Text("RECONNECT", fontWeight = FontWeight.Bold)
+                        Text("Retry", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -248,18 +249,22 @@ fun TodayScreen(
                                     }
                                 }
 
-                                Surface(
-                                    color = ComicYellow,
-                                    shape = RoundedCornerShape(4.dp),
-                                    modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
-                                ) {
-                                    Text(
-                                        text = "LIVE",
-                                        color = ComicBlack,
-                                        fontWeight = FontWeight.Black,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                        fontSize = 11.sp
-                                    )
+                                /* Only when the day on screen really is today. Nothing else here
+                                 * claims to be live. */
+                                if (activeDay?.date?.startsWith(todayDateStr) == true) {
+                                    Surface(
+                                        color = ComicYellow,
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                    ) {
+                                        Text(
+                                            text = "Today",
+                                            color = ComicBlack,
+                                            fontWeight = FontWeight.Black,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            fontSize = 12.sp
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -303,9 +308,9 @@ fun TodayScreen(
                                                     .padding(8.dp)
                                             ) {
                                                 Text(
-                                                    text = "PHOTO: VERIFIED RECORD",
+                                                    text = if (photoUrl.contains("commons.wikimedia")) "Photo: Wikimedia Commons" else "Photo: map data",
                                                     color = ComicPaper,
-                                                    fontSize = 8.sp,
+                                                    fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
@@ -326,11 +331,11 @@ fun TodayScreen(
                                                 modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
                                             ) {
                                                 Text(
-                                                    text = "CURRENT TARGET",
+                                                    text = "Now",
                                                     color = ComicPaper,
                                                     fontWeight = FontWeight.Black,
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                    fontSize = 11.sp
+                                                    fontSize = 12.sp
                                                 )
                                             }
 
@@ -389,7 +394,7 @@ fun TodayScreen(
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
-                                                        text = "${currentStop.travelTimeFromPreviousMinutes} min transit via OSRM",
+                                                        text = "${currentStop.travelTimeFromPreviousMinutes} min travel, from OSRM",
                                                         style = MaterialTheme.typography.labelSmall,
                                                         fontWeight = FontWeight.Bold,
                                                         color = ComicBlack
@@ -436,7 +441,7 @@ fun TodayScreen(
                                                 Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicPaper)
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = "NAVIGATE TO TARGET",
+                                                    text = "Take me there",
                                                     fontWeight = FontWeight.Black,
                                                     fontSize = 13.sp,
                                                     color = ComicPaper
@@ -452,7 +457,7 @@ fun TodayScreen(
                     // Remaining Stops Section
                     item {
                         Text(
-                            text = "UPCOMING SCHEDULE FOR TODAY",
+                            text = "Later today",
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             letterSpacing = 1.sp,
@@ -471,7 +476,7 @@ fun TodayScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = "All stops for today are completed or free roam mode is active.",
+                                    text = "That is every stop for today.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = ComicMuted,
                                     modifier = Modifier.padding(16.dp)

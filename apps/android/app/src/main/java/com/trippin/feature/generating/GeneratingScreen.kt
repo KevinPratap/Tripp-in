@@ -15,7 +15,7 @@ fun GeneratingScreen(
     tripId: String,
     onGenerationComplete: (String) -> Unit
 ) {
-    var statusMessage by remember { mutableStateOf("Initializing deterministic engine...") }
+    var statusMessage by remember { mutableStateOf("Getting the plan started...") }
     var progress by remember { mutableFloatStateOf(0.10f) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -24,7 +24,7 @@ fun GeneratingScreen(
         while (attempts < 60) {
             try {
                 val statusRes = com.trippin.core.network.NetworkModule.apiService.getTripStatus(tripId)
-                statusMessage = statusRes.currentStepMessage.ifBlank { "Processing schedule constraints..." }
+                statusMessage = statusRes.currentStepMessage.ifBlank { "Working on the plan..." }
                 progress = (statusRes.progressPercentage / 100f).coerceIn(0.1f, 1.0f)
 
                 if (statusRes.status == "READY" || statusRes.status == "COMPLETED") {
@@ -32,11 +32,11 @@ fun GeneratingScreen(
                     onGenerationComplete(tripId)
                     break
                 } else if (statusRes.status == "FAILED") {
-                    errorMessage = statusRes.errorMessage ?: "Itinerary generation encountered an error"
+                    errorMessage = statusRes.errorMessage ?: "The plan could not be built."
                     break
                 }
             } catch (e: Exception) {
-                statusMessage = "Connecting to Railway backend..."
+                statusMessage = "Trying to reach the server..."
             }
             delay(1500)
             attempts++
@@ -56,7 +56,7 @@ fun GeneratingScreen(
         ) {
             if (errorMessage != null) {
                 Text(
-                    text = "GENERATION HALTED",
+                    text = "Could not build the plan",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
@@ -70,7 +70,7 @@ fun GeneratingScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = { onGenerationComplete(tripId) }) {
-                    Text("CONTINUE ANYWAY")
+                    Text("Continue anyway")
                 }
             } else {
                 CircularProgressIndicator(
@@ -81,7 +81,7 @@ fun GeneratingScreen(
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = "Building Field Schedule",
+                    text = "Building your plan",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground

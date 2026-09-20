@@ -90,7 +90,7 @@ fun ItineraryScreen(
                 TripCacheManager.putTrip(tripId, fetched)
             } catch (e: Exception) {
                 if (tripDetails == null) {
-                    loadError = e.message ?: "Failed loading itinerary details"
+                    loadError = e.message ?: "Could not load the plan"
                 }
             } finally {
                 isLoading = false
@@ -106,6 +106,16 @@ fun ItineraryScreen(
     val isLocked = tripDetails?.trip?.isLocked == true
     val days = tripDetails?.itinerary?.days ?: emptyList()
     val destinationName = tripDetails?.trip?.destination ?: "Trip"
+
+    // Plain state for the header. Nothing is asserted that the loaded data does not show:
+    // locked or not, how many days the plan has, or that there is no plan yet.
+    val planSubtitle = when {
+        isLocked -> "Locked by whoever set this up"
+        isLoading -> "Loading the plan"
+        days.isEmpty() -> "No plan yet"
+        days.size == 1 -> "1 day planned"
+        else -> "${days.size} days planned"
+    }
 
     // Horizontal Pager state for smooth day-swiping gestures
     val pageCount = days.size.coerceAtLeast(1)
@@ -133,27 +143,27 @@ fun ItineraryScreen(
                 tripDetails = updated
                 TripCacheManager.putTrip(tripId, updated)
             } catch (e: Exception) {
-                modifyError = e.message ?: "Failed updating lock state"
+                modifyError = e.message ?: "Could not change the lock"
             } finally {
                 isLocking = false
             }
         }
     }
 
-    fun triggerQuickReplan(intentKey: String, intentLabel: String) {
+    fun triggerQuickReplan(intentKey: String) {
         if (isLocked || isReplanning) return
         scope.launch {
             try {
                 isReplanning = true
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                replanStatusMsg = "Executing $intentLabel replan protocol..."
+                replanStatusMsg = "Replanning..."
                 NetworkModule.apiService.replanTrip(tripId, ReplanRequestDto(intent = intentKey))
                 val updated = NetworkModule.apiService.getTripDetails(tripId)
                 tripDetails = updated
                 TripCacheManager.putTrip(tripId, updated)
-                replanStatusMsg = "Verified $intentLabel schedule applied."
+                replanStatusMsg = "Plan updated."
             } catch (e: Exception) {
-                replanStatusMsg = "Replan: ${e.message}"
+                replanStatusMsg = "Could not replan: ${e.message}"
             } finally {
                 isReplanning = false
             }
@@ -171,7 +181,7 @@ fun ItineraryScreen(
                 showScrapDialog = false
                 onNavigateBack()
             } catch (e: Exception) {
-                modifyError = e.message ?: "Could not delete trip ticket"
+                modifyError = e.message ?: "Could not delete this trip"
                 isScrapping = false
             }
         }
@@ -183,14 +193,15 @@ fun ItineraryScreen(
                 title = {
                     Column {
                         Text(
-                            text = "$destinationName Field Ticket".uppercase(),
+                            text = destinationName.uppercase(),
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp,
                             fontSize = 16.sp
                         )
                         Text(
-                            text = if (isLocked) "SEALED // PLAN LOCKED" else "VERIFIED INK SCHEDULE",
+                            text = planSubtitle,
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 12.sp,
                             color = if (isLocked) ComicBlack else ComicRed,
                             fontWeight = FontWeight.Bold
                         )
@@ -210,13 +221,13 @@ fun ItineraryScreen(
                             action = Intent.ACTION_SEND
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Join our $destinationName squad collab: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
+                                "Join the group for $destinationName on Tripp'in: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
                             )
                             type = "text/plain"
                         }
-                        context.startActivity(Intent.createChooser(sendIntent, "Invite Squad to Tripp'in"))
+                        context.startActivity(Intent.createChooser(sendIntent, "Invite the group to Tripp'in"))
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Invite Squad", tint = ComicRed)
+                        Icon(Icons.Default.Share, contentDescription = "Invite the group", tint = ComicRed)
                     }
                     Box {
                         IconButton(onClick = { showMoreMenu = true }) {
@@ -227,7 +238,7 @@ fun ItineraryScreen(
                             onDismissRequest = { showMoreMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Today Field Mode", fontWeight = FontWeight.Bold) },
+                                text = { Text("Today", fontWeight = FontWeight.Bold) },
                                 leadingIcon = { Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicRed) },
                                 onClick = {
                                     showMoreMenu = false
@@ -235,7 +246,7 @@ fun ItineraryScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (isLocked) "Unlock Schedule" else "Lock Schedule", fontWeight = FontWeight.Bold) },
+                                text = { Text(if (isLocked) "Unlock the plan" else "Lock the plan", fontWeight = FontWeight.Bold) },
                                 leadingIcon = {
                                     Icon(
                                         if (isLocked) Icons.Default.LockOpen else Icons.Default.Lock,
@@ -250,7 +261,7 @@ fun ItineraryScreen(
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Scrap Field Ticket", color = ComicRed, fontWeight = FontWeight.Bold) },
+                                text = { Text("Delete trip", color = ComicRed, fontWeight = FontWeight.Bold) },
                                 leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = ComicRed) },
                                 onClick = {
                                     showMoreMenu = false
@@ -279,7 +290,7 @@ fun ItineraryScreen(
                 },
                 text = {
                     Text(
-                        text = if (isLocked) "SCHEDULE LOCKED" else "REFINE SCHEDULE",
+                        text = if (isLocked) "Plan is locked" else "Change the plan",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -298,7 +309,7 @@ fun ItineraryScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = ComicRed)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Fetching verified schedule...", fontWeight = FontWeight.Bold)
+                    Text("Loading the plan...", fontWeight = FontWeight.Bold)
                 }
             }
         } else if (loadError != null && tripDetails == null) {
@@ -310,7 +321,7 @@ fun ItineraryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("UNABLE TO LOAD SCHEDULE", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Black)
+                    Text("Could not load the plan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(loadError!!, style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -318,7 +329,7 @@ fun ItineraryScreen(
                         onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
                     ) {
-                        Text("RETRY", fontWeight = FontWeight.Bold)
+                        Text("Retry", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -350,15 +361,15 @@ fun ItineraryScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
-                                        text = "PLAN LOCKED BY ORGANIZER",
+                                        text = "Locked by whoever set this up",
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         color = ComicBlack
                                     )
                                     Text(
-                                        text = "Schedule finalized. Tap unlock icon above to modify.",
+                                        text = "Unlock it from the menu at the top right to change anything.",
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontSize = 10.sp,
+                                        fontSize = 12.sp,
                                         color = ComicBlack
                                     )
                                 }
@@ -375,28 +386,28 @@ fun ItineraryScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         QuickReplanChip(
-                            label = "Rain Protocol",
+                            label = "Rain",
                             icon = Icons.Default.Thunderstorm,
                             enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("rain", "Rain Protocol") }
+                            onClick = { triggerQuickReplan("rain") }
                         )
                         QuickReplanChip(
-                            label = "Running Late",
+                            label = "Running late",
                             icon = Icons.Default.AccessTime,
                             enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("running-late", "Running Late") }
+                            onClick = { triggerQuickReplan("running-late") }
                         )
                         QuickReplanChip(
-                            label = "Tired / Rest",
+                            label = "Tired",
                             icon = Icons.Default.Hotel,
                             enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("tired", "Tired / Rest") }
+                            onClick = { triggerQuickReplan("tired") }
                         )
                         QuickReplanChip(
-                            label = "Budget Cut",
+                            label = "Trim the plan",
                             icon = Icons.Default.AttachMoney,
                             enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("budget-cut", "Budget Cut") }
+                            onClick = { triggerQuickReplan("budget-cut") }
                         )
                     }
 
@@ -491,8 +502,9 @@ fun ItineraryScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "DAY ${day.dayIndex} // ${day.date}",
+                                                    text = "Day ${day.dayIndex} · ${day.date}",
                                                     style = MaterialTheme.typography.labelSmall,
+                                                    fontSize = 12.sp,
                                                     fontWeight = FontWeight.Black,
                                                     color = ComicRed
                                                 )
@@ -522,14 +534,14 @@ fun ItineraryScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "${activities.size} stops scheduled · $visitedCount visited",
-                                                    fontSize = 11.sp,
+                                                    text = "${activities.size} ${if (activities.size == 1) "stop" else "stops"} · $visitedCount visited",
+                                                    fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = ComicMuted
                                                 )
                                                 Text(
-                                                    text = "Swipe left/right for other days →",
-                                                    fontSize = 10.sp,
+                                                    text = "Swipe for other days",
+                                                    fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = ComicMuted
                                                 )
@@ -562,18 +574,18 @@ fun ItineraryScreen(
         if (showEditDialog) {
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
-                title = { Text("REFINE SCHEDULE", fontWeight = FontWeight.Black) },
+                title = { Text("Change the plan", fontWeight = FontWeight.Black) },
                 text = {
                     Column {
                         Text(
-                            "Enter modification directive (e.g. \"Shift museum to afternoon\", \"Add coffee break at 3pm\"):",
+                            "Say what you want different. For example: shift the museum to the afternoon, or add a coffee break at 3pm.",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = editInstruction,
                             onValueChange = { editInstruction = it },
-                            placeholder = { Text("e.g. Prioritize local bakeries") },
+                            placeholder = { Text("e.g. Add a coffee break at 3pm") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
                         )
@@ -623,13 +635,13 @@ fun ItineraryScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("APPLY DIRECTIVE", fontWeight = FontWeight.Bold)
+                            Text("Apply", fontWeight = FontWeight.Bold)
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showEditDialog = false }) {
-                        Text("CANCEL")
+                        Text("Cancel")
                     }
                 }
             )
@@ -639,10 +651,10 @@ fun ItineraryScreen(
         if (showScrapDialog) {
             AlertDialog(
                 onDismissRequest = { if (!isScrapping) showScrapDialog = false },
-                title = { Text("SCRAP FIELD TICKET", fontWeight = FontWeight.Black) },
+                title = { Text("Delete this trip", fontWeight = FontWeight.Black) },
                 text = {
                     Text(
-                        "Are you sure you want to delete and scrap this ticket? This action completely wipes the verified schedule and cannot be undone.",
+                        "This deletes the trip and its plan. It cannot be undone.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
@@ -659,7 +671,7 @@ fun ItineraryScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("CONFIRM SCRAP", fontWeight = FontWeight.Bold)
+                            Text("Delete", fontWeight = FontWeight.Bold)
                         }
                     }
                 },
@@ -668,7 +680,7 @@ fun ItineraryScreen(
                         enabled = !isScrapping,
                         onClick = { showScrapDialog = false }
                     ) {
-                        Text("KEEP TICKET")
+                        Text("Keep")
                     }
                 }
             )
@@ -707,7 +719,7 @@ fun QuickReplanChip(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (enabled) ComicBlack else ComicMuted
             )
@@ -744,8 +756,9 @@ fun ActivityComicCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "${activity.travelTimeFromPreviousMinutes}m verified transit trail",
+                    text = "${activity.travelTimeFromPreviousMinutes} min travel from the stop before",
                     style = MaterialTheme.typography.labelSmall,
+                    fontSize = 12.sp,
                     color = ComicRed,
                     fontWeight = FontWeight.Bold
                 )
@@ -791,9 +804,9 @@ fun ActivityComicCard(
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = if (photoUrl.contains("commons.wikimedia")) "PHOTO: WIKIMEDIA COMMONS" else "PHOTO: VERIFIED RECORD",
+                                text = if (photoUrl.contains("commons.wikimedia")) "Photo: Wikimedia Commons" else "Photo: map data",
                                 color = ComicPaper,
-                                fontSize = 8.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -870,8 +883,8 @@ fun ActivityComicCard(
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = if (isVisited) "VISITED" else "CHECK IN",
-                                        fontSize = 9.sp,
+                                        text = if (isVisited) "Visited" else "Mark visited",
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Black,
                                         color = if (isVisited) ComicPaper else ComicBlack
                                     )
@@ -920,7 +933,7 @@ fun ActivityComicCard(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(address))
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    Toast.makeText(context, "Address copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier
                                     .size(36.dp)
@@ -939,7 +952,7 @@ fun ActivityComicCard(
                         ) {
                             Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("NAVIGATE", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                            Text("Take me there", fontWeight = FontWeight.Black, fontSize = 12.sp)
                         }
                     }
                 }
