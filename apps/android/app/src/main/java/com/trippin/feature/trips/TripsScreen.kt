@@ -8,7 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
+import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
 import com.trippin.core.design.GoodInk
 import com.trippin.core.design.GoodInkSurface
@@ -368,7 +369,15 @@ fun TripsScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(visible, key = { it.first.id }) { (trip, state) ->
+                            itemsIndexed(
+                                items = visible,
+                                key = { _, item -> item.first.id }
+                            ) { index, (trip, state) ->
+                                // Design system section 4: a list assembles rather than appearing, so
+                                // each card settles 60ms after the one above it. Capped at six, because
+                                // past that the last card would still be arriving after the first one
+                                // has already been read.
+                                val arrivalDelay = index.coerceAtMost(6) * 60
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { value ->
                                         if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -379,45 +388,47 @@ fun TripsScreen(
                                     }
                                 )
 
-                                SwipeToDismissBox(
-                                    state = dismissState,
-                                    enableDismissFromStartToEnd = false,
-                                    enableDismissFromEndToStart = true,
-                                    backgroundContent = {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(DangerCrimson)
-                                                .padding(horizontal = 20.dp),
-                                            contentAlignment = Alignment.CenterEnd
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    Icons.Default.DeleteOutline,
-                                                    contentDescription = null,
-                                                    tint = ComicPaper,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    "Delete",
-                                                    color = ComicPaper,
-                                                    style = TrippinType.Label,
-                                                )
+                                ArriveOnEnter(delayMillis = arrivalDelay) {
+                                    SwipeToDismissBox(
+                                        state = dismissState,
+                                        enableDismissFromStartToEnd = false,
+                                        enableDismissFromEndToStart = true,
+                                        backgroundContent = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(DangerCrimson)
+                                                    .padding(horizontal = 20.dp),
+                                                contentAlignment = Alignment.CenterEnd
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        Icons.Default.DeleteOutline,
+                                                        contentDescription = null,
+                                                        tint = ComicPaper,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        "Delete",
+                                                        color = ComicPaper,
+                                                        style = TrippinType.Label,
+                                                    )
+                                                }
                                             }
                                         }
+                                    ) {
+                                        TripRow(
+                                            trip = trip,
+                                            state = state,
+                                            today = today,
+                                            onOpen = { onNavigateToTrip(trip.id) },
+                                            onToday = { onNavigateToToday(trip.id) },
+                                            onDelete = { tripToDelete = trip },
+                                            onInvite = { inviteTrip = trip }
+                                        )
                                     }
-                                ) {
-                                    TripRow(
-                                        trip = trip,
-                                        state = state,
-                                        today = today,
-                                        onOpen = { onNavigateToTrip(trip.id) },
-                                        onToday = { onNavigateToToday(trip.id) },
-                                        onDelete = { tripToDelete = trip },
-                                        onInvite = { inviteTrip = trip }
-                                    )
                                 }
                             }
 

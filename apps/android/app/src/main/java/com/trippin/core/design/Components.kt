@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
@@ -170,14 +171,24 @@ fun TrippinStatusBadge(
  */
 val TrippinSettle = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
-/** A screen arriving: a short rise and fade. Small on purpose, it should read as "you are here". */
+/**
+ * A screen arriving: a short rise and fade. Small on purpose, it should read as "you are here".
+ *
+ * [delayMillis] is the 60ms per card stagger of design system section 4, so a list assembles instead
+ * of appearing in one block.
+ *
+ * The "arrived" flag is saveable rather than plain remembered on purpose: inside a lazy list, a card
+ * that scrolls out of the viewport is thrown away and composed again on the way back, and with a
+ * plain remember it would replay its own arrival every time the user scrolled up. Motion reports
+ * something that happened, and arriving at a card happens once.
+ */
 @Composable
 fun ArriveOnEnter(
     modifier: Modifier = Modifier,
     delayMillis: Int = 0,
     content: @Composable () -> Unit
 ) {
-    var arrived by remember { mutableStateOf(false) }
+    var arrived by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (delayMillis > 0) kotlinx.coroutines.delay(delayMillis.toLong())
         arrived = true
