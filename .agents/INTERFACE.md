@@ -47,11 +47,15 @@ Interest / dislike vocabulary (fixed strings, both sides must use these exact va
                       currency, isFloor, headline }]     // headline = one plain sentence of what differs
     stop.support?: { want: number, total: number, against: string[] }   // real counts, never invented
 
+## Additions to the home feed payload (GET /api/v1/home)
+
+    feed.totalTripsCount?: number                        // accurate count of all trips owned by user
+
 ## Rules that are not negotiable
 
 1. No field may be populated with a guess. If it is unknown, omit it or send null, and the UI states it as unknown.
 2. `support.want` and `support.total` are counts of real travellers with real interests. Never estimate them.
 3. `overCap` is true only when the computed share exceeds that traveller's own budgetCap.
-4. An option may only be listed if the engine actually produced it under that objective. No simulated options.
+4. An option may only be listed if the engine actually produced it under that objective. No simulated options. On trip list summaries, `options` is empty by construction until multi-run generation occurs.
 5. Costs stay ranges with a source. No single invented number, ever.
 6. `shareToken` is read-only on trip details. Read paths never mint new shares; shares are created explicitly via POST /api/v1/trips/:id/share and terminated on DELETE /api/v1/trips/:id/share.
