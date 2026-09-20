@@ -110,6 +110,21 @@ describe('TravellersService', () => {
       expect(result.traveller.name).toBe('Jordan');
       expect(result.traveller.budgetCap).toBe(300);
     });
+
+    it('throws NotFoundException when share token is revoked or invalid', async () => {
+      mockPrisma.tripShare.findUnique.mockResolvedValue({
+        tripId: 'shared-trip-1',
+        token: 'revoked-token',
+        revokedAt: new Date()
+      });
+
+      await expect(
+        service.joinTrip({
+          token: 'revoked-token',
+          name: 'Intruder'
+        })
+      ).rejects.toThrow('Trip invite token is not valid or has been revoked.');
+    });
   });
 
   describe('computePerTravellerCost and overCap', () => {

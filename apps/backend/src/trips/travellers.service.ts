@@ -205,26 +205,16 @@ export class TravellersService {
     const token = dto.token.trim();
     let tripId: string | null = null;
 
-    // Check if token matches a share token
+    // Enforce token lookup strictly against active unrevoked share token
     const share = await this.prisma.tripShare.findUnique({
       where: { token }
     });
 
-    if (share && !share.revokedAt) {
-      tripId = share.tripId;
-    } else {
-      // Check if token is direct tripId
-      const trip = await this.prisma.trip.findUnique({
-        where: { id: token }
-      });
-      if (trip) {
-        tripId = trip.id;
-      }
+    if (!share || share.revokedAt) {
+      throw new NotFoundException('Trip invite token is not valid or has been revoked.');
     }
 
-    if (!tripId) {
-      throw new NotFoundException('Trip invite token is not valid.');
-    }
+    tripId = share.tripId;
 
     const traveller = await this.addTraveller(tripId, {
       name: dto.name,

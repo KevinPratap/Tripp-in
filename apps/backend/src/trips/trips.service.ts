@@ -353,13 +353,9 @@ export class TripsService {
         });
         if (activeShare) {
           shareToken = activeShare.token;
-        } else if (this.prisma.tripShare.create) {
-          const token = randomBytes(12).toString('base64url');
-          const created = await this.prisma.tripShare.create({ data: { tripId, token } });
-          shareToken = created.token;
         }
       } catch {
-        // non-blocking fallback
+        // non-blocking
       }
     }
 

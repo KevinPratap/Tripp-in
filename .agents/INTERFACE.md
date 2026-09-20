@@ -39,6 +39,8 @@ Interest / dislike vocabulary (fixed strings, both sides must use these exact va
 
 ## Additions to the trip payload the UI reads
 
+    trip.currency: string                                // e.g. "JPY", "USD", "EUR"
+    trip.shareToken?: string                             // active unrevoked share token, read-only
     trip.travellers: TravellerDto[]
     trip.perTravellerCost?: [{ travellerId, shareMin, shareMax, overCap: boolean }]
     trip.options?: [{ id, objective: 'cheapest'|'balanced'|'experience', totalMin, totalMax,
@@ -52,3 +54,4 @@ Interest / dislike vocabulary (fixed strings, both sides must use these exact va
 3. `overCap` is true only when the computed share exceeds that traveller's own budgetCap.
 4. An option may only be listed if the engine actually produced it under that objective. No simulated options.
 5. Costs stay ranges with a source. No single invented number, ever.
+6. `shareToken` is read-only on trip details. Read paths never mint new shares; shares are created explicitly via POST /api/v1/trips/:id/shares and terminated on DELETE /api/v1/trips/:id/shares.
