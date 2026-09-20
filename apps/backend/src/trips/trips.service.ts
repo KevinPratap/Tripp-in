@@ -113,9 +113,16 @@ export class TripsService {
   /** Reads the stored day rates back for the generation request. */
   private costAssumptionsOf(trip: { costAssumptionsJson?: unknown }): Record<string, number> {
     const stored = trip?.costAssumptionsJson;
-    return stored && typeof stored === 'object' && !Array.isArray(stored)
-      ? (stored as Record<string, number>)
-      : {};
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+      return {};
+    }
+    const result: Record<string, number> = {};
+    for (const [k, v] of Object.entries(stored as Record<string, unknown>)) {
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        result[k] = v;
+      }
+    }
+    return result;
   }
 
   async createTrip(userId: string, dto: CreateTripRequestDto): Promise<CreateTripResponse> {

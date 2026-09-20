@@ -15,7 +15,10 @@ describe('TravellersService', () => {
         update: jest.fn()
       },
       tripTraveler: {
-        findMany: jest.fn().mockResolvedValue([])
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 })
       },
       tripShare: {
         findUnique: jest.fn()
@@ -207,7 +210,7 @@ describe('TravellersService', () => {
   });
 
   describe('computePlanOptions', () => {
-    it('produces 3 objective options with honest numbers and headlines', () => {
+    it('returns empty array when engine has not generated distinct objective itineraries', () => {
       const mockCost: TripCostModel = {
         currency: 'USD',
         basis: 'PER_PERSON',
@@ -226,12 +229,55 @@ describe('TravellersService', () => {
       };
 
       const options = service.computePlanOptions('trip-123', 'USD', mockCost);
-      expect(options).toHaveLength(3);
-      expect(options.map((o) => o.objective)).toEqual(['cheapest', 'balanced', 'experience']);
-      expect(options[0].totalMin).toBe(170); // 200 * 0.85
-      expect(options[1].totalMin).toBe(200); // 200
-      expect(options[2].totalMin).toBe(230); // 200 * 1.15
-      expect(options[0].headline).toBeDefined();
+      expect(options).toEqual([]);
+    });
+
+    it('returns generated options verbatim when engine provides them', () => {
+      const generated = [
+        {
+          id: 'opt-1',
+          objective: 'cheapest' as const,
+          totalMin: 150,
+          totalMax: 200,
+          currency: 'USD',
+          isFloor: false,
+          headline: 'Verified low cost schedule'
+        }
+      ];
+      const options = service.computePlanOptions('trip-123', 'USD', undefined, generated);
+      expect(options).toEqual(generated);
+    });
+  });
+
+  describe('Postgres persistence & cache miss restoration', () => {
+    it('restores traveller details including caps and interests from Postgres on cache miss', async () => {
+      const mockSavedTravellers = [
+        {
+          id: 'traveller-db-1',
+          name: 'Morgan',
+          budgetCap: 400,
+          interests: ['food', 'shopping'],
+          dislikes: ['nightlife'],
+          pace: 'RELAXED' as const,
+          joinedAt: new Date().toISOString()
+        }
+      ];
+
+      mockPrisma.trip.findUnique.mockResolvedValue({
+        id: 'trip-persisted',
+        costAssumptionsJson: {
+          stayPerNightMin: 50,
+          _travellers: mockSavedTravellers
+        }
+      });
+
+      const travellers = await service.getTravellers('trip-persisted');
+      expect(travellers).toHaveLength(1);
+      expect(travellers[0].name).toBe('Morgan');
+      expect(travellers[0].budgetCap).toBe(400);
+      expect(travellers[0].interests).toEqual(['food', 'shopping']);
+      expect(travellers[0].dislikes).toEqual(['nightlife']);
+      expect(travellers[0].pace).toBe('RELAXED');
     });
   });
 });

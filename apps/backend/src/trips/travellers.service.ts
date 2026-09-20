@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import {
@@ -41,33 +42,55 @@ export class TravellersService {
   async getTravellers(tripId: string): Promise<TravellerDto[]> {
     const key = this.cacheKey(tripId);
     const cached = await this.redis.get<TravellerDto[]>(key);
-    if (cached && Array.isArray(cached)) {
+    if (cached && Array.isArray(cached) && cached.length > 0) {
       return cached;
     }
 
     const mem = this.inMemoryTravellers.get(tripId);
-    if (mem && Array.isArray(mem)) {
+    if (mem && Array.isArray(mem) && mem.length > 0) {
       return mem;
     }
 
-    // Check database trip travelers as baseline if present
-    const dbTravelers = await this.prisma.tripTraveler.findMany({
-      where: { tripId },
-      orderBy: { createdAt: 'asc' }
-    });
+    // 1. Check database trip.costAssumptionsJson._travellers on cache miss or restart
+    try {
+      const trip = await this.prisma.trip.findUnique({
+        where: { id: tripId },
+        select: { costAssumptionsJson: true }
+      });
+      const stored = trip?.costAssumptionsJson as Record<string, unknown> | null;
+      if (stored && Array.isArray(stored._travellers) && stored._travellers.length > 0) {
+        const dtos = stored._travellers as TravellerDto[];
+        this.inMemoryTravellers.set(tripId, dtos);
+        await this.redis.set(this.cacheKey(tripId), dtos, 86400 * 30);
+        return dtos;
+      }
+    } catch (err) {
+      this.logger.debug(`Could not read travellers from trip json: ${(err as Error).message}`);
+    }
 
-    if (dbTravelers && dbTravelers.length > 0) {
-      const dtos: TravellerDto[] = dbTravelers.map((t) => ({
-        id: t.id,
-        name: t.name,
-        budgetCap: null,
-        interests: [],
-        dislikes: [],
-        pace: null,
-        joinedAt: t.createdAt.toISOString()
-      }));
-      await this.saveTravellers(tripId, dtos);
-      return dtos;
+    // 2. Fallback: check database trip travelers table as baseline
+    try {
+      const dbTravelers = await this.prisma.tripTraveler.findMany({
+        where: { tripId },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      if (dbTravelers && dbTravelers.length > 0) {
+        const dtos: TravellerDto[] = dbTravelers.map((t) => ({
+          id: t.id,
+          name: t.name,
+          budgetCap: null,
+          interests: [],
+          dislikes: [],
+          pace: null,
+          joinedAt: t.createdAt.toISOString()
+        }));
+        this.inMemoryTravellers.set(tripId, dtos);
+        await this.redis.set(this.cacheKey(tripId), dtos, 86400 * 30);
+        return dtos;
+      }
+    } catch (err) {
+      this.logger.debug(`Could not read travellers from tripTraveler: ${(err as Error).message}`);
     }
 
     return [];
@@ -93,13 +116,21 @@ export class TravellersService {
     const updated = [...current, newTraveller];
     await this.saveTravellers(tripId, updated);
 
-    // Keep trip.travelersCount updated in DB
-    const newCount = Math.max(trip.travelersCount, updated.length);
-    if (newCount !== trip.travelersCount) {
-      await this.prisma.trip.update({
-        where: { id: tripId },
-        data: { travelersCount: newCount }
-      });
+    // Insert row into trip_travelers table for relational integrity
+    if (this.prisma.tripTraveler?.create) {
+      try {
+        await this.prisma.tripTraveler.create({
+          data: {
+            id: newTraveller.id,
+            tripId,
+            name: newTraveller.name,
+            email: `${newTraveller.id}@guest.trippin.local`,
+            role: 'TRAVELER'
+          }
+        });
+      } catch (err) {
+        this.logger.warn(`Failed to insert tripTraveler row: ${(err as Error).message}`);
+      }
     }
 
     this.logger.log(`Traveller "${newTraveller.name}" (${newTraveller.id}) added to trip ${tripId}`);
@@ -136,6 +167,18 @@ export class TravellersService {
 
     current[index] = updated;
     await this.saveTravellers(tripId, current);
+
+    if (this.prisma.tripTraveler?.updateMany) {
+      try {
+        await this.prisma.tripTraveler.updateMany({
+          where: { tripId, id: travellerId },
+          data: { name: updated.name }
+        });
+      } catch (err) {
+        this.logger.warn(`Failed to update tripTraveler row: ${(err as Error).message}`);
+      }
+    }
+
     return updated;
   }
 
@@ -146,6 +189,16 @@ export class TravellersService {
       throw new NotFoundException(`Traveller ${travellerId} not found in trip ${tripId}.`);
     }
     await this.saveTravellers(tripId, filtered);
+
+    if (this.prisma.tripTraveler?.deleteMany) {
+      try {
+        await this.prisma.tripTraveler.deleteMany({
+          where: { tripId, id: travellerId }
+        });
+      } catch (err) {
+        this.logger.warn(`Failed to delete tripTraveler row: ${(err as Error).message}`);
+      }
+    }
   }
 
   async joinTrip(dto: JoinTripDto): Promise<{ tripId: string; traveller: TravellerDto }> {
@@ -187,10 +240,45 @@ export class TravellersService {
   private async saveTravellers(tripId: string, travellers: TravellerDto[]): Promise<void> {
     this.inMemoryTravellers.set(tripId, travellers);
     await this.redis.set(this.cacheKey(tripId), travellers, 86400 * 30);
+
+    // Persist to Postgres on trip.costAssumptionsJson._travellers and keep travelersCount synced
+    try {
+      const trip = await this.prisma.trip.findUnique({
+        where: { id: tripId },
+        select: { costAssumptionsJson: true, travelersCount: true }
+      });
+      if (trip) {
+        const existingJson =
+          trip.costAssumptionsJson &&
+          typeof trip.costAssumptionsJson === 'object' &&
+          !Array.isArray(trip.costAssumptionsJson)
+            ? (trip.costAssumptionsJson as Record<string, unknown>)
+            : {};
+
+        await this.prisma.trip.update({
+          where: { id: tripId },
+          data: {
+            travelersCount: Math.max(travellers.length, 1),
+            costAssumptionsJson: {
+              ...existingJson,
+              _travellers: JSON.parse(JSON.stringify(travellers))
+            } as Prisma.InputJsonValue
+          }
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to persist travellers to Postgres for trip ${tripId}: ${(err as Error).message}`);
+    }
   }
 
   /**
    * Rule 3: overCap is true only when the computed share exceeds that traveller's own budgetCap.
+   *
+   * Cost Basis Invariant:
+   * TripCostModel is computed strictly on a 'PER_PERSON' basis (day rates for stay, food,
+   * local transit, and entries represent individual costs per traveller).
+   * Therefore, shareMin and shareMax represent each traveller's individual projected cost
+   * and must NOT be divided by travellers.length (doing so would divide per-person daily rates).
    */
   computePerTravellerCost(
     travellers: TravellerDto[],
@@ -298,50 +386,19 @@ export class TravellersService {
   }
 
   /**
-   * Produces plan options under 3 objective weightings (cheapest, balanced, experience).
-   * Honest numbers based on base verified cost.
+   * Invariant 1 (Never invent data) & INTERFACE.md Rule 4:
+   * An option may only be listed if the engine actually produced it under that objective.
+   * Returns empty array unless legitimate options were generated by the multi-run engine.
    */
   computePlanOptions(
     tripId: string,
     currency: string,
-    cost?: TripCostModel
+    cost?: TripCostModel,
+    generatedOptions?: TripOptionDto[]
   ): TripOptionDto[] {
-    if (!cost) return [];
-
-    const baseMin = cost.totalMin;
-    const baseMax = cost.totalMax;
-    const isFloor = cost.isFloor;
-
-    const round = (val: number) => Math.round(val * 100) / 100;
-
-    return [
-      {
-        id: `${tripId}-cheapest`,
-        objective: 'cheapest',
-        totalMin: round(baseMin * 0.85),
-        totalMax: round(baseMax * 0.9),
-        currency,
-        isFloor,
-        headline: 'Free and low cost venues prioritized with walkable connections.'
-      },
-      {
-        id: `${tripId}-balanced`,
-        objective: 'balanced',
-        totalMin: baseMin,
-        totalMax: baseMax,
-        currency,
-        isFloor,
-        headline: 'Balanced schedule blending iconic landmarks, cultural venues, and local dining.'
-      },
-      {
-        id: `${tripId}-experience`,
-        objective: 'experience',
-        totalMin: round(baseMin * 1.15),
-        totalMax: round(baseMax * 1.25),
-        currency,
-        isFloor,
-        headline: 'Immersive cultural schedule featuring top rated exhibits and guided entry.'
-      }
-    ];
+    if (generatedOptions && generatedOptions.length > 0) {
+      return generatedOptions;
+    }
+    return [];
   }
 }
