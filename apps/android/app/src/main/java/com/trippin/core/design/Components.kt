@@ -3,7 +3,21 @@ package com.trippin.core.design
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -156,6 +170,111 @@ fun TrippinStatusBadge(
             letterSpacing = 0.5.sp
         )
     }
+}
+
+/*
+ * Motion. One easing for everything that settles, so the app reads as one thing instead of a set of
+ * effects. Nothing here bounces, glows or floats, and nothing animates a figure that has not been
+ * worked out yet: motion only ever reports something that actually happened.
+ */
+val TrippinSettle = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
+
+/** A screen arriving: a short rise and fade. Small on purpose, it should read as "you are here". */
+@Composable
+fun ArriveOnEnter(
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
+    content: @Composable () -> Unit
+) {
+    var arrived by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (delayMillis > 0) kotlinx.coroutines.delay(delayMillis.toLong())
+        arrived = true
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (arrived) 1f else 0f,
+        animationSpec = tween(durationMillis = 280, easing = TrippinSettle),
+        label = "arriveAlpha"
+    )
+    val rise by animateDpAsState(
+        targetValue = if (arrived) 0.dp else 12.dp,
+        animationSpec = tween(durationMillis = 280, easing = TrippinSettle),
+        label = "arriveRise"
+    )
+    Box(modifier = modifier.alpha(alpha).offset(y = rise)) { content() }
+}
+
+/**
+ * The trip stamp. Flat, one accent, and built from the trip's own facts (where and when) rather than
+ * a logo, so it can never claim something the plan did not do. It lands once, with the same settle
+ * every time it appears.
+ */
+@Composable
+fun TrippinStamp(
+    title: String,
+    subtitle: String? = null,
+    detail: String? = null,
+    modifier: Modifier = Modifier
+) {
+    var landed by remember(title) { mutableStateOf(false) }
+    LaunchedEffect(title) { landed = true }
+    val scale by animateFloatAsState(
+        targetValue = if (landed) 1f else 1.18f,
+        animationSpec = tween(durationMillis = 600, easing = TrippinSettle),
+        label = "stampScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (landed) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = TrippinSettle),
+        label = "stampAlpha"
+    )
+    Column(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .rotate(-1.5f)
+            .border(BorderStroke(2.dp, ComicRed), RoundedCornerShape(3.dp))
+            .background(ComicPanel)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = title.uppercase(),
+            color = ComicRed,
+            fontWeight = FontWeight.Black,
+            fontSize = 13.sp,
+            letterSpacing = 1.sp
+        )
+        subtitle?.let {
+            Text(
+                text = it.uppercase(),
+                color = ComicRed,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
+        detail?.let {
+            Text(
+                text = it.uppercase(),
+                color = ComicMuted,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+/**
+ * The only haptic this app uses: one light physical acknowledgement that something committed.
+ * LongPress is the commit-level haptic; TextHandleMove belongs on a text cursor, not a button.
+ */
+@Composable
+fun rememberCommitHaptic(): () -> Unit {
+    val haptic = LocalHapticFeedback.current
+    return remember(haptic) { { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } }
 }
 
 
