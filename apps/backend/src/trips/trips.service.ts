@@ -13,7 +13,7 @@ import {
   TripDetailsResponse,
   TripGenerationStatusResponse
 } from '@trippin/api-contracts';
-import { TripSummary, TripStatus, UserProfile, ItineraryModel, TripRequirement } from '@trippin/shared-types';
+import { TripSummary, TripStatus, UserProfile, ItineraryModel, TripRequirement, TripCostModel } from '@trippin/shared-types';
 import { ItineraryV1 } from '@trippin/itinerary-schema';
 import { DestinationsService } from '../destinations/destinations.service';
 import { GenerationStageReporter } from '../common/generation/generation-stage';
@@ -67,6 +67,9 @@ export class TripsService {
     });
 
     const recentTrips = await this.getUserTrips(userId, 5);
+    const totalTripsCount = await this.prisma.trip.count({
+      where: { userId }
+    });
     const popularDestinations = await this.destinationsService.getPopularDestinations();
     const recommendedDestinations = await this.destinationsService.getRecommendedDestinations();
 
@@ -81,6 +84,7 @@ export class TripsService {
     return {
       user: userProfile,
       recentTrips,
+      totalTripsCount,
       recommendedDestinations,
       popularDestinations
     };
@@ -772,6 +776,11 @@ export class TripsService {
         orderBy: { createdAt: 'desc' },
         take: limit,
         include: {
+          shares: {
+            where: { revokedAt: null },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
           itineraries: {
             where: { isCurrent: true },
             include: {
@@ -794,10 +803,25 @@ export class TripsService {
             ? await this.travellersService.getTravellers(t.id)
             : [];
 
+          const cost = (currentItinerary?.costJson as unknown as TripCostModel) || undefined;
+
+          const perTravellerCost = this.travellersService
+            ? this.travellersService.computePerTravellerCost(travellers, cost)
+            : [];
+
+          const options = this.travellersService
+            ? this.travellersService.computePlanOptions(t.id, t.currency, cost)
+            : [];
+
+          const shareToken = t.shares?.[0]?.token;
+
           return {
             id: t.id,
             userId: t.userId,
             destination: t.destinationName,
+            originCity: t.originCity || undefined,
+            currency: t.currency,
+            shareToken,
             startDate: t.startDate.toISOString().split('T')[0],
             endDate: t.endDate.toISOString().split('T')[0],
             travelersCount: Math.max(t.travelersCount, travellers.length),
@@ -808,6 +832,8 @@ export class TripsService {
             totalActivitiesCount: activityCount,
             currentVersion: currentItinerary?.version || 1,
             travellers,
+            perTravellerCost,
+            options,
             createdAt: t.createdAt.toISOString(),
             updatedAt: t.updatedAt.toISOString()
           };

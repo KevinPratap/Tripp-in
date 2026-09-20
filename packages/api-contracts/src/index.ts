@@ -30,6 +30,7 @@ export interface HomeFeedResponse {
   recentTrips: TripSummary[];
   recommendedDestinations: DestinationCardDto[];
   popularDestinations: DestinationCardDto[];
+  totalTripsCount?: number;
 }
 
 // 2. Trip Creation (POST /api/v1/trips)

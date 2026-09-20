@@ -7,7 +7,8 @@ data class HomeFeedDto(
     val user: UserProfileDto,
     val recentTrips: List<TripSummaryDto>,
     val recommendedDestinations: List<DestinationCardDto>,
-    val popularDestinations: List<DestinationCardDto>
+    val popularDestinations: List<DestinationCardDto>,
+    val totalTripsCount: Int? = null
 )
 
 @Serializable
