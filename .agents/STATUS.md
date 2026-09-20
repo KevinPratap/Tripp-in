@@ -1,8 +1,15 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T06:28:00Z
-**Mainline Commit**: `cdf14bb`
+**Last Updated**: 2026-09-20T09:45:00Z
+**Mainline Commit**: `696dc94`
 **Active Head**: `main`
+
+**Read this before you commit.** agy's `eefd056` ("populate checks array on every activity") also
+contains part of a HERMES change set that was uncommitted in the tree at the time: the deletion of
+`HomeScreen.kt`, `ExploreScreen.kt` and `TrippinNavHost.kt`, and eight new DTOs in
+`core/network/NetworkModels.kt`. Nothing was lost, but that commit is not only a backend change and
+`git show eefd056 --stat` is worth reading before either of us reasons about it. Stage explicit file
+paths, never a directory.
 
 ---
 
@@ -10,9 +17,9 @@
 
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. 12sp floor enforced on all reachable screens (`dec4013`). |
-| `apps/android` (Network) | **AGY** | **READY & SHIPPED** | `core/network/**`. Retrofit models & API client for travellers, join, options, currency, shareToken, totalTripsCount. |
-| `apps/backend` | **AGY** | **DEPLOYED & VERIFIED** | Price Provenance Guard live (`4fd2965`, Railway deployment `ff5eb114`). Omits unverified costs/currencies on the wire. |
+| `apps/android` (UI files) | **HERMES** | **DEPLOYED TO DEVICE** | `MainActivity.kt`, `feature/**`, `core/design/**`. Flat surfaces, semantic colour tokens, seven-role type scale across every feature screen (`696dc94`). Accounts, invite and join flows live on emulator-5554 (`56ead62`). |
+| `apps/android` (Network) | **AGY** | **CHANGED BY HERMES** | `core/network/**`. Guest identity removed; `SessionStore` holds the session token and the client sends `Authorization: Bearer`. Auth, share and my-trips calls added (`56ead62`). |
+| `apps/backend` | **AGY** | **DEPLOYED & VERIFIED** | Price Provenance Guard (`4fd2965`), photo honesty (`cdf14bb`), reason normalisation (`6a65224`), checks backfill (`eefd056`), venue photo backfill on read (`0959974`, `231f0c8`). |
 | `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`, `TripSummary.currency`, `TripSummary.shareToken`, `HomeFeedResponse.totalTripsCount`. |
 
 ---
@@ -38,6 +45,23 @@
    - Costs remain honest ranges with sources.
    - Price Provenance Guard: The API serializer must omit `estimatedCost` and `currency` on a stop unless a named source and checks accompany them.
    - Pure reads on getTripDetails (no share creation on read).
+   - An address is navigable or it is not printed as one. A ward with no street is replaced by
+     coordinates, and no button may offer an action the app cannot take.
+
+3. **Accounts replaced the guest model (Kevin's call, 2026-09-20)**: no `X-Guest-Session`, no
+   `guest:<id>` identity, no `migrateGuestTrips`. Sign-in is the magic link flow that already existed:
+   `POST /auth/request-link` -> `{ email, expiresAt, delivery, loginUrl }`,
+   `POST /auth/verify` -> `{ sessionToken, expiresAt, user, migratedTrips }`, and
+   `GET /me/trips` with `Authorization: Bearer` doubles as the session check (401 means signed out).
+   No mail provider is configured, so `delivery` is `console` and the app says so instead of claiming
+   an email was sent. The backend half is still agy's: `firebase-auth.guard.ts` still mints guest
+   identities and still falls back to the demo user for anonymous reads.
+
+4. **The images trap, so nobody pays for it twice**: Coil builds on OkHttp, OkHttp's default
+   User-Agent is `okhttp/<version>`, and Wikimedia answers that with **403**. The photograph was on the
+   wire the whole time. Coil now gets its own client from an `ImageLoaderFactory` with a descriptive
+   agent carrying a contact (`19eb5b5`), kept separate from the API client so an image request never
+   carries the session token.
 
 ---
 
@@ -61,9 +85,14 @@
 - [x] **AGY**: Visual inspection of 12sp Trips filter row on emulator-5554 (confirmed 38dp pill inner height fits 12sp cleanly).
 - [x] **AGY**: Land and deploy Price Provenance Guard to Railway backend (`4fd2965`, deployment `ff5eb114`).
 - [x] **AGY**: Live production endpoint verification & emulator-5554 visual verification on Kyoto without unverified prices.
-- [x] **AGY**: Photo honesty & Paris fallback closed (`cdf14bb`, deployment `9828bed8`). Stock photos filtered from venue photoUrls, Paris hero image scoped to Paris trips only, fallback scoped without unnamed default.
-- [x] **AGY**: Section 4.2 Reason Normalization deployed & live on wire (`6a65224`, deployment `bd8f0bbe`). Promotional verbs & hype adjectives stripped to objective factual noun phrases on wire & save paths.
-- [ ] **HERMES**: Next UI cycle / interactions.
-
-
-
+- [x] **AGY**: Photo honesty & Paris fallback closed (`cdf14bb`, deployment `9828bed8`).
+- [x] **AGY**: Section 4.2 Reason Normalization deployed & live on wire (`6a65224`, deployment `bd8f0bbe`).
+- [x] **AGY**: Checks array populated on every activity via baseline backfill on read (`eefd056`). Contains part of a HERMES change set, see the note at the top of this file.
+- [x] **HERMES**: Flatten every offset shadow, delete the three dead screens, add semantic colour tokens and the seven-role type scale (`56ead62`, `696dc94`).
+- [x] **HERMES**: Real accounts end to end, with invite and join reachable from the Trips card and the fake device id gone from You (`56ead62`).
+- [x] **HERMES**: Venue photographs filled in on read, matched to the name's own Wikipedia script, deployed and verified live (`0959974`, `231f0c8`).
+- [x] **HERMES**: Addresses navigable or replaced by coordinates, and attribution corrected for `thumb.wikimedia.org` (`9a6ec57`).
+- [x] **HERMES**: Coil given a descriptive User-Agent, which is what actually made the photographs appear (`19eb5b5`).
+- [ ] **AGY**: Remove the guest identity and the demo-user read fallback from `firebase-auth.guard.ts`, as Kevin asked. The client half is already done, so the backend is now the only place a device-scoped identity can still be minted.
+- [ ] **AGY**: Regenerate or re-verify the Lisbon plan, which still carries no photographs, and decide the fate of the seeded `Destination.imageUrl` Unsplash stand-ins.
+- [ ] **HERMES**: The demo shortcut on the sign-in screen opens the seeded `traveler@trippin.ai` account and is a demo affordance to remove before any real release.
