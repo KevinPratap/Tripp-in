@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.SavedSpotsManager
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
+import com.trippin.core.network.SessionStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,13 +45,13 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    var magicEmail by remember { mutableStateOf("") }
-    var emailSent by remember { mutableStateOf(false) }
     var showEngineDetails by remember { mutableStateOf(false) }
 
-    val guestSession = remember {
-        "guest-" + android.os.Build.MODEL.replace(" ", "-").lowercase()
-    }
+    // The account this app is signed in as. It comes from POST /auth/verify and it is the only
+    // identity there is: the per-device guest id this screen used to show is gone.
+    val account = SessionStore.account.value
+    val accountEmail = account?.email ?: "Not signed in"
+    val accountName = account?.displayName ?: "Traveller"
 
     val feed = TripCacheManager.homeFeedState.value
     val trips = feed?.recentTrips ?: emptyList()
@@ -72,7 +73,7 @@ fun ProfileScreen(
                             fontSize = 17.sp
                         )
                         Text(
-                            text = "Not signed in, guest on this device",
+                            text = "Signed in",
                             style = MaterialTheme.typography.labelSmall,
                             color = ComicRed,
                             fontWeight = FontWeight.Bold
@@ -95,12 +96,6 @@ fun ProfileScreen(
             // 1. Official Passport Booklet Card
             item {
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .offset(x = 4.dp, y = 4.dp)
-                            .background(ComicInk, RoundedCornerShape(12.dp))
-                    )
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -243,15 +238,21 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = guestSession,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
+                            text = accountName,
+                            style = TrippinType.Title,
                             color = ComicInk
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = accountEmail,
+                            style = TrippinType.Body,
+                            color = ComicMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Not signed in. Trips made on this phone are kept under this id.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Your trips are kept on this account, so the same account sees the " +
+                                "same trips on any phone. Nothing is tied to this device.",
+                            style = TrippinType.Caption,
                             color = ComicMuted
                         )
 
@@ -262,10 +263,9 @@ fun ProfileScreen(
                         ) {
                             OutlinedButton(
                                 onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("This device", guestSession))
+                                    copyToClipboard(context, "My Tripp'in account", accountEmail)
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    Toast.makeText(context, "Id copied", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Email copied", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -275,7 +275,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = ComicInk)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copy id", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicInk)
+                                Text("Copy email", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicInk)
                             }
 
                             Button(
@@ -296,7 +296,7 @@ fun ProfileScreen(
                 }
             }
 
-            // 3. Sync with Web Dispatch (Magic Link)
+            // 3. Account
             item {
                 Surface(
                     modifier = Modifier
@@ -307,75 +307,38 @@ fun ProfileScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Sign in",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
-                            color = ComicMuted,
-                            letterSpacing = 1.sp
+                            text = "Account",
+                            style = TrippinType.Label,
+                            color = ComicMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "See your plans on the web. We email you a link, so there is nothing to remember.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Signing in is how a trip belongs to you rather than to a phone. " +
+                                "There is no password to remember: the server issues a single use link.",
+                            style = TrippinType.Body,
                             color = ComicMuted
                         )
-
                         Spacer(modifier = Modifier.height(12.dp))
-
-                        if (emailSent) {
-                            Surface(
-                                color = ComicYellow,
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.fillMaxWidth().border(1.dp, ComicInk, RoundedCornerShape(6.dp))
-                            ) {
-                                Text(
-                                    text = "Link sent to $magicEmail. Check your inbox.",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = ComicInk,
-                                    modifier = Modifier.padding(12.dp)
-                                )
-                            }
-                        } else {
-                            TextField(
-                                value = magicEmail,
-                                onValueChange = { magicEmail = it },
-                                placeholder = { Text("Enter your email address...", fontSize = 13.sp) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = ComicPaper,
-                                    unfocusedContainerColor = ComicPaper,
-                                    disabledContainerColor = ComicPaper,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Button(
-                                onClick = {
-                                    if (magicEmail.contains("@")) {
-                                        emailSent = true
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        val webUrl = "https://web-production-a9ec6.up.railway.app/login?email=${Uri.encode(magicEmail)}"
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
-                                        context.startActivity(intent)
-                                    }
-                                },
-                                enabled = magicEmail.contains("@"),
-                                colors = ButtonDefaults.buttonColors(containerColor = ComicInk),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                            ) {
-                                Text("Send link", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicPaper)
-                            }
+                        OutlinedButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                SessionStore.clear()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("Sign out", style = TrippinType.Label, color = ComicInk)
                         }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Signing out removes the session from this phone. Your trips stay on " +
+                                "the account and come back when you sign in again.",
+                            style = TrippinType.Caption,
+                            color = ComicMuted
+                        )
                     }
                 }
             }
@@ -465,3 +428,9 @@ private fun monthYear(date: String): String {
 private val MONTH_NAMES = listOf(
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 )
+
+/** One string on the clipboard, and nothing else. */
+private fun copyToClipboard(context: Context, label: String, value: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+}

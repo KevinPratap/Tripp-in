@@ -13,7 +13,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -31,6 +30,7 @@ object NetworkModule {
 
     fun init(context: Context) {
         appContext = context.applicationContext
+        SessionStore.init(context.applicationContext)
     }
 
     val apiService: ApiService by lazy {
@@ -48,25 +48,9 @@ object NetworkModule {
         isLenient = true
     }
 
-    private const val SESSION_PREFS = "trippin_session"
-    private const val SESSION_KEY = "guest_session"
-
-    /**
-     * Every install keeps its own guest session id. The API allows anonymous reads
-     * (so a shared trip link works) but wants an identity for writes, and this is it.
-     */
-    private fun guestSessionId(context: Context): String {
-        val prefs = context.getSharedPreferences(SESSION_PREFS, Context.MODE_PRIVATE)
-        prefs.getString(SESSION_KEY, null)?.let { return it }
-        val created = UUID.randomUUID().toString()
-        prefs.edit().putString(SESSION_KEY, created).apply()
-        return created
-    }
-
     @Provides
     @Singleton
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        val sessionId = guestSessionId(context)
         val debuggable =
             (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
@@ -74,13 +58,20 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
-                val request = chain
+                val builder = chain
                     .request()
                     .newBuilder()
-                    .header("X-Guest-Session", sessionId)
                     .header("Accept", "application/json")
-                    .build()
-                chain.proceed(request)
+
+                // The session token is read from the store on every request rather than captured
+                // once, so signing in or out takes effect on the very next call. An install with no
+                // session sends no identity at all, which is what makes the API answer 401 and the
+                // app show the sign-in screen instead of quietly acting as a device.
+                SessionStore.token?.let { token ->
+                    builder.header("Authorization", "Bearer $token")
+                }
+
+                chain.proceed(builder.build())
             }
             .apply {
                 // Bodies are only dumped on debug builds, never on a release install.

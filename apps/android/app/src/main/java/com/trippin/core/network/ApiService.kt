@@ -66,4 +66,23 @@ interface ApiService {
 
     @POST("api/v1/trips/join")
     suspend fun joinTrip(@Body body: JoinTripRequestDto): JoinTripResponseDto
+
+    // ---- Accounts. The guest model is gone: these are the only ways to get an identity. ----
+
+    @POST("api/v1/auth/request-link")
+    suspend fun requestMagicLink(@Body body: RequestMagicLinkDto): RequestedMagicLinkDto
+
+    @POST("api/v1/auth/verify")
+    suspend fun verifyMagicLink(@Body body: VerifyMagicLinkDto): VerifiedSessionDto
+
+    /**
+     * The signed-in account's own trips, newest first. Also the session check: this route is
+     * `@RequireIdentity`, so a 401 means the stored token is no longer good.
+     */
+    @GET("api/v1/me/trips")
+    suspend fun getMyTrips(): MyTripsDto
+
+    /** The invite link for a trip, created on demand. The owner only. */
+    @POST("api/v1/trips/{id}/share")
+    suspend fun createShareLink(@Path("id") tripId: String): ShareLinkDto
 }

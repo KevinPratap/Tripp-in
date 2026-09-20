@@ -30,9 +30,12 @@ import androidx.compose.ui.unit.sp
 
 
 /**
- * The house components. The look is a printed comic panel: a solid ink border with a hard offset
- * shadow, never a soft Material elevation. Both are used across every screen, so changing them here
- * changes the whole app's feel at once.
+ * The house components.
+ *
+ * Flat surfaces with a 2dp solid ink border and no shadow anywhere. Kevin chose the flat direction
+ * on 2026-09-20 over the offset ink block: an edge is what defines a card or a button now, and the
+ * weight comes from the type scale and from space instead. Never re-add a shadow here because a
+ * screen looks empty. A flat screen needs more hierarchy, not a shadow.
  */
 @Composable
 fun TrippinButton(
@@ -42,12 +45,6 @@ fun TrippinButton(
     enabled: Boolean = true
 ) {
     Box(modifier = modifier.fillMaxWidth().height(52.dp)) {
-        Box(
-            Modifier
-                .matchParentSize()
-                .offset(x = 4.dp, y = 4.dp)
-                .background(ComicInk, RoundedCornerShape(8.dp))
-        )
         Button(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -78,12 +75,6 @@ fun TrippinCard(
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .matchParentSize()
-                .offset(x = 4.dp, y = 4.dp)
-                .background(ComicInk, RoundedCornerShape(10.dp))
-        )
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),

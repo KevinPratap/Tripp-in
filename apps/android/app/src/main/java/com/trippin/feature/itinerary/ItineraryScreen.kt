@@ -284,30 +284,6 @@ fun ItineraryScreen(
 
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (!isLocked) {
-                        showEditDialog = true
-                    }
-                },
-                icon = {
-                    if (isLocked) {
-                        Icon(Icons.Default.Lock, contentDescription = null)
-                    } else {
-                        Icon(Icons.Default.EditNote, contentDescription = null)
-                    }
-                },
-                text = {
-                    Text(
-                        text = if (isLocked) "Plan is locked" else "Change the plan",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                containerColor = if (isLocked) ComicMuted else ComicRed,
-                contentColor = ComicPaper
-            )
-        }
     ) { padding ->
         if (isLoading) {
             Box(
@@ -483,14 +459,15 @@ fun ItineraryScreen(
                             }
 
                             LazyColumn(
-                                // The floating REFINE SCHEDULE button floats over the bottom of this
-                                // list, so the list needs to clear it. At 16dp all round the last
-                                // stop card sat underneath the button and its address was unreadable.
+                                // The plan's action now sits in a reserved band below this list, so
+                                // the list only needs its own breathing room at the bottom. The old
+                                // 96dp existed to let the last card scroll out from under a floating
+                                // button, which never helped a card mid-list.
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
                                     end = 16.dp,
                                     top = 16.dp,
-                                    bottom = 96.dp
+                                    bottom = 16.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxSize()
@@ -498,12 +475,6 @@ fun ItineraryScreen(
                                 // Day Summary Card
                                 item {
                                      Box(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                         Box(
-                                             Modifier
-                                                 .matchParentSize()
-                                                 .offset(x = 4.dp, y = 4.dp)
-                                                 .background(ComicInk, RoundedCornerShape(8.dp))
-                                         )
                                          Surface(
                                              modifier = Modifier
                                                  .fillMaxWidth()
@@ -597,6 +568,24 @@ fun ItineraryScreen(
                                 }
                             }
                         }
+                    }
+
+                    // The plan's action is part of the layout rather than floating over it. The
+                    // audit's defect was this button covering stop 02's address mid-list, and a
+                    // bottom content padding could never fix that: content still scrolled under a
+                    // floating button. A reserved band means the list's viewport ends above the
+                    // button, so no stop card can render beneath it at any scroll position.
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        color = ComicPaper
+                    ) {
+                        TrippinButton(
+                            text = if (isLocked) "Plan is locked" else "Change the plan",
+                            enabled = !isLocked,
+                            onClick = { showEditDialog = true }
+                        )
                     }
                 }
             }
@@ -798,12 +787,6 @@ fun ActivityComicCard(
         }
 
         Box(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .offset(x = 4.dp, y = 4.dp)
-                    .background(ComicInk, RoundedCornerShape(10.dp))
-            )
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()

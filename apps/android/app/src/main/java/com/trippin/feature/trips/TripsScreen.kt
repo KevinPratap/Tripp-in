@@ -1,12 +1,17 @@
 package com.trippin.feature.trips
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -20,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,9 +39,13 @@ import com.trippin.core.design.ComicPaper
 import com.trippin.core.design.ComicRed
 import com.trippin.core.design.ComicYellow
 import com.trippin.core.design.TrippinSegmentedTabs
+import com.trippin.core.design.TrippinType
+import com.trippin.core.network.DestinationCardDto
+import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.TripSummaryDto
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -73,18 +83,31 @@ fun TripsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTrip: (String) -> Unit,
     onNavigateToToday: (String) -> Unit,
-    onNavigateToPlanner: () -> Unit
+    onNavigateToPlanner: (String?) -> Unit
 ) {
     val cachedFeed = TripCacheManager.homeFeedState.value
     var trips by remember { mutableStateOf(cachedFeed?.recentTrips ?: emptyList()) }
+    var suggestions by remember {
+        mutableStateOf(
+            (cachedFeed?.popularDestinations.orEmpty() + cachedFeed?.recommendedDestinations.orEmpty())
+                .distinctBy { it.id }
+        )
+    }
     var isLoading by remember { mutableStateOf(trips.isEmpty()) }
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(0) }
     var tripToDelete by remember { mutableStateOf<TripSummaryDto?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
+    var showJoinSheet by remember { mutableStateOf(false) }
+    var inviteTrip by remember { mutableStateOf<TripSummaryDto?>(null) }
+    var inviteCode by remember { mutableStateOf<String?>(null) }
+    var inviteError by remember { mutableStateOf<String?>(null) }
+    var joinBusy by remember { mutableStateOf(false) }
+    var joinError by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     val today = LocalDate.now()
 
     val loadTrips: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
@@ -98,6 +121,8 @@ fun TripsScreen(
                 val feed = NetworkModule.apiService.getHome()
                 TripCacheManager.homeFeedState.value = feed
                 trips = feed.recentTrips
+                suggestions = (feed.popularDestinations + feed.recommendedDestinations)
+                    .distinctBy { it.id }
             } catch (_: Exception) {
                 // Keep whatever was cached. The screen never invents a trip.
             } finally {
@@ -124,6 +149,56 @@ fun TripsScreen(
                 // Leave the trip on screen. It is still there.
             } finally {
                 isDeleting = false
+            }
+        }
+    }
+
+    /**
+     * The invite code for a trip, created on demand by its owner. Creating it is a deliberate
+     * action rather than a side effect of reading the trip, and the code it returns is the same one
+     * POST /trips/join accepts, which is what makes the card's "invite" line a real offer.
+     */
+    fun requestInviteCode(trip: TripSummaryDto) {
+        scope.launch {
+            inviteError = null
+            inviteCode = null
+            try {
+                val link = NetworkModule.apiService.createShareLink(trip.id)
+                inviteCode = link.token
+                copyToClipboard(context, "Tripp'in invite code", link.token)
+            } catch (e: HttpException) {
+                inviteError = when (e.code()) {
+                    403 -> "Only the person who created this trip can invite people to it."
+                    401 -> "Sign in again to invite people."
+                    else -> "The server answered ${e.code()} and no code was created."
+                }
+            } catch (_: Exception) {
+                inviteError = "Could not reach the server, so no invite code was created."
+            }
+        }
+    }
+
+    fun join(tripCode: String, name: String) {
+        scope.launch {
+            joinBusy = true
+            joinError = null
+            try {
+                val joined = NetworkModule.apiService.joinTrip(
+                    JoinTripRequestDto(token = tripCode.trim(), name = name.trim())
+                )
+                showJoinSheet = false
+                loadTrips(true)
+                onNavigateToTrip(joined.tripId)
+            } catch (e: HttpException) {
+                joinError = when (e.code()) {
+                    404 -> "That invite code is not valid, or the trip's owner revoked it."
+                    401 -> "Sign in again, then enter the code."
+                    else -> "The server answered ${e.code()}. Try again."
+                }
+            } catch (_: Exception) {
+                joinError = "Could not reach the server. Check the connection and try again."
+            } finally {
+                joinBusy = false
             }
         }
     }
@@ -170,7 +245,7 @@ fun TripsScreen(
                 },
                 navigationIcon = {},
                 actions = {
-                    IconButton(onClick = onNavigateToPlanner) {
+                    IconButton(onClick = { onNavigateToPlanner(null) }) {
                         Icon(Icons.Default.Add, contentDescription = "New trip", tint = ComicRed)
                     }
                 }
@@ -212,16 +287,44 @@ fun TripsScreen(
                         }
                     }
 
-                    trips.isEmpty() -> EmptyTripsPanel(
-                        title = "No trips yet",
-                        body = "Start one and invite your friends.",
-                        onPlan = onNavigateToPlanner
-                    )
+                    trips.isEmpty() -> {
+                        // Nothing on this account yet. The screen still has a job: the way in for
+                        // someone who was invited, and the feed's own destinations to start from.
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            EmptyTripsPanel(
+                                title = "No trips yet",
+                                body = "Start one and invite your friends. Signing in keeps it on your " +
+                                    "account rather than on this phone.",
+                                onPlan = { onNavigateToPlanner(null) },
+                                fillHeight = false
+                            )
+                            JoinPrompt(onClick = { showJoinSheet = true })
+                            if (suggestions.isNotEmpty()) {
+                                Text(
+                                    text = "WHERE NEXT",
+                                    style = TrippinType.Label,
+                                    color = ComicMuted
+                                )
+                                suggestions.take(4).forEach { destination ->
+                                    SuggestionCard(
+                                        destination = destination,
+                                        onClick = { onNavigateToPlanner(destination.name) }
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     visible.isEmpty() -> EmptyTripsPanel(
                         title = "Nothing in $filterLabel",
                         body = "No trip of yours is in this state right now.",
-                        onPlan = onNavigateToPlanner
+                        onPlan = { onNavigateToPlanner(null) }
                     )
 
                     else -> {
@@ -278,8 +381,34 @@ fun TripsScreen(
                                         today = today,
                                         onOpen = { onNavigateToTrip(trip.id) },
                                         onToday = { onNavigateToToday(trip.id) },
-                                        onDelete = { tripToDelete = trip }
+                                        onDelete = { tripToDelete = trip },
+                                        onInvite = { inviteTrip = trip }
                                     )
+                                }
+                            }
+
+                            // The empty half of this screen gets a job. A list with one trip on it
+                            // used to leave the rest of the screen as bare paper; now the next useful
+                            // thing sits under it, and every card in it comes from the feed the app
+                            // already loaded rather than being written into the UI.
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    if (suggestions.isNotEmpty()) {
+                                        Text(
+                                            text = "WHERE NEXT",
+                                            style = TrippinType.Label,
+                                            color = ComicMuted,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                        suggestions.take(4).forEach { destination ->
+                                            SuggestionCard(
+                                                destination = destination,
+                                                onClick = { onNavigateToPlanner(destination.name) }
+                                            )
+                                        }
+                                    }
+
+                                    JoinPrompt(onClick = { showJoinSheet = true })
                                 }
                             }
                         }
@@ -323,32 +452,261 @@ fun TripsScreen(
                 }
             )
         }
+
+        // The invite sheet. It asks the server for a code only when someone actually wants one, and
+        // it shows the code rather than claiming a message was sent, because nothing is sent.
+        val inviting = inviteTrip
+        LaunchedEffect(inviting?.id) {
+            if (inviting != null) requestInviteCode(inviting)
+        }
+        if (inviting != null) {
+            AlertDialog(
+                onDismissRequest = { inviteTrip = null; inviteCode = null; inviteError = null },
+                title = {
+                    Text("Invite people to ${inviting.destination}", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        when {
+                            inviteError != null -> Text(
+                                text = inviteError.orEmpty(),
+                                style = TrippinType.Body,
+                                color = ComicInk
+                            )
+                            inviteCode == null -> Text(
+                                text = "Asking the server for this trip's invite code.",
+                                style = TrippinType.Body,
+                                color = ComicMuted
+                            )
+                            else -> {
+                                Text(
+                                    text = inviteCode.orEmpty(),
+                                    style = TrippinType.Heading,
+                                    color = ComicInk
+                                )
+                                Text(
+                                    text = "Copied to the clipboard. Send it to your friends, and they " +
+                                        "tap Join a trip on the Trips screen and enter it.",
+                                    style = TrippinType.Caption,
+                                    color = ComicMuted
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (inviteCode != null) {
+                        Button(
+                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                            onClick = {
+                                copyToClipboard(context, "Tripp'in invite code", inviteCode.orEmpty())
+                            }
+                        ) {
+                            Text("Copy code", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { inviteTrip = null; inviteCode = null; inviteError = null }) {
+                        Text("Done", fontSize = 14.sp)
+                    }
+                }
+            )
+        }
+
+        // Joining a trip someone else invited you to. This is the reachable join action the Trips
+        // card promises when it says people have not joined yet.
+        if (showJoinSheet) {
+            var joinCode by remember { mutableStateOf("") }
+            var joinName by remember { mutableStateOf("") }
+
+            AlertDialog(
+                onDismissRequest = { if (!joinBusy) showJoinSheet = false },
+                title = { Text("Join a trip", fontWeight = FontWeight.Black, fontSize = 18.sp) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Enter the invite code the trip's owner sent you, and the name the " +
+                                "others will see on this trip.",
+                            style = TrippinType.Caption,
+                            color = ComicMuted
+                        )
+                        OutlinedTextField(
+                            value = joinCode,
+                            onValueChange = { joinCode = it },
+                            singleLine = true,
+                            enabled = !joinBusy,
+                            label = { Text("Invite code", style = TrippinType.Label) },
+                            textStyle = TrippinType.Body,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+                        )
+                        OutlinedTextField(
+                            value = joinName,
+                            onValueChange = { joinName = it },
+                            singleLine = true,
+                            enabled = !joinBusy,
+                            label = { Text("Your name", style = TrippinType.Label) },
+                            textStyle = TrippinType.Body,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+                        )
+                        joinError?.let {
+                            Text(text = it, style = TrippinType.Body, color = ComicInk)
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        enabled = !joinBusy && joinCode.isNotBlank() && joinName.isNotBlank(),
+                        onClick = { join(joinCode, joinName) }
+                    ) {
+                        if (joinBusy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text("Join", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(enabled = !joinBusy, onClick = { showJoinSheet = false }) {
+                        Text("Cancel", fontSize = 14.sp)
+                    }
+                }
+            )
+        }
     }
 }
 
 /**
- * A stock destination photo keyed off the city name. The Trips card no longer uses this, because
- * the engine does not supply these images and a stand-in photo reads as if the app had one. It is
- * kept only because the old Home screen still imports it, and Home is off the navigation graph.
+ * A destination from the home feed, offered under the trips that exist. It is the feed's own card,
+ * including the photograph the server sent for it, so nothing here is invented by the UI.
  */
-fun getDestinationHeroFallback(destination: String): String {
-    val dest = destination.lowercase()
-    return when {
-        dest.contains("tokyo") -> "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800"
-        dest.contains("paris") -> "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800"
-        dest.contains("rome") -> "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800"
-        dest.contains("kyoto") -> "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800"
-        dest.contains("lisbon") -> "https://images.unsplash.com/photo-1588614959060-4d144f28b207?w=800"
-        dest.contains("london") -> "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800"
-        else -> "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"
+@Composable
+private fun SuggestionCard(
+    destination: DestinationCardDto,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(2.dp, ComicInk, RoundedCornerShape(12.dp)),
+        color = ComicPanel,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(84.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val photo = destination.imageUrl.takeIf { it.isNotBlank() }
+            Box(
+                modifier = Modifier
+                    .width(96.dp)
+                    .fillMaxHeight()
+                    .background(ComicInk)
+            ) {
+                if (photo != null) {
+                    AsyncImage(
+                        model = photo,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // No photograph means no photograph. The initials are the fallback everywhere.
+                    Text(
+                        text = destination.name.take(2).uppercase(),
+                        style = TrippinType.Title,
+                        color = ComicPaper,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = destination.name,
+                    style = TrippinType.Heading,
+                    color = ComicInk
+                )
+                Text(
+                    text = destination.country,
+                    style = TrippinType.Caption,
+                    color = ComicMuted
+                )
+                Text(
+                    text = "Plan a trip here",
+                    style = TrippinType.Label,
+                    color = ComicRed
+                )
+            }
+        }
     }
 }
 
+/**
+ * The way in for someone who was invited. Without this the card's "people have not joined yet" line
+ * would be a promise with no door, which is the defect the audit named.
+ */
 @Composable
-private fun EmptyTripsPanel(title: String, body: String, onPlan: () -> Unit) {
+private fun JoinPrompt(onClick: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "JOINED BY INVITE?",
+            style = TrippinType.Label,
+            color = ComicMuted,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() }
+                .border(2.dp, ComicInk, RoundedCornerShape(12.dp)),
+            color = ComicPaper,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Join a trip with a code",
+                    style = TrippinType.Heading,
+                    color = ComicInk
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Someone planned a trip and sent you a code. Enter it and your name, and the " +
+                        "trip opens with their plan in it.",
+                    style = TrippinType.Body,
+                    color = ComicMuted
+                )
+            }
+        }
+    }
+}
+
+/** One code on the clipboard, and nothing else. */
+private fun copyToClipboard(context: Context, label: String, value: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+}
+
+@Composable
+private fun EmptyTripsPanel(
+    title: String,
+    body: String,
+    onPlan: () -> Unit,
+    fillHeight: Boolean = true
+) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .then(if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -398,7 +756,8 @@ private fun TripCard(
     today: LocalDate,
     onOpen: () -> Unit,
     onToday: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onInvite: () -> Unit
 ) {
     val heroImageUrl = trip.heroImageUrl?.takeIf { it.isNotBlank() }
     val countdown = countdownLine(trip, today)
@@ -409,12 +768,6 @@ private fun TripCard(
     } ?: false
 
     Box(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(x = 4.dp, y = 4.dp)
-                .background(ComicInk, RoundedCornerShape(12.dp))
-        )
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -525,12 +878,32 @@ private fun TripCard(
 
                     if (needsYou != null) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = needsYou,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
-                            color = ComicRed
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = needsYou,
+                                style = TrippinType.Label,
+                                color = ComicRed,
+                                modifier = Modifier.weight(1f)
+                            )
+                            // A draft has no plan to share yet, so the offer only appears when the
+                            // trip is something people can actually be invited to.
+                            if (state != TripState.DRAFT) {
+                                OutlinedButton(
+                                    onClick = onInvite,
+                                    modifier = Modifier
+                                        .height(36.dp)
+                                        .border(2.dp, ComicInk, RoundedCornerShape(8.dp)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed)
+                                ) {
+                                    Text("Invite", style = TrippinType.Label)
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -671,8 +1044,11 @@ private fun tripCountLine(loaded: Int, upcoming: Int): String {
 
 /**
  * The one line that brings someone back. Only real triggers count, and every one of them is
- * something the app can read off the trip: no plan exists yet, or people the trip was set up for
- * have not added their details. Where nothing is waiting, there is no line.
+ * something the app can read off the trip.
+ *
+ * The audit's rule 3 applies here: never promise an action the app cannot take. So "have not joined
+ * yet" may only appear when an invite can actually be sent, which is when the trip has a share token
+ * or its owner can create one. Without that the line states the fact without promising a way out.
  */
 private fun needsYouLine(trip: TripSummaryDto, state: TripState): String? {
     if (state == TripState.FINISHED) return null
@@ -680,7 +1056,11 @@ private fun needsYouLine(trip: TripSummaryDto, state: TripState): String? {
     val missing = trip.travelersCount - trip.travellers.size
     if (missing > 0) {
         val people = if (missing == 1) "1 person" else "$missing people"
-        return "Needs you: $people have not joined yet"
+        return if (!trip.shareToken.isNullOrBlank()) {
+            "Needs you: invite $people"
+        } else {
+            "Needs you: $people have not added their details yet"
+        }
     }
     return null
 }

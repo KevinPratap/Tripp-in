@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,6 +34,9 @@ import androidx.navigation.navArgument
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicRed
+import com.trippin.core.network.NetworkModule
+import com.trippin.core.network.SessionStore
+import com.trippin.feature.auth.SignInScreen
 import com.trippin.feature.generating.GeneratingScreen
 import com.trippin.feature.group.GroupScreen
 import com.trippin.feature.itinerary.ItineraryScreen
@@ -41,6 +45,7 @@ import com.trippin.feature.planner.TripPlannerScreen
 import com.trippin.feature.profile.ProfileScreen
 import com.trippin.feature.today.TodayScreen
 import com.trippin.feature.trips.TripsScreen
+import retrofit2.HttpException
 
 /**
  * The shell.
@@ -71,8 +76,30 @@ private enum class ShellTab(val route: String, val label: String, val icon: Imag
 
 @Composable
 fun TrippinAppShell() {
-    val navController = rememberNavController()
+    val account = SessionStore.account.value
     val context = LocalContext.current
+
+    // A stored session is checked against the server rather than trusted. GET /me/trips is
+    // @RequireIdentity, so a 401 means the token is dead and the app goes back to the sign-in
+    // screen instead of showing a signed-in shell that cannot load anything.
+    LaunchedEffect(account?.id) {
+        if (account != null) {
+            try {
+                NetworkModule.apiService.getMyTrips()
+            } catch (e: HttpException) {
+                if (e.code() == 401) SessionStore.clear()
+            } catch (_: Exception) {
+                // Offline is not a failed session. Keep it.
+            }
+        }
+    }
+
+    if (account == null) {
+        SignInScreen(onSignedIn = {})
+        return
+    }
+
+    val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val route = backStackEntry?.destination?.route
 
@@ -162,8 +189,8 @@ fun TrippinAppShell() {
                             CurrentTripStore.setTripId(context, tripId)
                             navController.navigate(Screen.Today.createRoute(tripId))
                         },
-                        onNavigateToPlanner = {
-                            navController.navigate(Screen.Planner.createRoute())
+                        onNavigateToPlanner = { destination ->
+                            navController.navigate(Screen.Planner.createRoute(destination))
                         }
                     )
                 }
