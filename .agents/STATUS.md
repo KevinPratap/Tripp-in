@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T04:58:00Z
-**Mainline Commit**: `826cfaa`
+**Last Updated**: 2026-09-20T05:20:00Z
+**Mainline Commit**: `1151882`
 **Active Head**: `main`
 
 ---
@@ -52,7 +52,8 @@
 - [x] **AGY**: Add currency & shareToken to TripSummaryDto and trips.service (`8140cbb`, `92bb21d`, `645e493`).
 - [x] **HERMES**: Rebuild Trips list cards with state chip, countdown, per-person range, needs-you (`19804c8`).
 - [x] **AGY**: Populate perTravellerCost, currency, shareToken, totalTripsCount on list and home feed (`826cfaa`).
-- [x] **AGY**: Live smoke test Trips list on emulator-5554.
-- [ ] **HERMES**: Plan sub-views & next UI iterations.
+- [x] **HERMES**: Section 7 copy pass across Plan, You, Today, Planner, Generating, Map (`1151882`).
+- [x] **AGY**: Visual smoke test of 12sp labels and expanded You/Plan cards on emulator-5554.
+- [ ] **HERMES**: Next UI cycle / interactions.
 
 
