@@ -43,8 +43,10 @@ import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PlaceSearchResultDto
 import com.trippin.core.network.ReplanRequestDto
 import com.trippin.core.network.TripDetailsDto
+import com.trippin.feature.today.TodayScreen
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToLong
 
@@ -53,8 +55,7 @@ import kotlin.math.roundToLong
 fun ItineraryScreen(
     tripId: String,
     onNavigateBack: () -> Unit,
-    onOpenMap: (String) -> Unit,
-    onNavigateToToday: (String) -> Unit
+    onOpenMap: (String) -> Unit
 ) {
     val cachedTrip = remember(tripId) { TripCacheManager.getTrip(tripId) }
     var tripDetails by remember { mutableStateOf(cachedTrip) }
@@ -127,6 +128,27 @@ fun ItineraryScreen(
         days.isEmpty() -> "No plan yet"
         days.size == 1 -> "1 day planned"
         else -> "${days.size} days planned"
+    }
+
+    // The trip's own dates decide whether today is inside them. Nothing else is used, and when
+    // either date is missing or unparseable the answer is no rather than a guess.
+    val todayDate = remember { LocalDate.now() }
+    val tripIsLive = remember(tripDetails, todayDate) {
+        val start = tripDetails?.trip?.startDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        val end = tripDetails?.trip?.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        start != null && end != null && !todayDate.isBefore(start) && !todayDate.isAfter(end)
+    }
+
+    /*
+     * Plan has sub-views. Days is the day-by-day plan and Today is the stop happening now. A live
+     * trip opens on Today, because on the day itself the current stop is what you need and day one
+     * of the list is not. It lands once, when the trip's own dates say today is inside them, and it
+     * never fights the user afterwards.
+     */
+    var subView by remember(tripId) { mutableIntStateOf(0) }
+    var subViewChosen by remember(tripId) { mutableStateOf(false) }
+    LaunchedEffect(tripIsLive, subViewChosen) {
+        if (tripIsLive && !subViewChosen) subView = 1
     }
 
     // Horizontal Pager state for smooth day-swiping gestures
@@ -247,14 +269,8 @@ fun ItineraryScreen(
                             expanded = showMoreMenu,
                             onDismissRequest = { showMoreMenu = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Today", style = TrippinType.Label) },
-                                leadingIcon = { Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicRed) },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToToday(tripId)
-                                }
-                            )
+                            // Today is a sub-view of this screen now, so there is no menu entry
+                            // that leads to a second copy of it.
                             DropdownMenuItem(
                                 text = { Text(if (isLocked) "Unlock the plan" else "Lock the plan", style = TrippinType.Label) },
                                 leadingIcon = {
@@ -407,6 +423,35 @@ fun ItineraryScreen(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
+
+                    /*
+                     * The Plan sub-views. Only these two of the five the plan names can carry
+                     * honest content today: Options needs alternatives the engine does not produce
+                     * yet, and there is no change log and no recorded spend to put in Changes or
+                     * Money. A tab for any of those would promise something the app cannot do, so
+                     * they are not here.
+                     */
+                    TrippinSegmentedTabs(
+                        options = listOf("Days", "Today"),
+                        selectedIndex = subView,
+                        onOptionSelected = {
+                            subViewChosen = true
+                            subView = it
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+
+                    if (subView == 1) {
+                        // Today as a sub-view rather than a screen of its own: it keeps its own
+                        // load, pull to refresh and offline state, and brings no second top bar.
+                        TodayScreen(
+                            tripId = tripId,
+                            onNavigateBack = {},
+                            onOpenMap = onOpenMap,
+                            embedded = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
 
                     // Day selector tabs (synced with HorizontalPager)
                     if (days.isNotEmpty()) {
@@ -573,6 +618,7 @@ fun ItineraryScreen(
                                 }
                             }
                         }
+                    }
                     }
 
                     // The plan's action is part of the layout rather than floating over it. The

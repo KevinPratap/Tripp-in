@@ -219,8 +219,7 @@ fun TrippinAppShell() {
                         ItineraryScreen(
                             tripId = tripId,
                             onNavigateBack = { navController.navigate(Screen.Trips.route) { launchSingleTop = true } },
-                            onOpenMap = { navController.navigate(Screen.Map.createRoute(it)) },
-                            onNavigateToToday = { navController.navigate(Screen.Today.createRoute(it)) }
+                            onOpenMap = { navController.navigate(Screen.Map.createRoute(it)) }
                         )
                     }
                 }
@@ -295,8 +294,7 @@ fun TrippinAppShell() {
                     ItineraryScreen(
                         tripId = tripId,
                         onNavigateBack = { navController.navigate(Screen.Trips.route) { launchSingleTop = true } },
-                        onOpenMap = { navController.navigate(Screen.Map.createRoute(tripId)) },
-                        onNavigateToToday = { navController.navigate(Screen.Today.createRoute(tripId)) }
+                        onOpenMap = { navController.navigate(Screen.Map.createRoute(tripId)) }
                     )
                 }
 

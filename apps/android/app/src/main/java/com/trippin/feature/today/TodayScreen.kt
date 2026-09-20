@@ -42,7 +42,15 @@ import java.util.*
 fun TodayScreen(
     tripId: String,
     onNavigateBack: () -> Unit,
-    onOpenMap: (String) -> Unit
+    onOpenMap: (String) -> Unit,
+    /**
+     * True when this screen is the Today sub-view of Plan rather than a destination of its own.
+     * Then Plan's own top bar is the only one on screen: this one draws no title, no back arrow and
+     * no system insets, so today's stop is not pushed down by two bars.
+     */
+    embedded: Boolean = false,
+    /** The height the caller is giving this screen. Plan passes weight so the list stays bounded. */
+    modifier: Modifier = Modifier
 ) {
     val cached = remember(tripId) { TripCacheManager.getTrip(tripId) }
     var tripDetails by remember { mutableStateOf(cached) }
@@ -119,8 +127,10 @@ fun TodayScreen(
     }
 
     Scaffold(
+        // Plan draws the top bar when this is its Today sub-view, so this one stays empty rather
+        // than printing a second title and a back arrow onto the screen you are already on.
         topBar = {
-            TopAppBar(
+            if (!embedded) TopAppBar(
                 title = {
                     Column {
                         Text(
@@ -145,7 +155,12 @@ fun TodayScreen(
                     }
                 }
             )
-        }
+        },
+        // Embedded means Plan already took the system insets with its own bar, so this one must not
+        // add a second helping of top padding. Wrapped at the call site in Plan, this screen also
+        // gets a bounded height, which is what the list needs.
+        modifier = modifier,
+        contentWindowInsets = if (embedded) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets
     ) { padding ->
         if (isLoading) {
             Box(
