@@ -135,7 +135,9 @@ export function buildTripCost(
   }
   if (unknownCount > 0) {
     notes.push(
-      `${unknownCount} ${unknownCount === 1 ? 'stop charges' : 'stops charge'} an entry fee but do not publish the amount, so this is a minimum.`
+      unknownCount === 1
+        ? '1 stop charges an entry fee but does not publish the amount, so this is a minimum.'
+        : `${unknownCount} stops charge an entry fee but do not publish the amount, so this is a minimum.`
     );
   }
   if (unpricedStops > 0) {
