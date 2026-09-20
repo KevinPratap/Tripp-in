@@ -45,6 +45,9 @@ import com.trippin.core.network.PlaceSearchResultDto
 import com.trippin.core.network.ReplanRequestDto
 import com.trippin.core.network.TripDetailsDto
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +109,11 @@ fun ItineraryScreen(
     val isLocked = tripDetails?.trip?.isLocked == true
     val days = tripDetails?.itinerary?.days ?: emptyList()
     val destinationName = tripDetails?.trip?.destination ?: "Trip"
+
+    // Money honesty. The trip payload carries the trip currency and each priced stop carries its
+    // own. When neither states one, amounts print with no symbol and the day card says so, instead
+    // of the old hardcoded dollar sign that priced a Tokyo or Manali plan in USD.
+    val planCurrency = remember(tripDetails) { currencyOf(tripDetails) }
 
     // Plain state for the header. Nothing is asserted that the loaded data does not show:
     // locked or not, how many days the plan has, or that there is no plan yet.
@@ -510,9 +518,10 @@ fun ItineraryScreen(
                                                 )
                                                 if (dayCost > 0) {
                                                     Text(
-                                                        text = "Day Est: $${dayCost.toInt()}",
+                                                        text = "Stops total " +
+                                                            formatAmount(dayCost, planCurrency),
                                                         fontWeight = FontWeight.Black,
-                                                        fontSize = 11.sp,
+                                                        fontSize = 12.sp,
                                                         color = ComicBlack
                                                     )
                                                 }
@@ -546,6 +555,19 @@ fun ItineraryScreen(
                                                     color = ComicMuted
                                                 )
                                             }
+
+                                            // Only shown when something below is priced but the
+                                            // plan states no currency, so a plain number is never
+                                            // read as a currency it was not sent with.
+                                            if (dayCost > 0 && planCurrency == null) {
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = "The plan does not state a currency, so " +
+                                                        "these amounts are plain numbers.",
+                                                    fontSize = 12.sp,
+                                                    color = ComicMuted
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -556,6 +578,7 @@ fun ItineraryScreen(
                                     ActivityComicCard(
                                         activity = act,
                                         index = actIdx + 1,
+                                        currency = planCurrency,
                                         onNavigateClick = {
                                             val query = Uri.encode("${act.title} $destinationName")
                                             val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
@@ -731,6 +754,7 @@ fun QuickReplanChip(
 fun ActivityComicCard(
     activity: ActivityDto,
     index: Int,
+    currency: String? = null,
     onNavigateClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -850,7 +874,7 @@ fun ActivityComicCard(
                         ) {
                             if (activity.estimatedCost != null && activity.estimatedCost > 0) {
                                 Text(
-                                    text = "$${activity.estimatedCost.toInt()}",
+                                    text = formatAmount(activity.estimatedCost, currency),
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     color = ComicRed
@@ -915,7 +939,7 @@ fun ActivityComicCard(
                         Text(
                             text = address,
                             style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = ComicMuted
                         )
                     }
@@ -960,4 +984,32 @@ fun ActivityComicCard(
         }
     }
 }
+}
+
+/**
+ * The currency of the plan, taken from the trip payload first and from the plan's own priced stops
+ * second. Null means nothing on the trip stated a currency, and then no symbol is printed.
+ */
+private fun currencyOf(details: TripDetailsDto?): String? {
+    val onTrip = details?.trip?.currency?.takeIf { it.isNotBlank() }
+    if (onTrip != null) return onTrip
+    return details?.itinerary?.days
+        ?.flatMap { it.activities }
+        ?.firstNotNullOfOrNull { activity -> activity.currency?.takeIf { it.isNotBlank() } }
+}
+
+/** A whole amount with its currency, and no symbol at all when the currency is not known. */
+private fun formatAmount(value: Double, currency: String?): String {
+    val grouped = NumberFormat.getIntegerInstance(Locale.US).format(value.roundToLong())
+    val code = currency?.trim()?.uppercase()
+    val prefix = when (code) {
+        null, "" -> ""
+        "INR" -> "₹"
+        "EUR" -> "€"
+        "GBP" -> "£"
+        "JPY" -> "¥"
+        "USD" -> "$"
+        else -> "$code "
+    }
+    return "$prefix$grouped"
 }
