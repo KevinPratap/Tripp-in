@@ -133,6 +133,10 @@ fun TrippinSegmentedTabs(
 
 /**
  * High-contrast status badge reflecting deterministic verification reality.
+ *
+ * The colour is the meaning from design system section 1 and not a decoration: a confirmed state is
+ * the ink green that says confirmed, and anything else is neutral, which says neither good nor bad.
+ * Crimson is never used here, because crimson is what you tap and it never signals success.
  */
 @Composable
 fun TrippinStatusBadge(
@@ -140,8 +144,8 @@ fun TrippinStatusBadge(
     modifier: Modifier = Modifier
 ) {
     val isVerified = status.equals("VERIFIED", ignoreCase = true) || status.equals("READY", ignoreCase = true)
-    val badgeColor = if (isVerified) ComicRed else ComicYellow
-    val textColor = if (isVerified) ComicPaper else ComicInk
+    val badgeColor = if (isVerified) GoodInkSurface else NeutralInkSurface
+    val textColor = if (isVerified) GoodInk else NeutralInk
 
     Box(
         modifier = modifier

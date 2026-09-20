@@ -33,8 +33,8 @@ import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicMuted
 import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicPaper
-import com.trippin.core.design.ComicRed
-import com.trippin.core.design.ComicYellow
+import com.trippin.core.design.WarnAmber
+import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
@@ -134,7 +134,7 @@ fun GroupScreen(tripId: String) {
                             else -> "$joined people have added their details"
                         },
                         style = TrippinType.Title,
-                        color = ComicRed,
+                        color = ComicInk,
                         modifier = Modifier.padding(top = 6.dp)
                     )
                     if (plannedFor != null && plannedFor > joined) {
@@ -279,13 +279,13 @@ private fun TravellerCard(
                 if (overCap) {
                     Box(
                         modifier = Modifier
-                            .background(ComicYellow, RoundedCornerShape(4.dp))
+                            .background(WarnAmberSurface, RoundedCornerShape(4.dp))
                             .border(1.5.dp, ComicInk, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = "Over their cap",
-                            color = ComicInk,
+                            color = WarnAmber,
                             style = TrippinType.Caption,
                         )
                     }

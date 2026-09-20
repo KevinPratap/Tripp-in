@@ -331,25 +331,25 @@ fun ItineraryScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                                 .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                            color = ComicYellow,
+                            color = GoodInkSurface,
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = ComicBlack, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = GoodInk, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
                                         text = "Locked by whoever set this up",
                                         style = TrippinType.Label,
-                                        color = ComicBlack
+                                        color = GoodInk
                                     )
                                     Text(
                                         text = "Unlock it from the menu at the top right to change anything.",
                                         style = TrippinType.Body,
-                                        color = ComicBlack
+                                        color = GoodInk
                                     )
                                 }
                             }

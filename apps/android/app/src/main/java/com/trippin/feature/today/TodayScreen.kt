@@ -247,13 +247,13 @@ fun TodayScreen(
                                  * claims to be live. */
                                 if (activeDay?.date?.startsWith(todayDateStr) == true) {
                                     Surface(
-                                        color = ComicYellow,
+                                        color = NeutralInkSurface,
                                         shape = RoundedCornerShape(4.dp),
                                         modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
                                     ) {
                                         Text(
                                             text = "Today",
-                                            color = ComicBlack,
+                                            color = NeutralInk,
                                             style = TrippinType.Caption,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                         )
@@ -507,7 +507,7 @@ fun TodayScreen(
                                         Text(
                                             text = "${act.startTime} - ${act.endTime}",
                                             style = TrippinType.Label,
-                                            color = ComicRed
+                                            color = ComicBlack
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
