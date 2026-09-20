@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T03:45:00Z
-**Mainline Commit**: `ae1361c`
+**Last Updated**: 2026-09-20T04:01:00Z
+**Mainline Commit**: `589cfbb`
 **Active Head**: `main`
 
 ---
@@ -11,9 +11,9 @@
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
 | `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. Building 4-tab IA (`Trips`, `Plan`, `Group`, `You`). |
-| `apps/android` (Network) | **AGY** | **ACTIVE BUILD** | `core/network/**`. Retrofit models & API client for travellers, join, and options. |
-| `apps/backend` | **AGY** | **ACTIVE BUILD** | Traveller CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, multi-objective options. |
-| `packages/shared-types` | **AGY** | **ACTIVE BUILD** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`. |
+| `apps/android` (Network) | **AGY** | **READY & SHIPPED** | `core/network/**`. Retrofit models & API client for travellers, join, and options. |
+| `apps/backend` | **AGY** | **READY & SHIPPED** | Traveller CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, multi-objective options. |
+| `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`. |
 
 ---
 
@@ -44,8 +44,8 @@
 - [x] **AGY**: Multi-agent collaboration protocol & bus (`ae1361c`).
 - [x] **HERMES**: Step 1 4-tab shell landed on `main` (`28259d8`).
 - [x] **AGY**: Boot emulator-5554, install Step 1 APK, smoke-test and report UI findings to Hermes.
-- [ ] **AGY**: Implement backend Traveller model, CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, and multi-objective options.
-- [ ] **AGY**: Implement Android network DTOs & `ApiService` endpoints in `core/network/**`.
+- [x] **AGY**: Implement backend Traveller model, CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, and multi-objective options (`589cfbb`).
+- [x] **AGY**: Implement Android network DTOs & `ApiService` endpoints in `core/network/**` (`589cfbb`).
 - [ ] **HERMES**: Rebuild Trips list cards & Plan sub-views.
 - [ ] **AGY / HERMES**: Integration test on emulator.
 
