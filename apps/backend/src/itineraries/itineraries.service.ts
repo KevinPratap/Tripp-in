@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { backfillVenuePhotos } from '../places/venue-photos';
 import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItineraryValidator } from '../engine/itinerary-validator';
 import { ItineraryModel, ActivityModel, ItineraryDayModel } from '@trippin/shared-types';
@@ -214,7 +215,13 @@ export class ItinerariesService {
       }
     });
 
-    return itinerary ? this.mapToItineraryModel(itinerary) : null;
+    const model = itinerary ? this.mapToItineraryModel(itinerary) : null;
+    // A plan stored before venue photographs were resolved carries none, so they are filled on the
+    // way out rather than asking a traveller to regenerate a plan they already have. Name-only
+    // lookups, cached per venue including the misses, and nothing at all when the venue has no open
+    // record to photograph.
+    if (model) await backfillVenuePhotos(model);
+    return model;
   }
 
   async getItineraryByVersion(tripId: string, version: number): Promise<ItineraryModel | null> {
@@ -233,7 +240,13 @@ export class ItinerariesService {
       }
     });
 
-    return itinerary ? this.mapToItineraryModel(itinerary) : null;
+    const model = itinerary ? this.mapToItineraryModel(itinerary) : null;
+    // A plan stored before venue photographs were resolved carries none, so they are filled on the
+    // way out rather than asking a traveller to regenerate a plan they already have. Name-only
+    // lookups, cached per venue including the misses, and nothing at all when the venue has no open
+    // record to photograph.
+    if (model) await backfillVenuePhotos(model);
+    return model;
   }
 
   async getAllVersions(tripId: string): Promise<Array<{ version: number; status: string; createdAt: string; title?: string; summary?: string; activitiesCount: number; isCurrent: boolean }>> {

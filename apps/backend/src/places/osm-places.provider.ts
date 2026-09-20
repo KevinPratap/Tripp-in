@@ -317,10 +317,10 @@ out tags 800;`;
         url = await this.wikidataPhoto(wikidata);
       }
       if (!url && wikipedia) {
-        url = await this.wikipediaPhoto(wikipedia);
+        url = await OSMPlacesProvider.wikipediaPhoto(wikipedia);
       }
       if (!url && fallbackTitle && fallbackTitle.length > 3) {
-        url = await this.wikipediaPhoto(fallbackTitle);
+        url = await OSMPlacesProvider.wikipediaPhoto(fallbackTitle);
       }
     } catch {
       url = undefined;
@@ -343,7 +343,7 @@ out tags 800;`;
     return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file.trim())}?width=640`;
   }
 
-  private async wikipediaPhoto(tag: string): Promise<string | undefined> {
+  private static async wikipediaPhoto(tag: string): Promise<string | undefined> {
     const parts = tag.split(':');
     const hasLang = parts.length > 1 && /^[a-z]{2,3}(-[a-z]+)?$/i.test(parts[0]);
     const lang = hasLang ? parts[0] : 'en';
@@ -363,6 +363,40 @@ out tags 800;`;
       if (typeof src === 'string' && src.startsWith('https://')) return src;
     }
     return undefined;
+  }
+
+  /**
+   * A real photograph of a venue, resolved from the venue's name alone.
+   *
+   * This exists for places that were stored before photographs were resolved: they sit in the database
+   * with an empty photoUrls, so a plan a traveller already has renders as text on paper even though a
+   * fresh search for the same venue returns a photograph. Filling them on read means nobody has to
+   * regenerate a plan they already made.
+   *
+   * Why the name is enough, and why it is safe: the name is the only thing a stored place is
+   * guaranteed to carry, and the Wikipedia page image for a venue's own name is a photograph of that
+   * venue. There is no substitution path, so a venue with no open record keeps an empty list and the
+   * UI falls back to its initials rather than to a stand-in. Results are cached per name, including
+   * the misses, so a repeated plan read costs nothing.
+   */
+  static async photoForVenueName(name: string): Promise<string | undefined> {
+    const clean = (name || '').trim();
+    // A bare number or a stray initial is not a venue name and will only burn a lookup.
+    if (clean.length < 4 || /^\d+$/.test(clean)) return undefined;
+
+    const cacheKey = `title:${clean.toLowerCase()}`;
+    const cached = OSMPlacesProvider.photoCache.get(cacheKey);
+    if (cached !== undefined) return cached || undefined;
+
+    let url: string | undefined;
+    try {
+      url = await OSMPlacesProvider.wikipediaPhoto(clean);
+    } catch {
+      url = undefined;
+    }
+
+    OSMPlacesProvider.photoCache.set(cacheKey, url ?? null);
+    return url;
   }
 
   private normalizeNominatimDetail(d: any, placeId: string): PlaceModel {
