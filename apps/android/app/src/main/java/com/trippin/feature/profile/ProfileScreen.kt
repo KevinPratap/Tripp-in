@@ -81,11 +81,8 @@ fun ProfileScreen(
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                // Trips is a top-level tab now, so there is nothing behind it to go back to.
+                navigationIcon = {}
             )
         }
     ) { padding ->

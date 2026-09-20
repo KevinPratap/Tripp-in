@@ -121,11 +121,7 @@ fun TripsScreen(
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+                navigationIcon = {},
                 actions = {
                     IconButton(onClick = onNavigateToPlanner) {
                         Icon(Icons.Default.Add, contentDescription = "New Trip", tint = ComicRed)
