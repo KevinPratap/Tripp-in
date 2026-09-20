@@ -110,10 +110,12 @@ fun ItineraryScreen(
     val days = tripDetails?.itinerary?.days ?: emptyList()
     val destinationName = tripDetails?.trip?.destination ?: "Trip"
 
-    // Money honesty. The trip payload carries the trip currency and each priced stop carries its
-    // own. When neither states one, amounts print with no symbol and the day card says so, instead
-    // of the old hardcoded dollar sign that priced a Tokyo or Manali plan in USD.
-    val planCurrency = remember(tripDetails) { currencyOf(tripDetails) }
+    // Money honesty. Every amount on this screen is printed in the currency its own stop declares,
+    // never in the trip's currency, because the two have already disagreed on the wire (a JPY trip
+    // whose stops were stored in USD). A stop that states an amount without a currency of its own
+    // is not printed at all, and a day total is printed only when every priced stop in that day
+    // states the same one. That is the same rule the backend now enforces when it serializes a
+    // stop price: no amount travels without a named source and a confirmed provenance check.
 
     // Plain state for the header. Nothing is asserted that the loaded data does not show:
     // locked or not, how many days the plan has, or that there is no plan yet.
@@ -470,8 +472,14 @@ fun ItineraryScreen(
                             val visitedCount = remember(activities) {
                                 TripCacheManager.getVisitedCountForDay(activities.map { it.id })
                             }
-                            val dayCost = remember(activities) {
-                                activities.sumOf { it.estimatedCost ?: 0.0 }
+                            val pricedStops = remember(activities) {
+                                activities.mapNotNull { it.statedMoney() }
+                            }
+                            val dayCurrency = remember(pricedStops) {
+                                pricedStops.map { it.currency }.distinct().singleOrNull()
+                            }
+                            val dayTotal = remember(pricedStops, dayCurrency) {
+                                if (dayCurrency == null) null else pricedStops.sumOf { it.value }
                             }
 
                             LazyColumn(
@@ -516,10 +524,10 @@ fun ItineraryScreen(
                                                     fontWeight = FontWeight.Black,
                                                     color = ComicRed
                                                 )
-                                                if (dayCost > 0) {
+                                                if (dayTotal != null && dayTotal > 0) {
                                                     Text(
                                                         text = "Stops total " +
-                                                            formatAmount(dayCost, planCurrency),
+                                                            formatAmount(dayTotal, dayCurrency),
                                                         fontWeight = FontWeight.Black,
                                                         fontSize = 12.sp,
                                                         color = ComicBlack
@@ -556,14 +564,16 @@ fun ItineraryScreen(
                                                 )
                                             }
 
-                                            // Only shown when something below is priced but the
-                                            // plan states no currency, so a plain number is never
-                                            // read as a currency it was not sent with.
-                                            if (dayCost > 0 && planCurrency == null) {
+                                            // Shown when stops below do carry an amount but it
+                                            // cannot be totalled, so the missing total is
+                                            // explained instead of silently skipped.
+                                            if (dayTotal == null &&
+                                                activities.any { it.estimatedCost != null }
+                                            ) {
                                                 Spacer(modifier = Modifier.height(6.dp))
                                                 Text(
-                                                    text = "The plan does not state a currency, so " +
-                                                        "these amounts are plain numbers.",
+                                                    text = "No day total: some stops here do not " +
+                                                        "say which currency their amount is in.",
                                                     fontSize = 12.sp,
                                                     color = ComicMuted
                                                 )
@@ -578,7 +588,6 @@ fun ItineraryScreen(
                                     ActivityComicCard(
                                         activity = act,
                                         index = actIdx + 1,
-                                        currency = planCurrency,
                                         onNavigateClick = {
                                             val query = Uri.encode("${act.title} $destinationName")
                                             val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
@@ -754,7 +763,6 @@ fun QuickReplanChip(
 fun ActivityComicCard(
     activity: ActivityDto,
     index: Int,
-    currency: String? = null,
     onNavigateClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -872,9 +880,14 @@ fun ActivityComicCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            if (activity.estimatedCost != null && activity.estimatedCost > 0) {
+                            // Printed only in the currency this stop itself declares. A stop that
+                            // carries an amount but no currency of its own prints nothing here,
+                            // rather than borrowing the trip currency for a number it was not
+                            // sent in.
+                            val stopMoney = activity.statedMoney()
+                            if (stopMoney != null) {
                                 Text(
-                                    text = formatAmount(activity.estimatedCost, currency),
+                                    text = formatAmount(stopMoney.value, stopMoney.currency),
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     color = ComicRed
@@ -986,16 +999,22 @@ fun ActivityComicCard(
 }
 }
 
+/** An amount together with the currency the stop that carries it declares. */
+private data class StatedMoney(val value: Double, val currency: String)
+
 /**
- * The currency of the plan, taken from the trip payload first and from the plan's own priced stops
- * second. Null means nothing on the trip stated a currency, and then no symbol is printed.
+ * The amount this stop may be printed with, or null when it may not be printed at all.
+ *
+ * A stop that states an amount but no currency of its own is not printable: there is no honest
+ * symbol for it, and borrowing the trip currency would label the number as money it was not sent
+ * in. The backend drops such an amount before it leaves the server, and this is the second half
+ * of the same rule, on the screen.
  */
-private fun currencyOf(details: TripDetailsDto?): String? {
-    val onTrip = details?.trip?.currency?.takeIf { it.isNotBlank() }
-    if (onTrip != null) return onTrip
-    return details?.itinerary?.days
-        ?.flatMap { it.activities }
-        ?.firstNotNullOfOrNull { activity -> activity.currency?.takeIf { it.isNotBlank() } }
+private fun ActivityDto.statedMoney(): StatedMoney? {
+    val amount = estimatedCost ?: return null
+    if (amount <= 0.0) return null
+    val code = currency?.trim()?.uppercase()?.takeIf { it.isNotBlank() } ?: return null
+    return StatedMoney(amount, code)
 }
 
 /** A whole amount with its currency, and no symbol at all when the currency is not known. */
