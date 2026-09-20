@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AIPlannerService } from '../ai/ai-planner.service';
@@ -343,12 +344,32 @@ export class TripsService {
       }
     }
 
+    let shareToken: string | undefined;
+    if (this.prisma.tripShare?.findFirst) {
+      try {
+        const activeShare = await this.prisma.tripShare.findFirst({
+          where: { tripId, revokedAt: null },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (activeShare) {
+          shareToken = activeShare.token;
+        } else if (this.prisma.tripShare.create) {
+          const token = randomBytes(12).toString('base64url');
+          const created = await this.prisma.tripShare.create({ data: { tripId, token } });
+          shareToken = created.token;
+        }
+      } catch {
+        // non-blocking fallback
+      }
+    }
+
     const tripSummary: TripSummary = {
       id: trip.id,
       userId: trip.userId,
       destination: trip.destinationName,
       originCity: trip.originCity || undefined,
       currency: trip.currency,
+      shareToken,
       startDate: trip.startDate.toISOString().split('T')[0],
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: Math.max(trip.travelersCount, travellers.length),

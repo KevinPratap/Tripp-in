@@ -93,6 +93,7 @@ export interface TripSummary {
   /** Departure city the traveller starts from, when they told us. */
   originCity?: string;
   currency?: string;
+  shareToken?: string;
   startDate: string;
   endDate: string;
   travelersCount: number;

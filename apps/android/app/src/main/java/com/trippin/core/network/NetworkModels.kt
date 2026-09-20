@@ -32,6 +32,8 @@ data class TripSummaryDto(
     val isLocked: Boolean = false,
     val lockedAt: String? = null,
     val departureCity: String? = null,
+    val currency: String? = null,
+    val shareToken: String? = null,
     val travellers: List<TravellerDto> = emptyList(),
     val perTravellerCost: List<PerTravellerCostDto> = emptyList(),
     val options: List<TripOptionDto> = emptyList()
