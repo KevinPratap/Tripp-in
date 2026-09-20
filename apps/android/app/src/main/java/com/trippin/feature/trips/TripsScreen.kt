@@ -27,6 +27,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -844,12 +845,14 @@ private fun TripRow(
                     RowStateChip(state)
                     Spacer(modifier = Modifier.weight(1f))
                     if (needsYou != null && state != TripState.DRAFT) {
-                        // Reachable from here, so the row may mention it. A row must never promise
-                        // something it cannot deliver.
+                        // Reachable from here, so the row may mention it. Set in ink with an
+                        // underline rather than crimson: five crimson words stacked down the list is
+                        // the same shouting this screen just lost, one size smaller.
                         Text(
                             text = "Invite",
                             style = TrippinType.Label,
-                            color = AccentCrimson,
+                            color = Ink,
+                            textDecoration = TextDecoration.Underline,
                             modifier = Modifier
                                 .clickable { onInvite() }
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
