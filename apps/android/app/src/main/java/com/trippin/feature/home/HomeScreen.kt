@@ -187,7 +187,7 @@ fun HomeScreen(
                                 .background(ComicPanel)
                                 .border(2.dp, ComicInk, CircleShape)
                                 .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onNavigateToProfile()
                                 },
                             contentAlignment = Alignment.Center
@@ -211,22 +211,24 @@ fun HomeScreen(
                 // 2. HERO STAGE: Active Trip Boarding Pass or Quick Plan Launchpad
                 if (activeTrip != null) {
                     item {
-                        ActiveTripHeroTicket(
-                            trip = activeTrip,
-                            onOpen = { onNavigateToTrip(activeTrip.id) },
-                            onNewTrip = { onNavigateToPlanner(null) }
-                        )
+                        ArriveOnEnter {
+                            ActiveTripHeroTicket(
+                                trip = activeTrip,
+                                onOpen = { onNavigateToTrip(activeTrip.id) },
+                                onNewTrip = { onNavigateToPlanner(null) }
+                            )
+                        }
                     }
                 } else {
                     item {
                         PlanTripLaunchpad(
                             quickPicks = quickPicks,
                             onPick = { city ->
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onNavigateToPlanner(city)
                             },
                             onCustomPlan = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onNavigateToPlanner(null)
                             }
                         )
@@ -239,7 +241,7 @@ fun HomeScreen(
                         savedSpotsCount = SavedSpotsManager.savedSpots.size,
                         plannedTripsCount = recentTrips.size,
                         onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onNavigateToProfile()
                         }
                     )
@@ -280,7 +282,7 @@ fun HomeScreen(
                                 EditorialCityCard(
                                     destination = dest,
                                     onPlan = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onNavigateToPlanner(dest.name)
                                     }
                                 )
