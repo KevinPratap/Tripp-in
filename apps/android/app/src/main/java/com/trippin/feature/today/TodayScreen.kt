@@ -308,7 +308,7 @@ fun TodayScreen(
                                                     .padding(8.dp)
                                             ) {
                                                 Text(
-                                                    text = if (photoUrl.contains("commons.wikimedia")) "Photo: Wikimedia Commons" else "Photo: map data",
+                                                    text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
                                                     color = ComicPaper,
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,

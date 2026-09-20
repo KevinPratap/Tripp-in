@@ -560,7 +560,15 @@ fun ItineraryScreen(
                                         activity = act,
                                         index = actIdx + 1,
                                         onNavigateClick = {
-                                            val query = Uri.encode("${act.title} $destinationName")
+                                            // Exact coordinates when the venue has them, because that
+                                            // navigates to the place itself. A search for the title
+                                            // would be a guess dressed as a route. The title is only
+                                            // used when there are no coordinates at all.
+                                            val point = act.place?.location
+                                            val exact = point
+                                                ?.takeIf { it.latitude != 0.0 || it.longitude != 0.0 }
+                                                ?.let { String.format(java.util.Locale.US, "%f,%f", it.latitude, it.longitude) }
+                                            val query = Uri.encode(exact ?: "${act.title} $destinationName")
                                             val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
                                             context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
                                         }
@@ -762,7 +770,19 @@ fun ActivityComicCard(
     }
 
     val photoUrl = activity.effectivePhotoUrl
-    val address = activity.place?.formattedAddress ?: ""
+    val place = activity.place
+    val rawAddress = place?.formattedAddress.orEmpty()
+
+    // An address is either navigable or it is not printed as one. A prefecture repeated twice, or a
+    // ward with no street, is not something a traveller standing on a pavement can walk to, and the
+    // audit found exactly that case sitting next to a button promising to take them there.
+    val address = rawAddress.takeIf { isStreetLevelAddress(it) }
+    val coordinates = place?.location?.let { point ->
+        if (point.latitude == 0.0 && point.longitude == 0.0) null
+        else String.format(java.util.Locale.US, "%.5f, %.5f", point.latitude, point.longitude)
+    }
+    // Coordinates navigate honestly, which is why the action survives an unusable street address.
+    val canNavigate = address != null || coordinates != null
 
     Column {
         if (activity.travelTimeFromPreviousMinutes > 0) {
@@ -819,7 +839,7 @@ fun ActivityComicCard(
                                 .padding(8.dp)
                         ) {
                             Text(
-                                text = if (photoUrl.contains("commons.wikimedia")) "Photo: Wikimedia Commons" else "Photo: map data",
+                                text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
                                 color = ComicPaper,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -930,10 +950,24 @@ fun ActivityComicCard(
                         )
                     }
 
-                    if (address.isNotBlank()) {
+                    if (address != null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = address,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 12.sp,
+                            color = ComicMuted
+                        )
+                    } else {
+                        // The map data has no street for this venue, so the screen says that and gives
+                        // the one thing that is navigable instead of printing an address that is not.
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (coordinates != null) {
+                                "No street address in the map data. It sits at $coordinates."
+                            } else {
+                                "No street address in the map data for this venue."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 12.sp,
                             color = ComicMuted
@@ -948,12 +982,17 @@ fun ActivityComicCard(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (address.isNotBlank()) {
+                        val copyable = address ?: coordinates
+                        if (copyable != null) {
                             IconButton(
                                 onClick = {
-                                    clipboardManager.setText(AnnotatedString(address))
+                                    clipboardManager.setText(AnnotatedString(copyable))
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        if (address != null) "Address copied" else "Coordinates copied",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 },
                                 modifier = Modifier
                                     .size(36.dp)
@@ -964,15 +1003,19 @@ fun ActivityComicCard(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
 
-                        OutlinedButton(
-                            onClick = onNavigateClick,
-                            shape = RoundedCornerShape(6.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Take me there", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                        // Offered only when the app can actually get there. Never a button that leads
+                        // nowhere, which is the same rule the Trips card now follows about invites.
+                        if (canNavigate) {
+                            OutlinedButton(
+                                onClick = onNavigateClick,
+                                shape = RoundedCornerShape(6.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Take me there", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                            }
                         }
                     }
                 }
@@ -984,6 +1027,28 @@ fun ActivityComicCard(
 
 /** An amount together with the currency the stop that carries it declares. */
 private data class StatedMoney(val value: Double, val currency: String)
+
+/**
+ * Whether an address names a street, which is the only thing that makes it usable on foot.
+ *
+ * The audit found two kinds of unusable address on this screen: `東京都, 東京都, 日本`, where the
+ * prefecture is repeated and nothing else is there, and `13, 台東区, 東京都, 日本`, a bare number in a
+ * ward. Neither is walkable, and both sat next to a button offering to navigate. A street-level
+ * address carries a number or a named street, and it does not repeat one of its own parts.
+ */
+private fun isStreetLevelAddress(address: String?): Boolean {
+    if (address.isNullOrBlank()) return false
+    val parts = address.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.size < 2) return false
+
+    val repeatsItself = parts
+        .groupingBy { it.lowercase() }
+        .eachCount()
+        .any { it.value > 1 }
+    if (repeatsItself) return false
+
+    return parts.any { part -> part.any { it.isDigit() } }
+}
 
 /**
  * The amount this stop may be printed with, or null when it may not be printed at all.
