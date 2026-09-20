@@ -126,6 +126,30 @@ fun TodayScreen(
         else activities.filter { it.id != currentStop.id }
     }
 
+    /* The day on screen is not always today. Plan opens this screen as its Today sub-view, and this
+     * screen falls back to the trip's first day whenever the itinerary has no day for the real date,
+     * so a day in December can be on screen in September. The clock says nothing about a stop on a
+     * day that is not today, so Now, Next, Earlier, Today and "Later today" are only allowed when the
+     * day on screen really is today. On any other day the honest answer is the day itself. */
+    val dayDate = activeDay?.date
+    val dayIsToday = dayDate != null && dayDate.startsWith(todayDateStr)
+    val dayIsKnown = dayDate != null && dayDate.isNotBlank()
+    val dayHasPassed = dayDate != null && dayDate.isNotBlank() && dayDate < todayDateStr
+    val stopCountText = "${activities.size} ${if (activities.size == 1) "stop" else "stops"}"
+
+    val stopTimeLabel: String? = currentStop?.let { stop ->
+        val startMin = parseTimeToMinutes(stop.startTime)
+        val endMin = parseTimeToMinutes(stop.endTime)
+        when {
+            dayIsToday && currentTimeMinutes in startMin..endMin -> "Now"
+            dayIsToday && currentTimeMinutes < startMin -> "Next"
+            dayIsToday -> "Earlier"
+            !dayIsKnown -> null
+            dayHasPassed -> "Past"
+            else -> "Upcoming"
+        }
+    }
+
     Scaffold(
         // Plan draws the top bar when this is its Today sub-view, so this one stays empty rather
         // than printing a second title and a back arrow onto the screen you are already on.
@@ -134,11 +158,21 @@ fun TodayScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Today · $destinationName".uppercase(),
+                            // The bar may only say Today when the day under it really is today.
+                            text = when {
+                                dayIsToday -> "Today · $destinationName"
+                                activeDay != null -> "Day ${activeDay.dayIndex} · $destinationName"
+                                else -> destinationName
+                            }.uppercase(),
                             style = TrippinType.Heading
                         )
                         Text(
-                            text = if (activities.isEmpty()) "Nothing planned for today" else "${activities.size} ${if (activities.size == 1) "stop" else "stops"} today",
+                            text = when {
+                                activeDay == null -> "No days planned yet"
+                                activities.isEmpty() -> if (dayIsToday) "Nothing planned for today" else "Nothing planned for this day"
+                                dayIsToday -> "$stopCountText today"
+                                else -> "$stopCountText on this day"
+                            },
                             style = TrippinType.Caption,
                             color = InkMuted
                         )
@@ -243,7 +277,13 @@ fun TodayScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "DAY ${activeDay?.dayIndex ?: 1} - ${activeDay?.date ?: todayDateStr}",
+                                            // Never prints today's real date as a stand-in for a day
+                                            // whose own date the wire did not send.
+                                            text = when {
+                                                activeDay == null -> "No days planned"
+                                                dayDate.isNullOrBlank() -> "DAY ${activeDay.dayIndex}"
+                                                else -> "DAY ${activeDay.dayIndex} - $dayDate"
+                                            },
                                             style = TrippinType.Label,
                                             color = ComicBlack
                                         )
@@ -260,7 +300,7 @@ fun TodayScreen(
 
                                 /* Only when the day on screen really is today. Nothing else here
                                  * claims to be live. */
-                                if (activeDay?.date?.startsWith(todayDateStr) == true) {
+                                if (dayIsToday) {
                                     Surface(
                                         color = NeutralInkSurface,
                                         shape = RoundedCornerShape(4.dp),
@@ -342,17 +382,24 @@ fun TodayScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Surface(
-                                                color = ComicRed,
-                                                shape = RoundedCornerShape(4.dp),
-                                                modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
-                                            ) {
-                                                Text(
-                                                    text = "Now",
-                                                    color = ComicPaper,
-                                                    style = TrippinType.Caption,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                )
+                                            /* The word on this chip is the stop's real relation to the
+                                             * clock, and it is only available when the day on screen is
+                                             * today. A stop on a day that has not started is Upcoming,
+                                             * not Now. */
+                                            if (stopTimeLabel != null) {
+                                                val isRunningNow = stopTimeLabel == "Now"
+                                                Surface(
+                                                    color = if (isRunningNow) ComicRed else NeutralInkSurface,
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                                ) {
+                                                    Text(
+                                                        text = stopTimeLabel,
+                                                        color = if (isRunningNow) ComicPaper else NeutralInk,
+                                                        style = TrippinType.Caption,
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                    )
+                                                }
                                             }
 
                                             Text(
@@ -469,7 +516,8 @@ fun TodayScreen(
                     // Remaining Stops Section
                     item {
                         Text(
-                            text = "Later today",
+                            // "Later today" is only true on the day that is today.
+                            text = if (dayIsToday) "Later today" else "Later that day",
                             style = TrippinType.Label,
                             letterSpacing = 1.sp,
                             color = ComicMuted,
