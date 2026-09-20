@@ -21,7 +21,8 @@ export class DestinationsService {
           if (lower.includes('rome')) return 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800';
           if (lower.includes('lisbon')) return 'https://images.unsplash.com/photo-1588614959060-4d144f28b207?w=800';
           if (lower.includes('london')) return 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800';
-          return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800';
+          if (lower.includes('paris')) return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800';
+          return '';
         };
 
         return destinations.map((d) => ({

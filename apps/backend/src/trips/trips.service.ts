@@ -373,7 +373,12 @@ export class TripsService {
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: Math.max(trip.travelersCount, travellers.length),
       status: trip.status as TripStatus,
-      heroImageUrl: trip.heroImageUrl || undefined,
+      heroImageUrl:
+        trip.heroImageUrl &&
+        (!trip.heroImageUrl.includes('photo-1502602898657') ||
+          trip.destinationName.toLowerCase().includes('paris'))
+          ? trip.heroImageUrl
+          : undefined,
       totalActivitiesCount: itinerary
         ? itinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
         : 0,
@@ -833,7 +838,12 @@ export class TripsService {
             status: t.status as TripStatus,
             isLocked: Boolean(t.isLocked),
             lockedAt: t.lockedAt ? t.lockedAt.toISOString() : undefined,
-            heroImageUrl: t.heroImageUrl || undefined,
+            heroImageUrl:
+              t.heroImageUrl &&
+              (!t.heroImageUrl.includes('photo-1502602898657') ||
+                t.destinationName.toLowerCase().includes('paris'))
+                ? t.heroImageUrl
+                : undefined,
             totalActivitiesCount: activityCount,
             currentVersion: currentItinerary?.version || 1,
             travellers,

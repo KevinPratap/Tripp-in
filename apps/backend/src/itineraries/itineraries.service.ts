@@ -320,7 +320,9 @@ export class ItinerariesService {
                 },
                 types: a.place.types,
                 rating: a.place.rating,
-                photoUrls: a.place.photoUrls,
+                photoUrls: (a.place.photoUrls || []).filter(
+                  (url: string) => !url.includes('images.unsplash.com')
+                ),
                 openingHours: a.place.openingHoursJson || undefined
               }
             : undefined
