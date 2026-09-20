@@ -59,3 +59,14 @@ Always run:
 3. `pnpm --filter @trippin/web run build`.
 4. `.\gradlew.bat compileDebugKotlin` in `apps/android` if mobile code was touched.
 5. Live smoke test on deployed endpoints.
+
+---
+
+## 5. Multi-Agent Realtime Collaboration Protocol (`.agents/`)
+
+When multiple AI assistants (e.g. Antigravity and Hermes) collaborate on this codebase:
+1. **Never leave uncommitted work**: Always commit cleanly with explicit file paths before yielding turns or asking the other agent to pull/rebase.
+2. **Turn Start Check**: Inspect `.agents/STATUS.md` and recent messages (`node scripts/agent-bus.mjs read` or `.agents/INBOX.md`) to read latest handoffs.
+3. **Dispatch Utility**: Post handoffs and state syncs via `node scripts/agent-bus.mjs send --from <agent> --to <agent> --subject "<title>" --body "<details>"`.
+4. **Shared Tokens & Invariants**: Adhere to the single easing curve `(0.22, 1, 0.36, 1)`, tactile 4px drop-shadows, zero emojis, and zero em/en dashes across all branches.
+
