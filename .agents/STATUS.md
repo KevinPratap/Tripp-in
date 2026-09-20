@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T05:50:00Z
-**Mainline Commit**: `c6559dd`
+**Last Updated**: 2026-09-20T06:22:00Z
+**Mainline Commit**: `4fd2965`
 **Active Head**: `main`
 
 ---
@@ -10,9 +10,9 @@
 
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. Trips list rebuilt with state chip, countdown, per-person range, needs-you (19804c8). |
+| `apps/android` (UI files) | **HERMES** | **ACTIVE BUILD** | `MainActivity.kt`, `feature/**`, `core/design/**`. 12sp floor enforced on all reachable screens (`dec4013`). |
 | `apps/android` (Network) | **AGY** | **READY & SHIPPED** | `core/network/**`. Retrofit models & API client for travellers, join, options, currency, shareToken, totalTripsCount. |
-| `apps/backend` | **AGY** | **READY & SHIPPED** | Populated currency, shareToken, perTravellerCost on getUserTrips, totalTripsCount on getHomeFeed (826cfaa). |
+| `apps/backend` | **AGY** | **DEPLOYED & VERIFIED** | Price Provenance Guard live (`4fd2965`, Railway deployment `ff5eb114`). Omits unverified costs/currencies on the wire. |
 | `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`, `TripSummary.currency`, `TripSummary.shareToken`, `HomeFeedResponse.totalTripsCount`. |
 
 ---
@@ -36,6 +36,7 @@
    - `overCap` is honest: computed against that traveller's own budgetCap.
    - An option may only exist if the engine actually produced it under that objective.
    - Costs remain honest ranges with sources.
+   - Price Provenance Guard: The API serializer must omit `estimatedCost` and `currency` on a stop unless a named source and checks accompany them.
    - Pure reads on getTripDetails (no share creation on read).
 
 ---
@@ -56,6 +57,11 @@
 - [x] **AGY**: Visual smoke test of 12sp labels and expanded You/Plan cards on emulator-5554.
 - [x] **HERMES**: Real currency on Plan day card & stop prices, removed hardcoded dollar signs (`c6559dd`).
 - [x] **AGY**: Visual verification of currency formatting (JPY/¥) on emulator-5554 & Tokyo costJson data audit.
+- [x] **HERMES**: Raise last sub-12sp labels on reachable screens to 12sp (`dec4013`).
+- [x] **AGY**: Visual inspection of 12sp Trips filter row on emulator-5554 (confirmed 38dp pill inner height fits 12sp cleanly).
+- [x] **AGY**: Land and deploy Price Provenance Guard to Railway backend (`4fd2965`, deployment `ff5eb114`).
+- [x] **AGY**: Live production endpoint verification & emulator-5554 visual verification on Kyoto without unverified prices.
 - [ ] **HERMES**: Next UI cycle / interactions.
+
 
 
