@@ -87,6 +87,35 @@ export class TripsService {
   /**
    * Create a new Trip in DRAFT status (POST /api/v1/trips)
    */
+  /**
+   * The traveller's own day rates, kept exactly as given and only when they are real numbers.
+   * Nothing is defaulted here: a missing rate stays missing so the cost panel can say so.
+   */
+  private costAssumptionsFrom(dto: any): Record<string, number> | undefined {
+    const keys = [
+      'stayPerNightMin',
+      'stayPerNightMax',
+      'foodPerDayMin',
+      'foodPerDayMax',
+      'localTransitPerDayMin',
+      'localTransitPerDayMax'
+    ] as const;
+    const out: Record<string, number> = {};
+    for (const key of keys) {
+      const value = dto?.[key];
+      if (typeof value === 'number' && Number.isFinite(value) && value >= 0) out[key] = value;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  }
+
+  /** Reads the stored day rates back for the generation request. */
+  private costAssumptionsOf(trip: { costAssumptionsJson?: unknown }): Record<string, number> {
+    const stored = trip?.costAssumptionsJson;
+    return stored && typeof stored === 'object' && !Array.isArray(stored)
+      ? (stored as Record<string, number>)
+      : {};
+  }
+
   async createTrip(userId: string, dto: CreateTripRequestDto): Promise<CreateTripResponse> {
     const start = new Date(dto.startDate);
     const end = new Date(dto.endDate);
@@ -105,6 +134,7 @@ export class TripsService {
         endDate: new Date(dto.endDate),
         travelersCount: dto.travelersCount,
         budgetTotal: dto.budgetTotal,
+        costAssumptionsJson: this.costAssumptionsFrom(dto),
         currency: dto.currency || 'USD',
         status: 'DRAFT',
         pace: dto.pace || 'MODERATE',
@@ -173,6 +203,9 @@ export class TripsService {
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: trip.travelersCount,
       budgetTotal: trip.budgetTotal || undefined,
+      // The traveller's own day rates, so the cost panel can add up stay, food and local travel
+      // instead of leaving them out or inventing them.
+      ...this.costAssumptionsOf(trip),
       currency: trip.currency,
       pace: trip.pace as any,
       transportPreference: trip.transportPreference as any,
@@ -311,6 +344,7 @@ export class TripsService {
         endDate: tripSummary.endDate,
         travelersCount: trip.travelersCount,
         budgetTotal: trip.budgetTotal || undefined,
+        ...this.costAssumptionsOf(trip),
         currency: trip.currency,
         pace: trip.pace as any,
         transportPreference: trip.transportPreference as any,

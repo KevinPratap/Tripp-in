@@ -78,6 +78,7 @@ export class ItinerariesService {
         title: verified.tripTitle,
         summary: verified.summary,
         totalEstimatedCost: verified.totalEstimatedCost,
+        costJson: ((verified as any).cost as any) ?? undefined,
         currency: verified.currency,
         days: {
           create: verified.days.map((d) => ({
@@ -265,6 +266,7 @@ export class ItinerariesService {
           ? undefined
           : Number(raw.totalEstimatedCost),
       currency: raw.currency || undefined,
+      cost: (raw.costJson as any) || undefined,
       days: (raw.days || []).map((d: any) => ({
         id: d.id,
         date: d.date.toISOString().split('T')[0],

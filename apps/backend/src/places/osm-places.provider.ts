@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PlaceProvider, PlaceSearchParams } from './place.interface';
 import { PlaceModel, GeoLocation, PlaceOpeningHours } from '@trippin/shared-types';
+import { parseEntryPrice } from './entry-price';
 
 @Injectable()
 export class OSMPlacesProvider implements PlaceProvider {
@@ -136,6 +137,7 @@ export class OSMPlacesProvider implements PlaceProvider {
           location: { latitude: lat, longitude: lon },
           types: [category, props.osm_key || 'point_of_interest'].filter(Boolean),
           priceLevel: this.estimatePriceLevel(category),
+          price: parseEntryPrice(props.extra),
           photoUrls: [],
           openingHours: this.buildOpeningHours(category),
           openingHoursEstimated: true
@@ -297,6 +299,7 @@ export class OSMPlacesProvider implements PlaceProvider {
       location: { latitude: lat, longitude: lon },
       types: [category],
       priceLevel: this.estimatePriceLevel(category),
+      price: parseEntryPrice(d.extratags),
       photoUrls: [],
       openingHours: this.buildOpeningHours(category, d.extratags?.opening_hours),
       openingHoursEstimated: !d.extratags?.opening_hours

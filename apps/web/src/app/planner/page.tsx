@@ -54,6 +54,14 @@ function PlannerContent() {
   const [endDate, setEndDate] = useState('2026-11-12');
   const [travelers, setTravelers] = useState(2);
   const [budget, setBudget] = useState('2500');
+  // The traveller's own day rates. Kept as text so an empty box stays empty and the cost panel
+  // can say "not set" instead of reading a blank as zero spend.
+  const [stayMin, setStayMin] = useState('');
+  const [stayMax, setStayMax] = useState('');
+  const [foodMin, setFoodMin] = useState('');
+  const [foodMax, setFoodMax] = useState('');
+  const [transitMin, setTransitMin] = useState('');
+  const [transitMax, setTransitMax] = useState('');
   const [pace, setPace] = useState('MODERATE');
   const [currency, setCurrency] = useState('USD');
   const [currencyTouched, setCurrencyTouched] = useState(false);
@@ -162,6 +170,12 @@ function PlannerContent() {
           endDate,
           travelersCount: Number(travelers),
           budgetTotal: budget ? Number(budget) : undefined,
+          stayPerNightMin: stayMin ? Number(stayMin) : undefined,
+          stayPerNightMax: stayMax ? Number(stayMax) : undefined,
+          foodPerDayMin: foodMin ? Number(foodMin) : undefined,
+          foodPerDayMax: foodMax ? Number(foodMax) : undefined,
+          localTransitPerDayMin: transitMin ? Number(transitMin) : undefined,
+          localTransitPerDayMax: transitMax ? Number(transitMax) : undefined,
           currency,
           pace,
           interests: selectedInterests
@@ -474,6 +488,45 @@ function PlannerContent() {
                       ? `Inferred ${inferredCurrency} for ${destination.split(',')[0].trim()}. Override above if needed.`
                       : `Currency not recognised for this destination, pick one above.`}
                   {' '}Your budget guides the plan. We do not estimate prices.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-[#18181B] mb-2">
+                  What you spend per day
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { id: 'stay', label: 'A bed, per night', min: stayMin, max: stayMax, setMin: setStayMin, setMax: setStayMax },
+                    { id: 'food', label: 'Food, per day', min: foodMin, max: foodMax, setMin: setFoodMin, setMax: setFoodMax },
+                    { id: 'transit', label: 'Local travel, per day', min: transitMin, max: transitMax, setMin: setTransitMin, setMax: setTransitMax }
+                  ].map((row) => (
+                    <div key={row.id} className="flex items-center gap-2">
+                      <span className="flex-1 text-base sm:text-xs font-bold text-[#18181B]">{row.label}</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        aria-label={`${row.label} lowest`}
+                        placeholder="from"
+                        value={row.min}
+                        onChange={(e) => row.setMin(e.target.value)}
+                        className="w-20 h-11 sm:h-9 px-2 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-base sm:text-xs font-bold text-[#18181B] focus:bg-white focus:outline-none"
+                      />
+                      <span className="text-[#52525B] font-black text-xs">to</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        aria-label={`${row.label} highest`}
+                        placeholder="to"
+                        value={row.max}
+                        onChange={(e) => row.setMax(e.target.value)}
+                        className="w-20 h-11 sm:h-9 px-2 bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg text-base sm:text-xs font-bold text-[#18181B] focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] font-medium text-[#52525B] mt-1.5 leading-relaxed">
+                  Your own numbers in {currency}, per person. We use them to add up what the trip costs, and we label them as yours. Leave a box empty and that line stays out of the total instead of being guessed. Entry fees come from OpenStreetMap where a venue publishes one.
                 </p>
               </div>
             </div>

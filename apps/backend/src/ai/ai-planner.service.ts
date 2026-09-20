@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { TripRequirement, ValidationResult } from '@trippin/shared-types';
+import { TripRequirement, ValidationResult, PlaceModel } from '@trippin/shared-types';
 import {
   ItineraryV1,
   ItineraryJsonSchemaV1,
@@ -11,6 +11,7 @@ import { PlaceService } from '../places/places.service';
 import { GenerationStageReporter } from '../common/generation/generation-stage';
 import { WeatherService } from '../weather/weather.service';
 import { ItineraryValidator } from '../engine/itinerary-validator';
+import { buildTripCost, compareToBudget } from '../engine/trip-cost';
 
 export interface PlanGenerationOutcome {
   success: boolean;
@@ -81,6 +82,61 @@ export class AIPlannerService {
         `Initialized Native Google Generative AI client with model ${this.model} (Free Tier Zero-Cost)`
       );
     }
+  }
+
+  /**
+   * Attaches what the trip costs, as ranges.
+   *
+   * Prices come from two honest sources: the published entry fee on each stop (OpenStreetMap `fee`
+   * and `charge` tags) and the traveller's own day rates for stay, food and local transport. Nothing
+   * is priced per stop for a meal, a bed or a train ride, because those are per-day costs and
+   * inventing a per-stop figure for them is the defect this replaces.
+   */
+  private attachTripCost(
+    itinerary: ItineraryV1,
+    requirements: TripRequirement,
+    candidates: PlaceModel[]
+  ): void {
+    if (!itinerary?.days?.length) return;
+
+    // Match a stop back to a venue we hold a published price for, by id and by name, since a
+    // model-written placeId does not always survive as the provider's own id.
+    const priceById = new Map<string, any>();
+    const priceByName = new Map<string, any>();
+    for (const place of candidates || []) {
+      if (!place?.price) continue;
+      priceById.set(place.id, place.price);
+      if (place.googlePlaceId) priceById.set(place.googlePlaceId, place.price);
+      if (place.name) priceByName.set(place.name.trim().toLowerCase(), place.price);
+    }
+
+    const days = (itinerary.days || []).map((day: any) => ({
+      activities: (day.activities || []).map((activity: any) => {
+        const name = String(activity.placeName || '').trim().toLowerCase();
+        const price =
+          priceById.get(activity.placeId) || (name ? priceByName.get(name) : undefined);
+        return {
+          id: activity.placeId || activity.placeName,
+          title: activity.placeName || 'Stop',
+          type: activity.activityType,
+          place: price ? { price } : undefined
+        };
+      })
+    }));
+
+    const cost = buildTripCost({ days } as any, requirements.currency || 'USD', {
+      stayPerNightMin: requirements.stayPerNightMin,
+      stayPerNightMax: requirements.stayPerNightMax,
+      foodPerDayMin: requirements.foodPerDayMin,
+      foodPerDayMax: requirements.foodPerDayMax,
+      localTransitPerDayMin: requirements.localTransitPerDayMin,
+      localTransitPerDayMax: requirements.localTransitPerDayMax
+    });
+
+    const budgetNote = compareToBudget(cost, requirements.budgetTotal);
+    if (budgetNote) cost.notes.unshift(budgetNote);
+
+    (itinerary as any).cost = cost;
   }
 
   /**
@@ -196,6 +252,7 @@ export class AIPlannerService {
       if (validationResult.isValid) {
         this.logger.log(`Candidate itinerary passed all deterministic constraints at iteration ${repairIterations}!`);
         this.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
+        this.attachTripCost(candidateItinerary, requirements, candidatePlaces);
         return {
           success: true,
           itinerary: candidateItinerary,
@@ -229,6 +286,7 @@ export class AIPlannerService {
           );
           const finalItinerary = this.attachWeatherSummaries(deterministic, weather);
           this.attachActivityChecks(finalItinerary, deterministicResult.activityChecks);
+          this.attachTripCost(finalItinerary, requirements, candidatePlaces);
           return {
             success: true,
             itinerary: finalItinerary,
@@ -247,6 +305,7 @@ export class AIPlannerService {
       if (validationResult?.activityChecks) {
         this.attachActivityChecks(candidateItinerary, validationResult.activityChecks);
       }
+      this.attachTripCost(candidateItinerary, requirements, candidatePlaces);
     }
 
     return {

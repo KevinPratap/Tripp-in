@@ -218,6 +218,35 @@ export default function PublicTripPage() {
   const itinerary = tripData.itinerary;
   const days = itinerary?.days || [];
 
+  // What the trip costs, as ranges. Every line is either the traveller's own number or a published
+  // entry fee from OpenStreetMap, and an absent number is described as absent, never as zero.
+  const cost: any = (itinerary as any)?.cost;
+  const fmtAmount = (n: any) => (typeof n === 'number' ? Math.round(n * 100) / 100 : n);
+  const entryByTitle = new Map<string, any>();
+  if (cost?.entries?.lines) {
+    for (const line of cost.entries.lines) {
+      const key = String(line?.title || '').trim().toLowerCase();
+      if (key) entryByTitle.set(key, line);
+    }
+  }
+  const entryFor = (title: any) => entryByTitle.get(String(title || '').trim().toLowerCase());
+  const entryLabel = (line: any): string => {
+    if (!line) return '';
+    if (line.status === 'FREE') return 'Free entry (OpenStreetMap)';
+    if (line.status === 'CHARGED_KNOWN') {
+      const range = line.amountMin === line.amountMax ? `${fmtAmount(line.amountMin)}` : `${fmtAmount(line.amountMin)} to ${fmtAmount(line.amountMax)}`;
+      return `${range} ${line.currency || ''} entry (OpenStreetMap)`.trim();
+    }
+    return 'Entry is charged, price not published (OpenStreetMap)';
+  };
+  const rateLines: Array<{ label: string; rate: any }> = cost
+    ? [
+        { label: cost.stay?.units === 1 ? 'A bed for 1 night' : `A bed for ${cost.stay?.units} nights`, rate: cost.stay },
+        { label: cost.food?.units === 1 ? 'Food for 1 day' : `Food for ${cost.food?.units} days`, rate: cost.food },
+        { label: `Local travel for ${cost.localTransit?.units} days`, rate: cost.localTransit }
+      ]
+    : [];
+
   // A draft plan has to say what is unresolved, otherwise the label is just anxiety. These are the
   // checks the engine could not confirm, per stop.
   const unresolvedChecks = days.flatMap((d: any) =>
@@ -559,6 +588,76 @@ export default function PublicTripPage() {
           </section>
         )}
 
+        {/* What this trip costs. Ranges only, each line either the traveller's own number or a
+            published source, and anything we cannot price is said out loud rather than counted as zero. */}
+        {cost && (
+          <section className="comic-panel p-5 rounded-2xl bg-white space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-[#18181B] pb-3">
+              <h2 className="font-display font-black text-lg uppercase tracking-tight text-[#18181B]">
+                What this trip costs
+              </h2>
+              <span className="text-[12px] font-bold text-[#52525B]">
+                Per person, {cost.currency}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {rateLines.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-bold text-[#18181B]">
+                    {row.label}
+                    <span className="block text-[12px] font-medium text-[#52525B]">
+                      {row.rate?.source === 'USER_INPUT'
+                        ? `Your numbers: ${fmtAmount(row.rate.perUnitMin)} to ${fmtAmount(row.rate.perUnitMax)} per ${row.rate.unit === 'PER_NIGHT' ? 'night' : 'day'}`
+                        : 'Not set, so not in the total'}
+                    </span>
+                  </span>
+                  <span className="font-black text-xs whitespace-nowrap">
+                    {row.rate?.source === 'USER_INPUT'
+                      ? `${fmtAmount(row.rate.perUnitMin * row.rate.units)} to ${fmtAmount(row.rate.perUnitMax * row.rate.units)} ${cost.currency}`
+                      : 'not counted'}
+                  </span>
+                </div>
+              ))}
+
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-bold text-[#18181B]">
+                  Entry fees with a published price
+                  <span className="block text-[12px] font-medium text-[#52525B]">
+                    {cost.entries.freeCount > 0
+                      ? `${cost.entries.freeCount} of your stops are free, from OpenStreetMap`
+                      : 'From OpenStreetMap where a venue publishes one'}
+                  </span>
+                </span>
+                <span className="font-black text-xs whitespace-nowrap">
+                  {cost.entries.knownMin === cost.entries.knownMax
+                    ? `${fmtAmount(cost.entries.knownMin)} ${cost.currency}`
+                    : `${fmtAmount(cost.entries.knownMin)} to ${fmtAmount(cost.entries.knownMax)} ${cost.currency}`}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-[#FAF8F5] border-2 border-[#18181B] rounded-lg p-3 flex items-baseline justify-between gap-3">
+              <span className="text-xs font-black uppercase tracking-wider text-[#18181B]">
+                {cost.isFloor ? 'Total we can price' : 'Total'}
+              </span>
+              <span className="font-black text-lg text-[#E11D48] whitespace-nowrap">
+                {fmtAmount(cost.totalMin)} to {fmtAmount(cost.totalMax)} {cost.currency}
+              </span>
+            </div>
+
+            {cost.notes?.length > 0 && (
+              <ul className="space-y-1.5">
+                {cost.notes.map((note: string, index: number) => (
+                  <li key={index} className="text-[12px] font-medium text-[#52525B] leading-relaxed">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         {/* Empty / in-progress state */}
         {(!itinerary || days.length === 0) && (
           <section className="comic-panel p-8 rounded-2xl bg-white text-center space-y-3">
@@ -739,6 +838,12 @@ export default function PublicTripPage() {
                         <h4 className="font-display font-black text-lg uppercase text-[#18181B] mt-0.5">
                           {a.title || a.name}
                         </h4>
+
+                        {entryFor(a.title || a.name) && (
+                          <span className="block text-[12px] font-bold text-[#18181B] mt-1">
+                            {entryLabel(entryFor(a.title || a.name))}
+                          </span>
+                        )}
 
                         {a.place?.formattedAddress && (
                           <p className="text-xs text-[#52525B] font-medium flex items-center gap-1 mt-1">

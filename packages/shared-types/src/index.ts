@@ -62,6 +62,17 @@ export interface TripRequirement {
   endDate: string; // ISO 8601 YYYY-MM-DD
   travelersCount: number;
   budgetTotal?: number;
+  /**
+   * What the traveller says they spend per person for one night or one day. These are their own
+   * numbers and are labelled as theirs. Absent means we do not know, so the line is left out of
+   * the total rather than guessed.
+   */
+  stayPerNightMin?: number;
+  stayPerNightMax?: number;
+  foodPerDayMin?: number;
+  foodPerDayMax?: number;
+  localTransitPerDayMin?: number;
+  localTransitPerDayMax?: number;
   currency?: string;
   travelStyles?: TravelStyle[];
   interests?: string[];
@@ -112,6 +123,75 @@ export interface PlaceOpeningHours {
   weekdayDescriptions?: string[];
 }
 
+/**
+ * Prices. The rule this product holds itself to: a number is only ever shown as a range,
+ * and only when a named source supports it. Never a point price, never a guess, and an
+ * unknown is displayed as unknown instead of defaulting to zero.
+ */
+export type PriceSource = 'OSM' | 'USER_INPUT';
+
+export interface EntryPriceModel {
+  /** FREE and CHARGED_KNOWN come from a real published tag. CHARGED_UNKNOWN means the venue
+   *  charges an entry fee but no amount is published, so the app must not invent one. */
+  status: 'FREE' | 'CHARGED_KNOWN' | 'CHARGED_UNKNOWN';
+  amountMin?: number;
+  amountMax?: number;
+  currency?: string;
+  source: PriceSource;
+  /** The raw value as published, so a traveller can check the claim themselves. */
+  sourceDetail?: string;
+}
+
+export interface DailyRateModel {
+  unit: 'PER_NIGHT' | 'PER_DAY';
+  units: number;
+  /** What the traveller told us they spend, per person, for one unit. */
+  perUnitMin?: number;
+  perUnitMax?: number;
+  /** NOT_SET means the traveller gave us no figure, so this line is excluded from the total. */
+  source: 'USER_INPUT' | 'NOT_SET';
+}
+
+export interface EntryCostLineModel {
+  activityId: string;
+  title: string;
+  status: 'FREE' | 'CHARGED_KNOWN' | 'CHARGED_UNKNOWN';
+  amountMin?: number;
+  amountMax?: number;
+  currency?: string;
+  sourceDetail?: string;
+  /** True when the venue prices in another currency, so converting would need an FX rate we do not have. */
+  excludedForeignCurrency?: boolean;
+}
+
+export interface TripCostModel {
+  currency: string;
+  basis: 'PER_PERSON';
+  nights: number;
+  days: number;
+  stay: DailyRateModel;
+  food: DailyRateModel;
+  localTransit: DailyRateModel;
+  entries: {
+    lines: EntryCostLineModel[];
+    knownMin: number;
+    knownMax: number;
+    freeCount: number;
+    unknownCount: number;
+    foreignCurrencyCount: number;
+  };
+  /** Sum of every line we could price. Both ends are real: low end and high end of what we know. */
+  totalMin: number;
+  totalMax: number;
+  /** True when some stops charge an entry fee with no published amount, or a rate is missing:
+   *  the total is then a floor rather than a ceiling, and the UI must say so. */
+  isFloor: boolean;
+  pricedStops: number;
+  unpricedStops: number;
+  /** Plain sentences explaining what the total does and does not include. */
+  notes: string[];
+}
+
 export interface PlaceModel {
   id: string; // Internal UUID or normalized placeId
   googlePlaceId: string;
@@ -127,6 +207,8 @@ export interface PlaceModel {
   openingHours?: PlaceOpeningHours;
   /** True when openingHours were derived from the venue category instead of a real source */
   openingHoursEstimated?: boolean;
+  /** Entry price from a real published source. Absent means nothing is published, not that it is free. */
+  price?: EntryPriceModel;
   websiteUrl?: string;
   phoneNumber?: string;
 }
@@ -220,6 +302,9 @@ export interface ItineraryModel {
   totalEstimatedCost?: number;
   currency?: string;
   days: ItineraryDayModel[];
+  /** What the trip costs, per person, as ranges. Built from published entry fees and the
+   *  traveller's own day rates. Absent when the plan carries no cost information at all. */
+  cost?: TripCostModel;
 }
 
 // Bookings

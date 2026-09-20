@@ -145,7 +145,10 @@ model Trip {
   startDate           DateTime @map("start_date")
   endDate             DateTime @map("end_date")
   travelersCount      Int      @default(1) @map("travelers_count")
-  budgetTotal         Float?   @map("budget_total")
+  budgetTotal      Float?   @map("budget_total")
+  /** The traveller's own day rates for stay, food and local transport, exactly as they typed them.
+   *  Null means they gave none, so the cost panel excludes those lines instead of guessing. */
+  costAssumptionsJson Json? @map("cost_assumptions_json")
   currency            String   @default("USD")
   status              String   @default("DRAFT") // DRAFT, GENERATING, READY, FAILED, ARCHIVED
   isLocked            Boolean  @default(false) @map("is_locked")
@@ -214,6 +217,9 @@ model Itinerary {
   title              String?
   summary            String?
   totalEstimatedCost Float?   @map("total_estimated_cost")
+  /** What the trip costs as ranges, built from published entry fees plus the traveller's own day
+   *  rates. Never a point price: see engine/trip-cost.ts for the rules this follows. */
+  costJson           Json?    @map("cost_json")
   currency           String   @default("USD")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
@@ -284,6 +290,9 @@ model Place {
   rating           Float?
   userRatingsTotal Int?     @map("user_ratings_total")
   priceLevel       Int?     @map("price_level")
+  /** Published entry price (free, or an amount, or charged with no amount) from OpenStreetMap.
+   *  Null means nothing is published, which is not the same as free. */
+  priceJson        Json?    @map("price_json")
   photoUrls        String[] @default([]) @map("photo_urls")
   openingHoursJson Json?    @map("opening_hours_json")
   types            String[] @default([])

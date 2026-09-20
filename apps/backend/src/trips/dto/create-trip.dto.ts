@@ -78,6 +78,52 @@ export class CreateTripRequestDto implements CreateTripRequest {
   @MaxLength(120)
   originCity?: string;
 
+  /**
+   * The traveller's own day rates, per person. Optional by design: when they are absent the cost
+   * panel says so and leaves those lines out of the total instead of inventing a figure.
+   */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  stayPerNightMin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  stayPerNightMax?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  foodPerDayMin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  foodPerDayMax?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  localTransitPerDayMin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100000)
+  localTransitPerDayMax?: number;
+
   @IsOptional()
   @IsString()
   @MaxLength(600)
