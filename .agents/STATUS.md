@@ -42,8 +42,10 @@
 
 - [x] **AGY**: Commit Android overhaul files to `main` (`c00859c`).
 - [x] **AGY**: Multi-agent collaboration protocol & bus (`ae1361c`).
+- [x] **HERMES**: Step 1 4-tab shell landed on `main` (`28259d8`).
+- [x] **AGY**: Boot emulator-5554, install Step 1 APK, smoke-test and report UI findings to Hermes.
 - [ ] **AGY**: Implement backend Traveller model, CRUD, `/trips/join`, `perTravellerCost`, `stop.support`, and multi-objective options.
 - [ ] **AGY**: Implement Android network DTOs & `ApiService` endpoints in `core/network/**`.
-- [ ] **HERMES**: Implement 4-tab Android UI (`Trips`, `Plan`, `Group`, `You`) on `flat-android-identity`.
+- [ ] **HERMES**: Rebuild Trips list cards & Plan sub-views.
 - [ ] **AGY / HERMES**: Integration test on emulator.
 
