@@ -107,6 +107,17 @@ data class ItineraryDayDto(
 )
 
 @Serializable
+data class PlaceDto(
+    val id: String = "",
+    val googlePlaceId: String? = null,
+    val name: String = "",
+    val formattedAddress: String = "",
+    val types: List<String> = emptyList(),
+    val location: GeoPointDto? = null,
+    val photoUrls: List<String> = emptyList()
+)
+
+@Serializable
 data class ActivityDto(
     val id: String,
     val placeId: String,
@@ -118,8 +129,13 @@ data class ActivityDto(
     val travelTimeFromPreviousMinutes: Int = 0,
     val estimatedCost: Double? = null,
     val currency: String? = null,
-    val reason: String? = null
-)
+    val reason: String? = null,
+    val place: PlaceDto? = null,
+    val photoUrls: List<String> = emptyList()
+) {
+    val effectivePhotoUrl: String?
+        get() = photoUrls.firstOrNull() ?: place?.photoUrls?.firstOrNull()
+}
 
 @Serializable
 data class ModifyItineraryRequestDto(
@@ -144,7 +160,9 @@ data class PlaceSearchResultDto(
     val name: String = "",
     val formattedAddress: String = "",
     val types: List<String> = emptyList(),
-    val location: GeoPointDto? = null
+    val location: GeoPointDto? = null,
+    val photoUrls: List<String> = emptyList(),
+    val description: String? = null
 )
 
 @Serializable

@@ -2,6 +2,7 @@ package com.trippin.feature.today
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -12,13 +13,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
 import com.trippin.core.network.ActivityDto
 import com.trippin.core.network.NetworkModule
@@ -34,29 +45,39 @@ fun TodayScreen(
     onNavigateBack: () -> Unit,
     onOpenMap: (String) -> Unit
 ) {
-    var tripDetails by remember { mutableStateOf<TripDetailsDto?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    val cached = remember(tripId) { TripCacheManager.getTrip(tripId) }
+    var tripDetails by remember { mutableStateOf(cached) }
+    var isLoading by remember { mutableStateOf(cached == null) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
 
-    val loadTripData = {
+    val loadTripData: (isManual: Boolean) -> Unit = { isManual ->
         scope.launch {
+            if (isManual) isRefreshing = true
+            else if (tripDetails == null) isLoading = true
+            loadError = null
             try {
-                isLoading = true
-                loadError = null
-                tripDetails = NetworkModule.apiService.getTripDetails(tripId)
+                val fetched = NetworkModule.apiService.getTripDetails(tripId)
+                tripDetails = fetched
+                TripCacheManager.putTrip(tripId, fetched)
             } catch (e: Exception) {
-                loadError = e.message ?: "Failed loading live today view"
+                if (tripDetails == null) {
+                    loadError = e.message ?: "Failed loading live today view"
+                }
             } finally {
                 isLoading = false
+                isRefreshing = false
             }
         }
     }
 
     LaunchedEffect(tripId) {
-        loadTripData()
+        loadTripData(false)
     }
 
     val days = tripDetails?.itinerary?.days ?: emptyList()
@@ -64,14 +85,12 @@ fun TodayScreen(
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     }
 
-    // Match today's dayIndex or default to Day 1
     val activeDay = remember(days, todayDateStr) {
         days.firstOrNull { it.date.startsWith(todayDateStr) } ?: days.firstOrNull()
     }
     val activities = activeDay?.activities ?: emptyList()
     val destinationName = tripDetails?.trip?.destination ?: "Destination"
 
-    // Current or upcoming activity based on current clock time
     val currentTimeMinutes = remember {
         val cal = Calendar.getInstance()
         cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
@@ -128,9 +147,6 @@ fun TodayScreen(
                     IconButton(onClick = { onOpenMap(tripId) }) {
                         Icon(Icons.Default.Map, contentDescription = "Route Map", tint = ComicBlack)
                     }
-                    IconButton(onClick = { loadTripData() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = ComicRed)
-                    }
                 }
             )
         }
@@ -152,7 +168,7 @@ fun TodayScreen(
                     )
                 }
             }
-        } else if (loadError != null) {
+        } else if (loadError != null && tripDetails == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -170,7 +186,7 @@ fun TodayScreen(
                     Text(loadError ?: "", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { loadTripData() },
+                        onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
                     ) {
                         Text("RECONNECT", fontWeight = FontWeight.Bold)
@@ -178,227 +194,25 @@ fun TodayScreen(
                 }
             }
         } else {
-            LazyColumn(
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { loadTripData(true) },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(ComicPaper),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .background(ComicPaper)
             ) {
-                // Today Field Header
-                item {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(2.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                        color = ComicPanel,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(ComicRed, RoundedCornerShape(2.dp))
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "DAY ${activeDay?.dayIndex ?: 1} - ${activeDay?.date ?: todayDateStr}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Black,
-                                        color = ComicBlack
-                                    )
-                                }
-                                if (!activeDay?.weatherSummary.isNullOrBlank()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = activeDay?.weatherSummary ?: "",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = ComicMuted
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                color = ComicYellow,
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
-                            ) {
-                                Text(
-                                    text = "LIVE",
-                                    color = ComicBlack,
-                                    fontWeight = FontWeight.Black,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Current or Next Stop Hero Card
-                if (currentStop != null) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Today Field Header
                     item {
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(2.5.dp, ComicBlack, RoundedCornerShape(12.dp)),
-                            color = ComicPanel,
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        color = ComicRed,
-                                        shape = RoundedCornerShape(4.dp),
-                                        modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
-                                    ) {
-                                        Text(
-                                            text = "CURRENT TARGET",
-                                            color = ComicPaper,
-                                            fontWeight = FontWeight.Black,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            fontSize = 11.sp
-                                        )
-                                    }
-
-                                    Text(
-                                        text = "${currentStop.startTime} - ${currentStop.endTime}",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 14.sp,
-                                        color = ComicBlack
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = currentStop.title,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 20.sp,
-                                    color = ComicBlack,
-                                    lineHeight = 24.sp
-                                )
-
-                                if (!currentStop.reason.isNullOrBlank()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = currentStop.reason,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = ComicBlack.copy(alpha = 0.8f)
-                                    )
-                                }
-
-                                if (currentStop.travelTimeFromPreviousMinutes > 0) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Surface(
-                                        color = ComicPaper,
-                                        shape = RoundedCornerShape(6.dp),
-                                        modifier = Modifier.border(1.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Directions,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp),
-                                                tint = ComicRed
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "${currentStop.travelTimeFromPreviousMinutes} min transit via OSRM",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = ComicBlack
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = {
-                                        val gmmIntentUri = Uri.parse("google.navigation:q=${Uri.encode(currentStop.title)}")
-                                        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply {
-                                            setPackage("com.google.android.apps.maps")
-                                        }
-                                        try {
-                                            context.startActivity(mapIntent)
-                                        } catch (e: Exception) {
-                                            val webMapsUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(currentStop.title)}")
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, webMapsUri))
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 48.dp)
-                                        .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                                    colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicPaper)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "NAVIGATE TO TARGET",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 14.sp,
-                                        letterSpacing = 0.5.sp,
-                                        color = ComicPaper
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Remaining Stops Section
-                item {
-                    Text(
-                        text = "UPCOMING SCHEDULE FOR TODAY",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 13.sp,
-                        letterSpacing = 1.sp,
-                        color = ComicMuted,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                if (remainingStops.isEmpty()) {
-                    item {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.5.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
-                            color = ComicPanel,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "All stops for today are completed or free roam mode is active.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = ComicMuted,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-                } else {
-                    itemsIndexed(remainingStops) { idx, act ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                                .border(2.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
                             color = ComicPanel,
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -409,37 +223,327 @@ fun TodayScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${act.startTime} - ${act.endTime}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = ComicRed
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = act.title,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 15.sp,
-                                        color = ComicBlack
-                                    )
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(ComicRed, RoundedCornerShape(2.dp))
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "DAY ${activeDay?.dayIndex ?: 1} - ${activeDay?.date ?: todayDateStr}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Black,
+                                            color = ComicBlack
+                                        )
+                                    }
+                                    if (!activeDay?.weatherSummary.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = activeDay.weatherSummary,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = ComicMuted
+                                        )
+                                    }
                                 }
 
-                                IconButton(
-                                    onClick = {
-                                        val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(act.title)}")
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
-                                    },
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                Surface(
+                                    color = ComicYellow,
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
                                 ) {
-                                    Icon(
-                                        Icons.Default.Directions,
-                                        contentDescription = "Navigate",
-                                        tint = ComicRed,
-                                        modifier = Modifier.size(20.dp)
+                                    Text(
+                                        text = "LIVE",
+                                        color = ComicBlack,
+                                        fontWeight = FontWeight.Black,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        fontSize = 11.sp
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // Current or Next Stop Hero Card with Photo
+                    if (currentStop != null) {
+                        item {
+                            val photoUrl = currentStop.effectivePhotoUrl
+                            var isVisited by remember {
+                                mutableStateOf(TripCacheManager.isActivityVisited(currentStop.id))
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(2.5.dp, ComicBlack, RoundedCornerShape(12.dp)),
+                                color = ComicPanel,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column {
+                                    if (!photoUrl.isNullOrBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(160.dp)
+                                        ) {
+                                            AsyncImage(
+                                                model = photoUrl,
+                                                contentDescription = currentStop.title,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                                            )
+                                            Surface(
+                                                color = ComicBlack.copy(alpha = 0.75f),
+                                                shape = RoundedCornerShape(4.dp),
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = "PHOTO: VERIFIED RECORD",
+                                                    color = ComicPaper,
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                        HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                                    }
+
+                                    Column(modifier = Modifier.padding(18.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                color = ComicRed,
+                                                shape = RoundedCornerShape(4.dp),
+                                                modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                            ) {
+                                                Text(
+                                                    text = "CURRENT TARGET",
+                                                    color = ComicPaper,
+                                                    fontWeight = FontWeight.Black,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            Text(
+                                                text = "${currentStop.startTime} - ${currentStop.endTime}",
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 14.sp,
+                                                color = ComicBlack
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = currentStop.title,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 20.sp,
+                                            color = ComicBlack,
+                                            lineHeight = 24.sp
+                                        )
+
+                                        if (!currentStop.reason.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = currentStop.reason,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = ComicBlack.copy(alpha = 0.8f)
+                                            )
+                                        }
+
+                                        val address = currentStop.place?.formattedAddress ?: ""
+                                        if (address.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = address,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = ComicMuted
+                                            )
+                                        }
+
+                                        if (currentStop.travelTimeFromPreviousMinutes > 0) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Surface(
+                                                color = ComicPaper,
+                                                shape = RoundedCornerShape(6.dp),
+                                                modifier = Modifier.border(1.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Directions,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp),
+                                                        tint = ComicRed
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "${currentStop.travelTimeFromPreviousMinutes} min transit via OSRM",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = ComicBlack
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (address.isNotBlank()) {
+                                                IconButton(
+                                                    onClick = {
+                                                        clipboardManager.setText(AnnotatedString(address))
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier
+                                                        .size(48.dp)
+                                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp))
+                                                ) {
+                                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy address")
+                                                }
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    val query = Uri.encode("${currentStop.title} $destinationName")
+                                                    val webMapsUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                                                    context.startActivity(Intent(Intent.ACTION_VIEW, webMapsUri))
+                                                },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(48.dp)
+                                                    .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                                                colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicPaper)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "NAVIGATE TO TARGET",
+                                                    fontWeight = FontWeight.Black,
+                                                    fontSize = 13.sp,
+                                                    color = ComicPaper
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Remaining Stops Section
+                    item {
+                        Text(
+                            text = "UPCOMING SCHEDULE FOR TODAY",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            letterSpacing = 1.sp,
+                            color = ComicMuted,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    if (remainingStops.isEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.5.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                                color = ComicPanel,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "All stops for today are completed or free roam mode is active.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = ComicMuted,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        itemsIndexed(remainingStops) { idx, act ->
+                            val photo = act.effectivePhotoUrl
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                                color = ComicPanel,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (!photo.isNullOrBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .border(1.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                        ) {
+                                            AsyncImage(
+                                                model = photo,
+                                                contentDescription = act.title,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "${act.startTime} - ${act.endTime}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ComicRed
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = act.title,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 15.sp,
+                                            color = ComicBlack
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(act.title)}")
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Directions,
+                                            contentDescription = "Navigate",
+                                            tint = ComicRed,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
