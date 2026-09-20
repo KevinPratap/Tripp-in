@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PlaceModel, GeoLocation } from '@trippin/shared-types';
 import { GooglePlacesProvider } from './google-places.provider';
+import { OSMPlacesProvider } from './osm-places.provider';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 
@@ -11,8 +12,40 @@ export class PlaceService {
   constructor(
     private readonly provider: GooglePlacesProvider,
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly osmProvider: OSMPlacesProvider
   ) {}
+
+  /**
+   * Fills in the published entry price for each venue, from OpenStreetMap, so every number the cost
+   * panel shows has a source behind it. A venue with no published price stays unpriced rather than
+   * being estimated, and the panel then says so out loud.
+   */
+  async attachEntryPrices(places: PlaceModel[], location?: GeoLocation): Promise<PlaceModel[]> {
+    if (!location || places.length === 0) return places;
+    try {
+      const prices = await this.osmProvider.entryPricesNear(location);
+      if (prices.size === 0) return places;
+      const enriched = places.map((place) => {
+        if (place.price) return place;
+        const key = OSMPlacesProvider.normaliseName(place.name || '');
+        if (!key) return place;
+        const exact = prices.get(key);
+        if (exact) return { ...place, price: exact };
+        // A planner or a model may write a longer or shorter version of the same venue name.
+        for (const [name, price] of prices) {
+          if (name.includes(key) || key.includes(name)) return { ...place, price };
+        }
+        return place;
+      });
+      // Keep the published prices with the venues so the next lookup does not re-fetch them.
+      this.persistPlaces(enriched).catch(() => undefined);
+      return enriched;
+    } catch (err) {
+      this.logger.warn(`Entry price enrichment skipped: ${(err as Error).message}`);
+      return places;
+    }
+  }
 
   async searchPlaces(query: string, location?: GeoLocation): Promise<PlaceModel[]> {
     const cacheKey = `places:search:${query}:${location?.latitude || 0},${location?.longitude || 0}`;

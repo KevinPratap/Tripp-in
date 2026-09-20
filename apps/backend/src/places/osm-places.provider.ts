@@ -1,11 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PlaceProvider, PlaceSearchParams } from './place.interface';
-import { PlaceModel, GeoLocation, PlaceOpeningHours } from '@trippin/shared-types';
+import { PlaceModel, GeoLocation, PlaceOpeningHours, EntryPriceModel } from '@trippin/shared-types';
 import { parseEntryPrice } from './entry-price';
 
 @Injectable()
 export class OSMPlacesProvider implements PlaceProvider {
   private readonly logger = new Logger(OSMPlacesProvider.name);
+
+  /** Entry prices are city-level data, so one lookup per city is cached for a few hours. */
+  private static readonly ENTRY_PRICE_TTL_MS = 6 * 60 * 60 * 1000;
+  private readonly entryPriceCache = new Map<
+    string,
+    { at: number; prices: Map<string, EntryPriceModel> }
+  >();
 
   // In-memory cache for details lookup by ID
   private readonly placeCache = new Map<string, PlaceModel>();
@@ -156,6 +163,79 @@ export class OSMPlacesProvider implements PlaceProvider {
       })
     );
     return filtered;
+  }
+
+  /**
+   * Published entry prices for the venues around a destination, straight from OpenStreetMap.
+   *
+   * This exists because the venue search cannot supply them: attraction and museum lookups go
+   * through a place cache that predates price data, and parks and food stops come from a different
+   * source that carries no price tags at all. One Overpass query per city, asking only for the
+   * elements that actually publish a fee or a charge, is cheaper and more complete than pricing
+   * venue by venue.
+   */
+  async entryPricesNear(location: GeoLocation): Promise<Map<string, EntryPriceModel>> {
+    const key = `${location.latitude.toFixed(2)}:${location.longitude.toFixed(2)}`;
+    const cached = this.entryPriceCache.get(key);
+    if (cached && Date.now() - cached.at < OSMPlacesProvider.ENTRY_PRICE_TTL_MS) {
+      return cached.prices;
+    }
+
+    const d = 0.18;
+    const bbox = `${(location.latitude - d).toFixed(3)},${(location.longitude - d).toFixed(3)},${(location.latitude + d).toFixed(3)},${(location.longitude + d).toFixed(3)}`;
+    const query = `[out:json][timeout:20];
+(
+  node["tourism"~"museum|attraction|gallery|zoo|viewpoint"]["fee"](${bbox});
+  way["tourism"~"museum|attraction|gallery|zoo|viewpoint"]["fee"](${bbox});
+  node["tourism"~"museum|attraction|gallery|zoo|viewpoint"]["charge"](${bbox});
+  way["tourism"~"museum|attraction|gallery|zoo|viewpoint"]["charge"](${bbox});
+  node["historic"="monument"]["fee"](${bbox});
+  way["historic"="monument"]["fee"](${bbox});
+);
+out tags 800;`;
+
+    const prices = new Map<string, EntryPriceModel>();
+    try {
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'TrippinAI-Production/1.0 (contact@trippin.ai)'
+        },
+        body: new URLSearchParams({ data: query }).toString(),
+        signal: AbortSignal.timeout(25000)
+      });
+      if (!res.ok) {
+        this.logger.warn(`Entry price lookup returned HTTP ${res.status}. Counting stops as unpriced.`);
+        return prices;
+      }
+      const body: any = await res.json();
+      for (const element of body?.elements || []) {
+        const tags = element?.tags || {};
+        const name = tags['name:en'] || tags.name;
+        if (!name) continue;
+        const price = parseEntryPrice(tags);
+        if (!price) continue;
+        prices.set(OSMPlacesProvider.normaliseName(String(name)), price);
+      }
+      this.entryPriceCache.set(key, { at: Date.now(), prices });
+      this.logger.log(`Entry prices resolved for ${prices.size} venues near ${key}.`);
+    } catch (err) {
+      // No price data is a valid answer: the cost panel then says the stops are unpriced.
+      this.logger.warn(`Entry price lookup failed: ${(err as Error).message}`);
+    }
+    return prices;
+  }
+
+  /** Matching a planner-written venue name to a published price needs a forgiving comparison. */
+  static normaliseName(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private async searchNominatim(query: string, location?: GeoLocation): Promise<PlaceModel[]> {

@@ -157,8 +157,14 @@ export class AIPlannerService {
       );
     }
     onStage?.('venues', 'Resolving venues and opening hours from OpenStreetMap...');
-    const candidatePlaces = await this.placeService.searchPlaces(
+    let candidatePlaces = await this.placeService.searchPlaces(
       `${requirements.destination} attractions landmarks`,
+      destinationLocation || undefined
+    );
+    // Attach published entry fees before scheduling, so the cost panel can price the stops it knows
+    // and say plainly which ones it cannot.
+    candidatePlaces = await this.placeService.attachEntryPrices(
+      candidatePlaces,
       destinationLocation || undefined
     );
     // Carry the anchor into validation so a venue on another continent cannot pass.
