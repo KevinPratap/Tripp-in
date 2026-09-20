@@ -623,6 +623,7 @@ function PlannerContent() {
               statusMessage={statusMessage}
               progressPercent={progressPercent}
               isGenerating={isGenerating}
+              destination={destination}
             />
           )}
 
@@ -811,6 +812,7 @@ function PlannerContent() {
               statusMessage={statusMessage}
               progressPercent={progressPercent}
               errorMsg={errorMsg}
+              destination={destination}
             />
           )}
         </section>

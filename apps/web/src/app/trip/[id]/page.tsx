@@ -445,7 +445,7 @@ export default function PublicTripPage() {
         )}
 
         {/* Ticket Header Banner */}
-        <section className="comic-panel p-6 sm:p-8 rounded-2xl bg-white space-y-4 relative overflow-hidden">
+        <section className="comic-panel p-6 sm:p-8 rounded-2xl bg-white space-y-4 relative overflow-hidden motion-arrive">
           <div className="absolute top-0 right-0 w-48 h-48 comic-halftone opacity-30 pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-[#18181B] pb-6 relative z-10">
@@ -523,6 +523,29 @@ export default function PublicTripPage() {
               <span className="text-[12px] font-extrabold uppercase tracking-widest text-[#52525B]">
                 ID: {tripData.id.slice(0, 8)}...
               </span>
+
+              {/*
+                The trip stamp. It is built from the trip's own fields (destination, dates, the day
+                the plan was made) so it can never claim something the plan did not do, and it carries
+                the same settle every time the plan is opened. This is the thing worth screenshotting.
+              */}
+              {itinerary && (
+                <span className="inline-flex motion-stamp" key={itinerary.id || 'stamp'}>
+                  <span className="inline-flex flex-col items-start gap-0.5 border-2 border-[#E11D48] text-[#E11D48] px-3 py-2 rounded-sm rotate-[-1.5deg] bg-white">
+                    <span className="text-[13px] font-black uppercase tracking-widest">
+                      {String(tripData.destinationName || 'Trip').split(',')[0]}
+                    </span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider">
+                      {formatDateRange(tripData.startDate, tripData.endDate)}
+                    </span>
+                    {itinerary.createdAt && (
+                      <span className="text-[12px] font-bold uppercase tracking-wider text-[#52525B]">
+                        Planned {new Date(itinerary.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -591,7 +614,7 @@ export default function PublicTripPage() {
         {/* What this trip costs. Ranges only, each line either the traveller's own number or a
             published source, and anything we cannot price is said out loud rather than counted as zero. */}
         {cost && (
-          <section className="comic-panel p-5 rounded-2xl bg-white space-y-4">
+          <section className="comic-panel p-5 rounded-2xl bg-white space-y-4 motion-arrive">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-[#18181B] pb-3">
               <h2 className="font-display font-black text-lg uppercase tracking-tight text-[#18181B]">
                 What this trip costs
@@ -641,8 +664,11 @@ export default function PublicTripPage() {
               <span className="text-xs font-black uppercase tracking-wider text-[#18181B]">
                 {cost.isFloor ? 'Total we can price' : 'Total'}
               </span>
-              <span className="font-black text-lg text-[#E11D48] whitespace-nowrap">
-                {fmtAmount(cost.totalMin)} to {fmtAmount(cost.totalMax)} {cost.currency}
+              <span className="flex flex-col items-end">
+                <span className="font-black text-lg text-[#E11D48] whitespace-nowrap">
+                  {fmtAmount(cost.totalMin)} to {fmtAmount(cost.totalMax)} {cost.currency}
+                </span>
+                <span className="motion-underline block w-full h-0.5 bg-[#E11D48] mt-1" />
               </span>
             </div>
 

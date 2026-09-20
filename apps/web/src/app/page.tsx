@@ -255,10 +255,11 @@ export default function WebHomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredRuns.map((r) => (
+            {featuredRuns.map((r, index) => (
               <article
                 key={r.code}
-                className="comic-panel rounded-xl overflow-hidden bg-white group hover:-translate-y-1 transition-transform duration-150 flex flex-col justify-between"
+                className="comic-panel rounded-xl overflow-hidden bg-white group hover:-translate-y-1 transition-transform duration-150 flex flex-col justify-between motion-arrive"
+                style={{ animationDelay: `${index * 60}ms` }}
               >
                 <div>
                   {/* Schematic Route Header Panel (No stock photos) */}
