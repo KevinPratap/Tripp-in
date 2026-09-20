@@ -123,6 +123,20 @@ data class PlaceDto(
     val photoUrls: List<String> = emptyList()
 )
 
+/**
+ * A single provenance receipt attached to an activity by the deterministic validator.
+ * Each activity carries one check per verification dimension (geographic containment,
+ * operating hours, transit feasibility, schedule buffer, weather forecast).
+ */
+@Serializable
+data class VerificationCheckDto(
+    val code: String,
+    val label: String,
+    val source: String,
+    val status: String,
+    val details: String? = null
+)
+
 @Serializable
 data class ActivityDto(
     val id: String,
@@ -138,6 +152,7 @@ data class ActivityDto(
     val reason: String? = null,
     val place: PlaceDto? = null,
     val photoUrls: List<String> = emptyList(),
+    val checks: List<VerificationCheckDto> = emptyList(),
     val support: StopSupportDto? = null
 ) {
     val effectivePhotoUrl: String?
@@ -274,3 +289,78 @@ data class JoinTripResponseDto(
     val traveller: TravellerDto
 )
 
+
+@Serializable
+data class RequestMagicLinkDto(
+    val email: String
+)
+
+/**
+ * What POST /api/v1/auth/request-link answers with.
+ *
+ * `delivery` says how the link was delivered and this build renders it as it is: no mail provider is
+ * configured on the server, so the answer is "console" and the link is in the log. The app states
+ * that plainly instead of claiming an email was sent.
+ */
+@Serializable
+data class RequestedMagicLinkDto(
+    val email: String,
+    val expiresAt: String,
+    val delivery: String,
+    val loginUrl: String
+)
+
+@Serializable
+data class VerifyMagicLinkDto(
+    val token: String,
+    val email: String? = null,
+    val guestSessionId: String? = null
+)
+
+@Serializable
+data class SignedInUserDto(
+    val id: String,
+    val email: String,
+    val displayName: String
+)
+
+/** The session token is the credential the app sends as Authorization: Bearer. */
+@Serializable
+data class VerifiedSessionDto(
+    val sessionToken: String,
+    val expiresAt: String,
+    val user: SignedInUserDto,
+    val migratedTrips: Int = 0
+)
+
+/** A public link to one trip, created on demand by its owner. */
+@Serializable
+data class ShareLinkDto(
+    val token: String,
+    val url: String,
+    val createdAt: String
+)
+
+/**
+ * One trip as GET /api/v1/me/trips summarises it. A different shape from TripSummaryDto on purpose:
+ * this is the account's own list, not the home feed.
+ */
+@Serializable
+data class SavedTripSummaryDto(
+    val id: String,
+    val destinationName: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val status: String = "",
+    val itineraryStatus: String? = null,
+    val dayCount: Int = 0,
+    val stopCount: Int = 0,
+    val currency: String? = null,
+    val totalEstimatedCost: Double? = null,
+    val shareToken: String? = null
+)
+
+@Serializable
+data class MyTripsDto(
+    val trips: List<SavedTripSummaryDto> = emptyList()
+)
