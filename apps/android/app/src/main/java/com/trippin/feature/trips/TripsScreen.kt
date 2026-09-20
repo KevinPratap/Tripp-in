@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
@@ -816,7 +815,7 @@ private fun TripRow(
             Column(modifier = Modifier.width(52.dp)) {
                 Text(
                     text = start?.dayOfMonth?.toString() ?: "--",
-                    style = TrippinType.Numeric.copy(fontSize = 24.sp),
+                    style = TrippinType.Numeric,
                     color = Ink
                 )
                 Text(
