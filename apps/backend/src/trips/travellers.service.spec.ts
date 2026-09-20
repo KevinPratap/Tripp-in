@@ -158,13 +158,23 @@ describe('TravellersService', () => {
           dislikes: [],
           pace: null,
           joinedAt: new Date().toISOString()
+        },
+        {
+          id: 't-4',
+          name: 'Over Max Only',
+          budgetCap: 400, // 350 min <= 400 cap < 450 max => overCap true
+          interests: [],
+          dislikes: [],
+          pace: null,
+          joinedAt: new Date().toISOString()
         }
       ];
 
       const split = service.computePerTravellerCost(travellers, mockCost);
-      expect(split[0].overCap).toBe(false);
-      expect(split[1].overCap).toBe(true);
-      expect(split[2].overCap).toBe(false);
+      expect(split[0].overCap).toBe(false); // 500 cap >= 450 max
+      expect(split[1].overCap).toBe(true);  // 300 cap < 350 min & 450 max
+      expect(split[2].overCap).toBe(false); // null cap
+      expect(split[3].overCap).toBe(true);  // 400 cap < 450 max (surfaces range conflict)
     });
   });
 

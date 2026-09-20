@@ -272,7 +272,9 @@ export class TravellersService {
   }
 
   /**
-   * Rule 3: overCap is true only when the computed share exceeds that traveller's own budgetCap.
+   * Rule 3: overCap is true when the computed share exceeds that traveller's own budgetCap.
+   * Evaluated against shareMax (the high end of the projected range), so that if a trip's
+   * upper cost bound risks exceeding a traveller's cap, the conflict is surfaced to the group.
    *
    * Cost Basis Invariant:
    * TripCostModel is computed strictly on a 'PER_PERSON' basis (day rates for stay, food,
@@ -295,7 +297,7 @@ export class TravellersService {
       travellerId: t.id,
       shareMin,
       shareMax,
-      overCap: t.budgetCap !== null && t.budgetCap !== undefined && shareMin > t.budgetCap
+      overCap: t.budgetCap !== null && t.budgetCap !== undefined && shareMax > t.budgetCap
     }));
   }
 
