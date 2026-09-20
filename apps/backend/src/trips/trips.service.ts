@@ -5,6 +5,7 @@ import { AIPlannerService } from '../ai/ai-planner.service';
 import { ItinerariesService } from '../itineraries/itineraries.service';
 import { ItineraryValidator } from '../engine/itinerary-validator';
 import { PlaceService } from '../places/places.service';
+import { cityNameOnly, cityPhotoMap, cityPhotoUrl } from '../places/city-photos';
 import {
   CreateTripRequestDto,
   CreateTripResponse,
@@ -373,12 +374,7 @@ export class TripsService {
       endDate: trip.endDate.toISOString().split('T')[0],
       travelersCount: Math.max(trip.travelersCount, travellers.length),
       status: trip.status as TripStatus,
-      heroImageUrl:
-        trip.heroImageUrl &&
-        (!trip.heroImageUrl.includes('photo-1502602898657') ||
-          trip.destinationName.toLowerCase().includes('paris'))
-          ? trip.heroImageUrl
-          : undefined,
+      heroImageUrl: (await cityPhotoUrl(trip.destinationName)) || undefined,
       totalActivitiesCount: itinerary
         ? itinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
         : 0,
@@ -802,6 +798,10 @@ export class TripsService {
         }
       });
 
+      // One lookup per distinct city, before the summaries are built, so the cost is per city
+      // rather than per trip, and a city that has no photograph is not looked up twice.
+      const cityPhotos = await cityPhotoMap(trips.map((t) => t.destinationName));
+
       return Promise.all(
         trips.map(async (t) => {
           const currentItinerary = t.itineraries[0];
@@ -838,12 +838,9 @@ export class TripsService {
             status: t.status as TripStatus,
             isLocked: Boolean(t.isLocked),
             lockedAt: t.lockedAt ? t.lockedAt.toISOString() : undefined,
-            heroImageUrl:
-              t.heroImageUrl &&
-              (!t.heroImageUrl.includes('photo-1502602898657') ||
-                t.destinationName.toLowerCase().includes('paris'))
-                ? t.heroImageUrl
-                : undefined,
+            // A real photograph of the destination, from the destination's own record. Nothing is
+            // substituted when there is none: the field is absent and the UI shows the city's initials.
+            heroImageUrl: cityPhotos.get(cityNameOnly(t.destinationName)) || undefined,
             totalActivitiesCount: activityCount,
             currentVersion: currentItinerary?.version || 1,
             travellers,

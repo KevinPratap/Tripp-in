@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { cityNameOnly, cityPhotoMap } from '../places/city-photos';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { DestinationCardDto } from '@trippin/api-contracts';
 
@@ -14,38 +15,28 @@ export class DestinationsService {
       });
 
       if (destinations.length > 0) {
-        const cityImageFallback = (name: string): string => {
-          const lower = name.toLowerCase();
-          if (lower.includes('tokyo')) return 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800';
-          if (lower.includes('kyoto')) return 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800';
-          if (lower.includes('rome')) return 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800';
-          if (lower.includes('lisbon')) return 'https://images.unsplash.com/photo-1588614959060-4d144f28b207?w=800';
-          if (lower.includes('london')) return 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800';
-          if (lower.includes('paris')) return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800';
-          return '';
-        };
 
-        return destinations.map((d) => ({
+        return this.attachRealPhotographs(destinations.map((d) => ({
           id: d.id,
           name: d.name,
           country: d.country,
-          imageUrl: d.imageUrl || cityImageFallback(d.name),
+          imageUrl: '',
           description: d.description || '',
           averageRating: 0,
           tags: ['Iconic', 'Culture', 'Popular']
-        }));
+        })));
       }
     } catch {
       // Fallback if DB offline
     }
 
-    // Default verified destinations with authentic imagery and verified route tags
-    return [
+    // The same six places when the table is empty, with their photographs resolved the same way.
+    return this.attachRealPhotographs([
       {
         id: '10000000-0000-0000-0000-000000000001',
         name: 'Paris',
         country: 'France',
-        imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+        imageUrl: '',
         description: 'The City of Light, world capital of art, gastronomy and culture.',
         averageRating: 0,
         tags: ['Museums', 'Cuisine', 'Walkable']
@@ -54,7 +45,7 @@ export class DestinationsService {
         id: '10000000-0000-0000-0000-000000000002',
         name: 'Tokyo',
         country: 'Japan',
-        imageUrl: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800',
+        imageUrl: '',
         description: 'Skyscrapers meet historic temples, gardens and street food circuits.',
         averageRating: 0,
         tags: ['Transit', 'Food', 'Culture']
@@ -63,7 +54,7 @@ export class DestinationsService {
         id: '10000000-0000-0000-0000-000000000003',
         name: 'Rome',
         country: 'Italy',
-        imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
+        imageUrl: '',
         description: 'Open-air history across millennia of art, architecture and piazzas.',
         averageRating: 0,
         tags: ['History', 'Architecture', 'Ancient']
@@ -72,7 +63,7 @@ export class DestinationsService {
         id: '10000000-0000-0000-0000-000000000004',
         name: 'Kyoto',
         country: 'Japan',
-        imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',
+        imageUrl: '',
         description: 'Centuries of preserved wooden temples, bamboo groves and shrines.',
         averageRating: 0,
         tags: ['Temples', 'Nature', 'Heritage']
@@ -81,7 +72,7 @@ export class DestinationsService {
         id: '10000000-0000-0000-0000-000000000005',
         name: 'Lisbon',
         country: 'Portugal',
-        imageUrl: 'https://images.unsplash.com/photo-1588614959060-4d144f28b207?w=800',
+        imageUrl: '',
         description: 'Sunlit coastal capital of pastel hills, historic trams and viewpoints.',
         averageRating: 0,
         tags: ['Coastal', 'Viewpoints', 'Hills']
@@ -90,12 +81,29 @@ export class DestinationsService {
         id: '10000000-0000-0000-0000-000000000006',
         name: 'London',
         country: 'United Kingdom',
-        imageUrl: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
+        imageUrl: '',
         description: 'Global cultural hub of world-class museums, theatre and royal parks.',
         averageRating: 0,
         tags: ['Museums', 'Parks', 'Theatre']
       }
-    ];
+    ]);
+  }
+
+  /**
+   * Replaces stock destination imagery with a real photograph of each place.
+   *
+   * Every card in this file used to carry a photo-site URL, and six of them were hardcoded and could
+   * never be right: the same picture stood in for whatever the destination happened to be. A card may
+   * only show a photograph of the place it names, so this resolves each one from its own record and
+   * sends an empty string when there is none. The UI renders the destination's initials in that case,
+   * which is a deliberate mark rather than a broken image or somebody else's city.
+   */
+  private async attachRealPhotographs(cards: DestinationCardDto[]): Promise<DestinationCardDto[]> {
+    const photos = await cityPhotoMap(cards.map((card) => card.name));
+    return cards.map((card) => ({
+      ...card,
+      imageUrl: photos.get(cityNameOnly(card.name)) || ''
+    }));
   }
 
   async getRecommendedDestinations(): Promise<DestinationCardDto[]> {
