@@ -456,7 +456,15 @@ fun ItineraryScreen(
                             }
 
                             LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
+                                // The floating REFINE SCHEDULE button floats over the bottom of this
+                                // list, so the list needs to clear it. At 16dp all round the last
+                                // stop card sat underneath the button and its address was unreadable.
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 16.dp,
+                                    bottom = 96.dp
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
