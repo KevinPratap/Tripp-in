@@ -102,8 +102,61 @@ export interface TripSummary {
   heroImageUrl?: string;
   totalActivitiesCount: number;
   currentVersion: number;
+  travellers?: TravellerDto[];
+  perTravellerCost?: PerTravellerCostDto[];
+  options?: TripOptionDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Travellers & Group Collaboration (Frozen Contract)
+export type TravellerInterest =
+  | 'culture'
+  | 'food'
+  | 'nightlife'
+  | 'nature'
+  | 'adventure'
+  | 'shopping'
+  | 'museums'
+  | 'history'
+  | 'photography'
+  | 'wellness'
+  | 'relaxation'
+  | 'landmark';
+
+export type TravellerPace = 'relaxed' | 'balanced' | 'packed';
+
+export interface TravellerDto {
+  id: string;
+  name: string;
+  budgetCap: number | null; // this person's cap, trip currency
+  interests: string[]; // vocabulary above
+  dislikes: string[];
+  pace: TravellerPace | null;
+  joinedAt: string; // ISO
+}
+
+export interface PerTravellerCostDto {
+  travellerId: string;
+  shareMin: number;
+  shareMax: number;
+  overCap: boolean;
+}
+
+export interface TripOptionDto {
+  id: string;
+  objective: 'cheapest' | 'balanced' | 'experience';
+  totalMin: number;
+  totalMax: number;
+  currency: string;
+  isFloor: boolean;
+  headline: string;
+}
+
+export interface StopSupportDto {
+  want: number;
+  total: number;
+  against: string[];
 }
 
 // Places & Locations
@@ -277,6 +330,7 @@ export interface ActivityModel {
   bookingUrl?: string;
   place?: PlaceModel;
   checks?: VerificationCheck[];
+  support?: StopSupportDto;
 }
 
 export interface ItineraryDayModel {

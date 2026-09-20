@@ -41,4 +41,29 @@ interface ApiService {
 
     @DELETE("api/v1/trips/{id}")
     suspend fun deleteTrip(@Path("id") tripId: String): DeleteResponseDto
+
+    @GET("api/v1/trips/{id}/travellers")
+    suspend fun getTravellers(@Path("id") tripId: String): List<TravellerDto>
+
+    @POST("api/v1/trips/{id}/travellers")
+    suspend fun addTraveller(
+        @Path("id") tripId: String,
+        @Body body: CreateTravellerRequestDto
+    ): TravellerDto
+
+    @PATCH("api/v1/trips/{id}/travellers/{tid}")
+    suspend fun updateTraveller(
+        @Path("id") tripId: String,
+        @Path("tid") travellerId: String,
+        @Body body: UpdateTravellerRequestDto
+    ): TravellerDto
+
+    @DELETE("api/v1/trips/{id}/travellers/{tid}")
+    suspend fun deleteTraveller(
+        @Path("id") tripId: String,
+        @Path("tid") travellerId: String
+    ): retrofit2.Response<Unit>
+
+    @POST("api/v1/trips/join")
+    suspend fun joinTrip(@Body body: JoinTripRequestDto): JoinTripResponseDto
 }

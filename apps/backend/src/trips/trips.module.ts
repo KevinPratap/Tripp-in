@@ -12,12 +12,14 @@ import { ConfigService } from '@nestjs/config';
 
 import { CollabController } from './collab.controller';
 import { CollabService } from './collab.service';
+import { TravellersController } from './travellers.controller';
+import { TravellersService } from './travellers.service';
 import { RedisService } from '../common/redis/redis.service';
 
 @Module({
   imports: [AIModule, ItinerariesModule, DestinationsModule, EngineModule, PlacesModule],
-  controllers: [TripsController, HomeController, CollabController],
-  providers: [TripsService, CollabService, PrismaService, RedisService, ConfigService],
-  exports: [TripsService, CollabService]
+  controllers: [TripsController, HomeController, CollabController, TravellersController],
+  providers: [TripsService, CollabService, TravellersService, PrismaService, RedisService, ConfigService],
+  exports: [TripsService, CollabService, TravellersService]
 })
 export class TripsModule {}

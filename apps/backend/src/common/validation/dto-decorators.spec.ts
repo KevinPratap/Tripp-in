@@ -14,6 +14,11 @@ import { CreateTripRequestDto } from '../../trips/dto/create-trip.dto';
 import { RequestMagicLinkDto } from '../../auth/dto/request-link.dto';
 import { VerifyMagicLinkDto } from '../../auth/dto/verify-link.dto';
 import { ReplanTripDto } from '../../trips/dto/replan-trip.dto';
+import {
+  CreateTravellerDto,
+  UpdateTravellerDto,
+  JoinTripDto
+} from '../../trips/dto/traveller.dto';
 
 const DTO_FIELDS: Array<[any, string[]]> = [
   [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']],
@@ -37,7 +42,10 @@ const DTO_FIELDS: Array<[any, string[]]> = [
       'notes'
     ]
   ],
-  [ReplanTripDto, ['intent', 'freeText', 'targetActivityId', 'dayIndex']]
+  [ReplanTripDto, ['intent', 'freeText', 'targetActivityId', 'dayIndex']],
+  [CreateTravellerDto, ['name', 'budgetCap', 'interests', 'dislikes', 'pace']],
+  [UpdateTravellerDto, ['name', 'budgetCap', 'interests', 'dislikes', 'pace']],
+  [JoinTripDto, ['token', 'name', 'budgetCap', 'interests', 'dislikes', 'pace']]
 ];
 
 describe('Request DTO validation metadata', () => {

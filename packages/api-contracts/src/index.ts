@@ -5,7 +5,8 @@ import {
   TripRequirement,
   ItineraryModel,
   PlaceModel,
-  WeatherDayForecast
+  WeatherDayForecast,
+  TravellerDto
 } from '@trippin/shared-types';
 import { ItineraryV1 } from '@trippin/itinerary-schema';
 
@@ -159,4 +160,11 @@ export interface SDUIScreenResponse {
   title: string;
   sections: SDUISection[];
   metadata?: Record<string, any>;
+}
+
+export * from '@trippin/shared-types';
+
+export interface JoinTripResponse {
+  tripId: string;
+  traveller: TravellerDto;
 }

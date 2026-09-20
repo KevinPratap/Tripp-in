@@ -31,7 +31,10 @@ data class TripSummaryDto(
     val currentVersion: Int = 1,
     val isLocked: Boolean = false,
     val lockedAt: String? = null,
-    val departureCity: String? = null
+    val departureCity: String? = null,
+    val travellers: List<TravellerDto> = emptyList(),
+    val perTravellerCost: List<PerTravellerCostDto> = emptyList(),
+    val options: List<TripOptionDto> = emptyList()
 )
 
 @Serializable
@@ -131,7 +134,8 @@ data class ActivityDto(
     val currency: String? = null,
     val reason: String? = null,
     val place: PlaceDto? = null,
-    val photoUrls: List<String> = emptyList()
+    val photoUrls: List<String> = emptyList(),
+    val support: StopSupportDto? = null
 ) {
     val effectivePhotoUrl: String?
         get() = photoUrls.firstOrNull() ?: place?.photoUrls?.firstOrNull()
@@ -195,3 +199,75 @@ data class DeleteResponseDto(
     val success: Boolean = true,
     val id: String? = null
 )
+
+@Serializable
+data class TravellerDto(
+    val id: String,
+    val name: String,
+    val budgetCap: Double? = null,
+    val interests: List<String> = emptyList(),
+    val dislikes: List<String> = emptyList(),
+    val pace: String? = null,
+    val joinedAt: String
+)
+
+@Serializable
+data class PerTravellerCostDto(
+    val travellerId: String,
+    val shareMin: Double,
+    val shareMax: Double,
+    val overCap: Boolean
+)
+
+@Serializable
+data class TripOptionDto(
+    val id: String,
+    val objective: String,
+    val totalMin: Double,
+    val totalMax: Double,
+    val currency: String,
+    val isFloor: Boolean,
+    val headline: String
+)
+
+@Serializable
+data class StopSupportDto(
+    val want: Int,
+    val total: Int,
+    val against: List<String> = emptyList()
+)
+
+@Serializable
+data class CreateTravellerRequestDto(
+    val name: String,
+    val budgetCap: Double? = null,
+    val interests: List<String> = emptyList(),
+    val dislikes: List<String> = emptyList(),
+    val pace: String? = null
+)
+
+@Serializable
+data class UpdateTravellerRequestDto(
+    val name: String? = null,
+    val budgetCap: Double? = null,
+    val interests: List<String>? = null,
+    val dislikes: List<String>? = null,
+    val pace: String? = null
+)
+
+@Serializable
+data class JoinTripRequestDto(
+    val token: String,
+    val name: String,
+    val budgetCap: Double? = null,
+    val interests: List<String> = emptyList(),
+    val dislikes: List<String> = emptyList(),
+    val pace: String? = null
+)
+
+@Serializable
+data class JoinTripResponseDto(
+    val tripId: String,
+    val traveller: TravellerDto
+)
+

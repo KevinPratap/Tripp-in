@@ -18,6 +18,7 @@ import { ItineraryV1 } from '@trippin/itinerary-schema';
 import { DestinationsService } from '../destinations/destinations.service';
 import { GenerationStageReporter } from '../common/generation/generation-stage';
 import { ReplanTripDto } from './dto/replan-trip.dto';
+import { TravellersService } from './travellers.service';
 
 @Injectable()
 export class TripsService {
@@ -52,7 +53,8 @@ export class TripsService {
     private readonly destinationsService: DestinationsService,
     private readonly validator: ItineraryValidator,
     private readonly placeService: PlaceService,
-    private readonly config?: ConfigService
+    private readonly config?: ConfigService,
+    private readonly travellersService?: TravellersService
   ) {}
 
   /**
@@ -314,6 +316,26 @@ export class TripsService {
       ? await this.itinerariesService.getItineraryByVersion(tripId, version)
       : await this.itinerariesService.getLatestItinerary(tripId);
 
+    const travellers = this.travellersService
+      ? await this.travellersService.getTravellers(tripId)
+      : [];
+
+    const perTravellerCost = this.travellersService
+      ? this.travellersService.computePerTravellerCost(travellers, itinerary?.cost)
+      : undefined;
+
+    const options = this.travellersService
+      ? this.travellersService.computePlanOptions(tripId, trip.currency, itinerary?.cost)
+      : undefined;
+
+    if (itinerary && this.travellersService && travellers.length > 0) {
+      for (const day of itinerary.days) {
+        for (const act of day.activities) {
+          act.support = this.travellersService.computeStopSupport(act, travellers);
+        }
+      }
+    }
+
     const tripSummary: TripSummary = {
       id: trip.id,
       userId: trip.userId,
@@ -322,7 +344,7 @@ export class TripsService {
       currency: trip.currency,
       startDate: trip.startDate.toISOString().split('T')[0],
       endDate: trip.endDate.toISOString().split('T')[0],
-      travelersCount: trip.travelersCount,
+      travelersCount: Math.max(trip.travelersCount, travellers.length),
       status: trip.status as TripStatus,
       heroImageUrl: trip.heroImageUrl || undefined,
       totalActivitiesCount: itinerary
@@ -331,6 +353,9 @@ export class TripsService {
       currentVersion: itinerary?.version || 1,
       isLocked: Boolean(trip.isLocked || itinerary?.isLocked),
       lockedAt: trip.lockedAt ? trip.lockedAt.toISOString() : (itinerary?.lockedAt ? itinerary.lockedAt : undefined),
+      travellers,
+      perTravellerCost,
+      options,
       createdAt: trip.createdAt?.toISOString ? trip.createdAt.toISOString() : new Date().toISOString(),
       updatedAt: trip.updatedAt?.toISOString ? trip.updatedAt.toISOString() : new Date().toISOString()
     };
@@ -735,29 +760,36 @@ export class TripsService {
         }
       });
 
-      return trips.map((t) => {
-        const currentItinerary = t.itineraries[0];
-        const activityCount = currentItinerary
-          ? currentItinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
-          : 0;
+      return Promise.all(
+        trips.map(async (t) => {
+          const currentItinerary = t.itineraries[0];
+          const activityCount = currentItinerary
+            ? currentItinerary.days.reduce((acc, d) => acc + d.activities.length, 0)
+            : 0;
 
-        return {
-          id: t.id,
-          userId: t.userId,
-          destination: t.destinationName,
-          startDate: t.startDate.toISOString().split('T')[0],
-          endDate: t.endDate.toISOString().split('T')[0],
-          travelersCount: t.travelersCount,
-          status: t.status as TripStatus,
-          isLocked: Boolean(t.isLocked),
-          lockedAt: t.lockedAt ? t.lockedAt.toISOString() : undefined,
-          heroImageUrl: t.heroImageUrl || undefined,
-          totalActivitiesCount: activityCount,
-          currentVersion: currentItinerary?.version || 1,
-          createdAt: t.createdAt.toISOString(),
-          updatedAt: t.updatedAt.toISOString()
-        };
-      });
+          const travellers = this.travellersService
+            ? await this.travellersService.getTravellers(t.id)
+            : [];
+
+          return {
+            id: t.id,
+            userId: t.userId,
+            destination: t.destinationName,
+            startDate: t.startDate.toISOString().split('T')[0],
+            endDate: t.endDate.toISOString().split('T')[0],
+            travelersCount: Math.max(t.travelersCount, travellers.length),
+            status: t.status as TripStatus,
+            isLocked: Boolean(t.isLocked),
+            lockedAt: t.lockedAt ? t.lockedAt.toISOString() : undefined,
+            heroImageUrl: t.heroImageUrl || undefined,
+            totalActivitiesCount: activityCount,
+            currentVersion: currentItinerary?.version || 1,
+            travellers,
+            createdAt: t.createdAt.toISOString(),
+            updatedAt: t.updatedAt.toISOString()
+          };
+        })
+      );
     } catch {
       return [];
     }
