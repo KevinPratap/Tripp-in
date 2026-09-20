@@ -27,7 +27,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -280,7 +279,7 @@ fun TripsScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = ComicRed)
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("Loading your trips", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Loading your trips", style = TrippinType.Label)
                             }
                         }
                     }
@@ -418,7 +417,7 @@ fun TripsScreen(
         if (pendingDelete != null) {
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) tripToDelete = null },
-                title = { Text("Delete this trip", fontWeight = FontWeight.Black, fontSize = 18.sp) },
+                title = { Text("Delete this trip", style = TrippinType.Heading) },
                 text = {
                     Text(
                         "Delete the trip to ${pendingDelete.destination}? Its plan goes with it.",
@@ -438,13 +437,13 @@ fun TripsScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("Delete", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Delete", style = TrippinType.Label)
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(enabled = !isDeleting, onClick = { tripToDelete = null }) {
-                        Text("Keep", fontSize = 14.sp)
+                        Text("Keep", style = TrippinType.Label)
                     }
                 }
             )
@@ -460,7 +459,7 @@ fun TripsScreen(
             AlertDialog(
                 onDismissRequest = { inviteTrip = null; inviteCode = null; inviteError = null },
                 title = {
-                    Text("Invite people to ${inviting.destination}", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("Invite people to ${inviting.destination}", style = TrippinType.Heading)
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -499,13 +498,13 @@ fun TripsScreen(
                                 copyToClipboard(context, "Tripp'in invite code", inviteCode.orEmpty())
                             }
                         ) {
-                            Text("Copy code", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Copy code", style = TrippinType.Label)
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { inviteTrip = null; inviteCode = null; inviteError = null }) {
-                        Text("Done", fontSize = 14.sp)
+                        Text("Done", style = TrippinType.Label)
                     }
                 }
             )
@@ -519,7 +518,7 @@ fun TripsScreen(
 
             AlertDialog(
                 onDismissRequest = { if (!joinBusy) showJoinSheet = false },
-                title = { Text("Join a trip", fontWeight = FontWeight.Black, fontSize = 18.sp) },
+                title = { Text("Join a trip", style = TrippinType.Heading) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
@@ -566,13 +565,13 @@ fun TripsScreen(
                                 color = Color.White
                             )
                         } else {
-                            Text("Join", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Join", style = TrippinType.Label)
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(enabled = !joinBusy, onClick = { showJoinSheet = false }) {
-                        Text("Cancel", fontSize = 14.sp)
+                        Text("Cancel", style = TrippinType.Label)
                     }
                 }
             )
@@ -738,7 +737,7 @@ private fun EmptyTripsPanel(
                         .height(44.dp)
                         .border(2.dp, ComicInk, RoundedCornerShape(8.dp))
                 ) {
-                    Text("Plan a trip", fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Text("Plan a trip", style = TrippinType.Label)
                 }
             }
         }
@@ -913,7 +912,7 @@ private fun TripCard(
                             colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Open trip", fontWeight = FontWeight.Black, fontSize = 13.sp)
+                            Text("Open trip", style = TrippinType.Label)
                         }
 
                         if (isLive) {
@@ -925,7 +924,7 @@ private fun TripCard(
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed)
                             ) {
-                                Text("Today", fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                Text("Today", style = TrippinType.Label)
                             }
                         }
 

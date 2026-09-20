@@ -68,9 +68,7 @@ fun ProfileScreen(
                     Column {
                         Text(
                             text = "You",
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp,
-                            fontSize = 17.sp
+                            style = TrippinType.Heading
                         )
                         Text(
                             text = "Signed in",
@@ -124,8 +122,7 @@ fun ProfileScreen(
                                     Column {
                                         Text(
                                             text = "Your trips",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 14.sp,
+                                            style = TrippinType.Heading,
                                             color = ComicInk
                                         )
                                         Text(
@@ -271,7 +268,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = ComicInk)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copy email", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicInk)
+                                Text("Copy email", style = TrippinType.Label, color = ComicInk)
                             }
 
                             Button(
@@ -285,7 +282,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("My trips", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ComicPaper)
+                                Text("My trips", style = TrippinType.Label, color = ComicPaper)
                             }
                         }
                     }
@@ -404,8 +401,8 @@ private fun EngineRow(title: String, desc: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ComicInk)
-            Text(desc, fontSize = 12.sp, color = ComicMuted)
+            Text(title, style = TrippinType.Label, color = ComicInk)
+            Text(desc, style = TrippinType.Caption, color = ComicMuted)
         }
     }
 }

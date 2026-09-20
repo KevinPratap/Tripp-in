@@ -204,16 +204,12 @@ fun ItineraryScreen(
                     Column {
                         Text(
                             text = destinationName.uppercase(),
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp,
-                            fontSize = 16.sp
+                            style = TrippinType.Heading
                         )
                         Text(
                             text = planSubtitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 12.sp,
-                            color = if (isLocked) ComicBlack else ComicRed,
-                            fontWeight = FontWeight.Bold
+                            style = TrippinType.Caption,
+                            color = if (isLocked) ComicBlack else ComicRed
                         )
                     }
                 },
@@ -348,14 +344,12 @@ fun ItineraryScreen(
                                 Column {
                                     Text(
                                         text = "Locked by whoever set this up",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 12.sp,
+                                        style = TrippinType.Label,
                                         color = ComicBlack
                                     )
                                     Text(
                                         text = "Unlock it from the menu at the top right to change anything.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontSize = 12.sp,
+                                        style = TrippinType.Body,
                                         color = ComicBlack
                                     )
                                 }
@@ -490,9 +484,7 @@ fun ItineraryScreen(
                                             ) {
                                                 Text(
                                                     text = "Day ${day.dayIndex} · ${day.date}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Black,
+                                                    style = TrippinType.Label,
                                                     color = ComicRed
                                                 )
                                                 if (dayTotal != null && dayTotal > 0) {
@@ -794,10 +786,8 @@ fun ActivityComicCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "${activity.travelTimeFromPreviousMinutes} min travel from the stop before",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 12.sp,
-                    color = ComicRed,
-                    fontWeight = FontWeight.Bold
+                    style = TrippinType.Caption,
+                    color = ComicRed
                 )
             }
         }
@@ -927,8 +917,7 @@ fun ActivityComicCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = activity.title,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 17.sp,
+                        style = TrippinType.Heading,
                         color = ComicBlack
                     )
 
@@ -936,7 +925,7 @@ fun ActivityComicCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = activity.reason,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = TrippinType.Body,
                             color = ComicBlack.copy(alpha = 0.8f)
                         )
                     }
@@ -945,8 +934,7 @@ fun ActivityComicCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = address,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 12.sp,
+                            style = TrippinType.Body,
                             color = ComicMuted
                         )
                     } else {
@@ -959,8 +947,7 @@ fun ActivityComicCard(
                             } else {
                                 "No street address in the map data for this venue."
                             },
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 12.sp,
+                            style = TrippinType.Body,
                             color = ComicMuted
                         )
                     }
@@ -1005,7 +992,7 @@ fun ActivityComicCard(
                             ) {
                                 Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Take me there", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                Text("Take me there", style = TrippinType.Label)
                             }
                         }
                     }

@@ -61,10 +61,8 @@ fun MapScreen(
                         )
                         Text(
                             text = "OpenStreetMap route",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 12.sp,
-                            color = ComicRed,
-                            fontWeight = FontWeight.Bold
+                            style = TrippinType.Caption,
+                            color = ComicRed
                         )
                     }
                 },

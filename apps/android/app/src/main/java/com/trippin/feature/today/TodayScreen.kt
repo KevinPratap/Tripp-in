@@ -126,16 +126,12 @@ fun TodayScreen(
                     Column {
                         Text(
                             text = "Today · $destinationName".uppercase(),
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp,
-                            fontSize = 17.sp
+                            style = TrippinType.Heading
                         )
                         Text(
                             text = if (activities.isEmpty()) "Nothing planned for today" else "${activities.size} ${if (activities.size == 1) "stop" else "stops"} today",
-                            fontSize = 12.sp,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ComicRed,
-                            fontWeight = FontWeight.Bold
+                            style = TrippinType.Caption,
+                            color = ComicRed
                         )
                     }
                 },
@@ -520,8 +516,7 @@ fun TodayScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = act.title,
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 15.sp,
+                                            style = TrippinType.Heading,
                                             color = ComicBlack
                                         )
                                     }
