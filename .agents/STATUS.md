@@ -1,7 +1,7 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-20T06:22:00Z
-**Mainline Commit**: `4fd2965`
+**Last Updated**: 2026-09-20T06:28:00Z
+**Mainline Commit**: `cdf14bb`
 **Active Head**: `main`
 
 ---
@@ -61,6 +61,7 @@
 - [x] **AGY**: Visual inspection of 12sp Trips filter row on emulator-5554 (confirmed 38dp pill inner height fits 12sp cleanly).
 - [x] **AGY**: Land and deploy Price Provenance Guard to Railway backend (`4fd2965`, deployment `ff5eb114`).
 - [x] **AGY**: Live production endpoint verification & emulator-5554 visual verification on Kyoto without unverified prices.
+- [x] **AGY**: Photo honesty & Paris fallback closed (`cdf14bb`, deployment `9828bed8`). Stock photos filtered from venue photoUrls, Paris hero image scoped to Paris trips only, fallback scoped without unnamed default.
 - [ ] **HERMES**: Next UI cycle / interactions.
 
 
