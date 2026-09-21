@@ -415,7 +415,7 @@ fun TodayScreen(
 
                                             Text(
                                                 text = "${currentStop.startTime} - ${currentStop.endTime}",
-                                                style = TrippinType.Label,
+                                                style = TrippinType.NumericSmall,
                                                 color = Ink
                                             )
                                         }
@@ -610,7 +610,7 @@ fun TodayScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "${act.startTime} - ${act.endTime}",
-                                            style = TrippinType.Label,
+                                            style = TrippinType.NumericSmall,
                                             color = Ink
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))

@@ -935,7 +935,7 @@ fun ActivityComicCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "${activity.startTime} - ${activity.endTime}",
-                                style = TrippinType.Label,
+                                style = TrippinType.NumericSmall,
                                 color = Ink
                             )
                         }
@@ -952,7 +952,7 @@ fun ActivityComicCard(
                             if (stopMoney != null) {
                                 Text(
                                     text = formatStatedAmount(stopMoney.value, stopMoney.currency),
-                                    style = TrippinType.Label,
+                                    style = TrippinType.NumericSmall,
                                     color = Ink
                                 )
                             }
