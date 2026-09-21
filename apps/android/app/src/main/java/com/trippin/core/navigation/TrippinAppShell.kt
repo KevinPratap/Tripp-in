@@ -32,7 +32,6 @@ import androidx.navigation.navArgument
 import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicPanel
-import com.trippin.core.design.ComicRed
 import com.trippin.core.design.Ink
 import com.trippin.core.design.TrippinType
 import com.trippin.core.network.NetworkModule

@@ -74,7 +74,7 @@ fun MapScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
                         context.startActivity(intent)
                     }) {
-                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser", tint = ComicRed)
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser", tint = AccentCrimson)
                     }
                 }
             )
@@ -127,7 +127,7 @@ fun MapScreen(
                             )
                         }
                         Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
                             onClick = {

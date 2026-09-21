@@ -57,9 +57,9 @@ fun TrippinButton(
             shape = RoundedCornerShape(8.dp),
             border = BorderStroke(2.dp, ComicInk),
             colors = ButtonDefaults.buttonColors(
-                containerColor = ComicRed,
+                containerColor = AccentCrimson,
                 contentColor = PureWhite,
-                disabledContainerColor = ComicRed.copy(alpha = 0.4f),
+                disabledContainerColor = AccentCrimson.copy(alpha = 0.4f),
                 disabledContentColor = PureWhite.copy(alpha = 0.8f)
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
@@ -242,20 +242,20 @@ fun TrippinStamp(
                 this.alpha = alpha
             }
             .rotate(-1.5f)
-            .border(BorderStroke(2.dp, ComicRed), RoundedCornerShape(3.dp))
+            .border(BorderStroke(2.dp, AccentCrimson), RoundedCornerShape(3.dp))
             .background(ComicPanel)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
             text = title.uppercase(),
-            color = ComicRed,
+            color = AccentCrimson,
             style = TrippinType.Label
         )
         subtitle?.let {
             Text(
                 text = it.uppercase(),
-                color = ComicRed,
+                color = AccentCrimson,
                 style = TrippinType.Caption
             )
         }

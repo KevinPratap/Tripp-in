@@ -165,10 +165,10 @@ fun ProfileScreen(
                                         StampLanding(delayMillis = index * 40) {
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
-                                                color = ComicRed.copy(alpha = 0.08f),
+                                                color = AccentCrimson.copy(alpha = 0.08f),
                                                 modifier = Modifier.border(
                                                     width = 2.dp,
-                                                    color = ComicRed,
+                                                    color = AccentCrimson,
                                                     shape = RoundedCornerShape(8.dp)
                                                 )
                                             ) {
@@ -179,7 +179,7 @@ fun ProfileScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.CheckCircle,
                                                         contentDescription = null,
-                                                        tint = ComicRed,
+                                                        tint = AccentCrimson,
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                     Spacer(modifier = Modifier.height(4.dp))
@@ -191,7 +191,7 @@ fun ProfileScreen(
                                                     Text(
                                                         text = monthYear(trip.startDate),
                                                         style = TrippinType.Caption,
-                                                        color = ComicRed
+                                                        color = AccentCrimson
                                                     )
                                                 }
                                             }
@@ -275,7 +275,7 @@ fun ProfileScreen(
                                     .weight(1f)
                                     .height(38.dp)
                                     .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
-                                colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(14.dp))

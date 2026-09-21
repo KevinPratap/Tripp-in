@@ -257,7 +257,7 @@ fun ItineraryScreen(
                         }
                         context.startActivity(Intent.createChooser(sendIntent, "Invite the group to Tripp'in"))
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Invite the group", tint = ComicRed)
+                        Icon(Icons.Default.Share, contentDescription = "Invite the group", tint = AccentCrimson)
                     }
                     Box {
                         IconButton(onClick = { showMoreMenu = true }) {
@@ -307,7 +307,7 @@ fun ItineraryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = ComicRed)
+                    CircularProgressIndicator(color = AccentCrimson)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Loading the plan...", style = TrippinType.Body)
                 }
@@ -327,7 +327,7 @@ fun ItineraryScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
                     ) {
                         Text("Retry", style = TrippinType.Label)
                     }
@@ -472,7 +472,7 @@ fun ItineraryScreen(
                                             text = "DAY ${day.dayIndex}",
                                             style = TrippinType.Label,
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                            color = if (isSelected) ComicRed else ComicBlack
+                                            color = if (isSelected) AccentCrimson else ComicBlack
                                         )
                                     }
                                 )
@@ -671,7 +671,7 @@ fun ItineraryScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                         enabled = !isModifying && editInstruction.isNotBlank(),
                         onClick = {
                             val instruction = editInstruction.trim()
@@ -730,7 +730,7 @@ fun ItineraryScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                         enabled = !isScrapping,
                         onClick = { handleScrapTrip() }
                     ) {
@@ -783,7 +783,7 @@ fun QuickReplanChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (enabled) ComicRed else ComicMuted,
+                tint = if (enabled) AccentCrimson else ComicMuted,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -909,7 +909,7 @@ fun ActivityComicCard(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
-                                color = ComicRed,
+                                color = AccentCrimson,
                                 shape = RoundedCornerShape(4.dp),
                                 modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
                             ) {
@@ -1056,7 +1056,7 @@ fun ActivityComicCard(
                             OutlinedButton(
                                 onClick = onNavigateClick,
                                 shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ComicRed),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentCrimson),
                                 modifier = Modifier.height(36.dp)
                             ) {
                                 Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))

@@ -202,7 +202,7 @@ fun TodayScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = ComicRed)
+                    CircularProgressIndicator(color = AccentCrimson)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Loading today's plan...",
@@ -230,7 +230,7 @@ fun TodayScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = ComicRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
                     ) {
                         Text("Retry", style = TrippinType.Label)
                     }
@@ -387,7 +387,7 @@ fun TodayScreen(
                                             if (stopTimeLabel != null) {
                                                 val isRunningNow = stopTimeLabel == "Now"
                                                 Surface(
-                                                    color = if (isRunningNow) ComicRed else NeutralInkSurface,
+                                                    color = if (isRunningNow) AccentCrimson else NeutralInkSurface,
                                                     shape = RoundedCornerShape(4.dp),
                                                     modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
                                                 ) {
@@ -493,7 +493,7 @@ fun TodayScreen(
                                                     .weight(1f)
                                                     .height(48.dp)
                                                     .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                                                colors = ButtonDefaults.buttonColors(containerColor = ComicRed),
+                                                colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
                                                 Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicPaper)
@@ -616,7 +616,7 @@ fun TodayScreen(
                                         Icon(
                                             Icons.Default.Directions,
                                             contentDescription = "Navigate",
-                                            tint = ComicRed,
+                                            tint = AccentCrimson,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
