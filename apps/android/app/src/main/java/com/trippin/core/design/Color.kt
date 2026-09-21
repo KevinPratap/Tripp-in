@@ -2,47 +2,20 @@ package com.trippin.core.design
 
 import androidx.compose.ui.graphics.Color
 
-// Comic Red & Minimalist Graphic Novel Branding
-val ComicRed = Color(0xFFE11D48)
-val ComicRedDark = Color(0xFFBE123C)
-val ComicInk = Color(0xFF18181B)
-val ComicBlack = ComicInk
-val ComicPaper = Color(0xFFFAF8F5)
-val ComicPanel = Color(0xFFFFFFFF)
-val ComicYellow = Color(0xFFFACC15)
-val ComicMuted = Color(0xFF52525B)
-
-// Primary Color Mappings (Comic Theme)
-val OceanBlue = ComicRed
-val OceanBlueDark = ComicRedDark
-val EmeraldTeal = ComicRed
-val EmeraldTealDark = ComicRedDark
-val SunsetCoral = ComicYellow
-
-// Surfaces & Backgrounds
-val OffWhite = ComicPaper
-val PureWhite = ComicPanel
-val CharcoalDark = ComicInk
-val SurfaceDark = Color(0xFF27272A)
-
-// Category Colors
-val CategoryAttraction = ComicRed
-val CategoryFood = Color(0xFFF97316)
-val CategoryNature = Color(0xFF10B981)
-val CategoryNightlife = Color(0xFF8B5CF6)
-val CategoryTransit = Color(0xFF0284C7)
-
 // ---------------------------------------------------------------------------
-// Semantic tokens (design system section 1).
+// The semantic tokens (design system section 1).
 //
-// The values above are the palette; these are the meanings. A screen names a meaning and never a
-// hue, so a colour cannot drift away from the thing it is supposed to say. Crimson is the brand and
-// therefore the cheapest colour to waste: it has exactly three jobs, and amber, ink green and
-// neutral each mean one thing each.
+// A screen names a meaning and never a hue, and this file names each colour once. Every token holds
+// its own literal rather than an alias of a palette row above it, because two names for one value is
+// how the wrong one gets picked: this file used to declare a Comic palette, four Material colour
+// aliases and a category set, and ComicBlack and ComicInk were the same ink under two names.
+//
+// The one deliberate exception is Panel and OnCrimson, which are the same white and are separate
+// tokens because a card surface and the ink on a crimson fill must be free to move apart.
 // ---------------------------------------------------------------------------
 
 /** The one interactive colour: primary buttons, the selected tab, the selected chip, links. */
-val AccentCrimson = ComicRed
+val AccentCrimson = Color(0xFFE11D48)
 
 /**
  * The label, icon or spinner on a filled crimson control, and nothing else: the accent button and
@@ -57,16 +30,16 @@ val OnCrimson = Color(0xFFFFFFFF)
 val DangerCrimson = Color(0xFFB31B3E)
 
 /** All primary text, borders and every card edge. */
-val Ink = ComicInk
+val Ink = Color(0xFF18181B)
 
 /** Secondary text: addresses, sources, timestamps, helper lines. */
-val InkMuted = ComicMuted
+val InkMuted = Color(0xFF52525B)
 
 /** The page. */
-val Paper = ComicPaper
+val Paper = Color(0xFFFAF8F5)
 
 /** A card surface. */
-val Panel = ComicPanel
+val Panel = Color(0xFFFFFFFF)
 
 /** A caution, on its own surface: over budget, a stop that clashes with opening hours. */
 val WarnAmber = Color(0xFF8A5A00)
@@ -79,3 +52,24 @@ val GoodInkSurface = Color(0xFFE7F3EA)
 /** Neither good nor bad: a draft, a category label, an unvisited stop. */
 val NeutralInk = Color(0xFF3F3F46)
 val NeutralInkSurface = Color(0xFFF4F4F5)
+
+// ---------------------------------------------------------------------------
+// The Material scheme rows. No screen reads these, and nothing outside Theme.kt does either.
+//
+// They exist so MaterialTheme has a scheme, because the Material components the app still uses by
+// default (the date picker, the text fields, the dialogs) take their own colours from it. The names
+// are the palette rows this file used to declare, kept here so Theme.kt does not have to change in
+// the same edit: what the dark scheme maps to is Kevin's call and is recorded as such in
+// TRIPPIN_DESIGN_SYSTEM.md section 1, which says a dark scheme gets its own values for the tokens
+// above. Deleting these rows before that decision is made would decide it silently.
+// ---------------------------------------------------------------------------
+
+val OceanBlue = AccentCrimson
+val OceanBlueDark = Color(0xFFBE123C)
+val EmeraldTeal = AccentCrimson
+val EmeraldTealDark = OceanBlueDark
+val SunsetCoral = Color(0xFFFACC15)
+val CharcoalDark = Ink
+val OffWhite = Paper
+val PureWhite = Panel
+val SurfaceDark = Color(0xFF27272A)
