@@ -315,8 +315,11 @@ fun TripPlannerScreen(
                                 val res = com.trippin.core.network.NetworkModule.apiService.createTrip(req)
                                 com.trippin.core.network.NetworkModule.apiService.triggerGeneration(res.tripId)
                                 onTripCreated(res.tripId)
-                            } catch (e: Exception) {
-                                submitError = "Could not create the trip: ${e.message ?: "the app could not reach the server"}"
+                            } catch (_: Exception) {
+                                // One fixed sentence, and no cause named. The app cannot tell a
+                                // dead network from a rejected trip from here, so it claims
+                                // neither, the same shape Map, Today and Plan use on a failure.
+                                submitError = "Could not create the trip"
                                 isSubmitting = false
                             }
                         }
