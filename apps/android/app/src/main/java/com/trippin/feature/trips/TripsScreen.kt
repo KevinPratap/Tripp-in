@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -43,6 +45,7 @@ import com.trippin.core.design.Panel
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.Paper
+import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
@@ -50,6 +53,8 @@ import com.trippin.core.network.DestinationCardDto
 import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.TripSummaryDto
+import com.trippin.feature.group.TRAVELLER_INTEREST_WORDS
+import com.trippin.feature.group.TRAVELLER_PACE_CHOICES
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.time.LocalDate
@@ -183,13 +188,26 @@ fun TripsScreen(
         }
     }
 
-    fun join(tripCode: String, name: String) {
+    /**
+     * Joins a trip from an invite code. Only what the person filled in is sent: a blank cap is left
+     * out of the request rather than sent as a zero, because a zero would be stored as a real cap of
+     * zero and would read as that person's own decision, and the fields nobody touched are left out
+     * entirely, so a person who joins without deciding anything still joins and their row says Not
+     * set until they fill it in. The name and the code are the only two the server insists on.
+     */
+    fun join(tripCode: String, name: String, cap: Double?, pace: String?, interests: List<String>) {
         scope.launch {
             joinBusy = true
             joinError = null
             try {
                 val joined = NetworkModule.apiService.joinTrip(
-                    JoinTripRequestDto(token = tripCode.trim(), name = name.trim())
+                    JoinTripRequestDto(
+                        token = tripCode.trim(),
+                        name = name.trim(),
+                        budgetCap = cap,
+                        interests = interests,
+                        pace = pace
+                    )
                 )
                 showJoinSheet = false
                 loadTrips(true)
@@ -558,66 +576,17 @@ fun TripsScreen(
         // Joining a trip someone else invited you to. This is the reachable join action the Trips
         // card promises when it says people have not joined yet.
         if (showJoinSheet) {
-            var joinCode by remember { mutableStateOf("") }
-            var joinName by remember { mutableStateOf("") }
-
-            AlertDialog(
-                onDismissRequest = { if (!joinBusy) showJoinSheet = false },
-                title = { Text("Join a trip", style = TrippinType.Heading) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Enter the invite code the trip's owner sent you, and the name the " +
-                                "others will see on this trip.",
-                            style = TrippinType.Caption,
-                            color = InkMuted
-                        )
-                        OutlinedTextField(
-                            value = joinCode,
-                            onValueChange = { joinCode = it },
-                            singleLine = true,
-                            enabled = !joinBusy,
-                            label = { Text("Invite code", style = TrippinType.Label) },
-                            textStyle = TrippinType.Body,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
-                        )
-                        OutlinedTextField(
-                            value = joinName,
-                            onValueChange = { joinName = it },
-                            singleLine = true,
-                            enabled = !joinBusy,
-                            label = { Text("Your name", style = TrippinType.Label) },
-                            textStyle = TrippinType.Body,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
-                        )
-                        joinError?.let {
-                            Text(text = it, style = TrippinType.Body, color = Ink)
-                        }
+            JoinTripDialog(
+                isBusy = joinBusy,
+                error = joinError,
+                onDismiss = {
+                    if (!joinBusy) {
+                        showJoinSheet = false
+                        joinError = null
                     }
                 },
-                confirmButton = {
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
-                        enabled = !joinBusy && joinCode.isNotBlank() && joinName.isNotBlank(),
-                        onClick = { join(joinCode, joinName) }
-                    ) {
-                        if (joinBusy) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = OnCrimson
-                            )
-                        } else {
-                            Text("Join", style = TrippinType.Label)
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(enabled = !joinBusy, onClick = { showJoinSheet = false }) {
-                        Text("Cancel", style = TrippinType.Label)
-                    }
+                onJoin = { code, name, cap, pace, interests ->
+                    join(code, name, cap, pace, interests)
                 }
             )
         }
@@ -691,6 +660,158 @@ private fun SuggestionCard(
             }
         }
     }
+}
+
+/**
+ * Joining a trip. The code and the name are the only two fields the server insists on; the cap, the
+ * pace and the interests are optional, and a field left blank is left out of the request rather than
+ * sent as a zero or an empty word, so somebody who has not decided anything still joins and their row
+ * reads Not set until they fill it in themselves.
+ *
+ * The cap is a number in the trip's own currency and the label carries no symbol, because a person
+ * holding only an invite code cannot see the trip's currency until the join succeeds, and guessing
+ * one from the phone would put a currency on a number that was never priced in it.
+ *
+ * The words offered are the app's one copy of the traveller vocabulary, read off the Group tab's list
+ * rather than repeated here; the server keeps only the words on that list.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun JoinTripDialog(
+    isBusy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onJoin: (String, String, Double?, String?, List<String>) -> Unit
+) {
+    var code by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var capText by remember { mutableStateOf("") }
+    var pace by remember { mutableStateOf<String?>(null) }
+    var interests by remember { mutableStateOf(emptyList<String>()) }
+
+    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val capProblem = when {
+        capText.isBlank() -> null
+        cap == null || cap <= 0.0 -> "Enter your cap as a number, or leave the field blank."
+        else -> null
+    }
+    val canJoin = code.isNotBlank() && name.isNotBlank() && capProblem == null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Join a trip", style = TrippinType.Heading) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Enter the invite code the trip's owner sent you, and the name the " +
+                        "others will see on this trip. Only what you fill in here is saved.",
+                    style = TrippinType.Caption,
+                    color = InkMuted
+                )
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = { Text("Invite code", style = TrippinType.Label) },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { typed -> if (typed.length <= 60) name = typed },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = { Text("Your name", style = TrippinType.Label) },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                OutlinedTextField(
+                    value = capText,
+                    onValueChange = { typed ->
+                        if (typed.all { it.isDigit() || it == '.' || it == ',' }) capText = typed
+                    },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = { Text("Your budget cap (optional)", style = TrippinType.Label) },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                Text(
+                    text = "Your cap is a number in the trip's own currency.",
+                    style = TrippinType.Caption,
+                    color = InkMuted
+                )
+                capProblem?.let {
+                    Text(text = it, style = TrippinType.Caption, color = DangerCrimson)
+                }
+                Text(text = "Pace", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TRAVELLER_PACE_CHOICES.forEach { (value, label) ->
+                        TrippinChoiceChip(
+                            text = label,
+                            selected = pace == value,
+                            onClick = { pace = if (pace == value) null else value }
+                        )
+                    }
+                }
+                Text(text = "What you want to see", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TRAVELLER_INTEREST_WORDS.forEach { word ->
+                        TrippinChoiceChip(
+                            text = word,
+                            selected = interests.contains(word),
+                            onClick = {
+                                interests = if (interests.contains(word)) {
+                                    interests - word
+                                } else {
+                                    interests + word
+                                }
+                            }
+                        )
+                    }
+                }
+                if (error != null) {
+                    Text(text = error, style = TrippinType.Body, color = DangerCrimson)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentCrimson,
+                    contentColor = OnCrimson
+                ),
+                enabled = !isBusy && canJoin,
+                onClick = { onJoin(code, name, cap, pace, interests) }
+            ) {
+                if (isBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = OnCrimson
+                    )
+                } else {
+                    Text("Join", style = TrippinType.Label)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !isBusy, onClick = onDismiss) {
+                Text("Cancel", style = TrippinType.Label)
+            }
+        }
+    )
 }
 
 /**

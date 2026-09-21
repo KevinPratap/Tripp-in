@@ -350,14 +350,17 @@ fun GroupScreen(tripId: String) {
  * lowercases whatever is sent and then keeps only the words on this list, so a word that is not here
  * is dropped rather than stored, and the value that is drawn capitalised is sent exactly as it is
  * written here. The chips offer the whole list rather than a guess at what a person might want.
+ *
+ * This is the app's one home for the traveller vocabulary, so the join sheet on the Trips tab reads
+ * it from here rather than carrying a second copy that could drift from this one.
  */
-private val GROUP_INTEREST_WORDS = listOf(
+internal val TRAVELLER_INTEREST_WORDS = listOf(
     "culture", "food", "nightlife", "nature", "adventure", "shopping",
     "museums", "history", "photography", "wellness", "relaxation", "landmark"
 )
 
 /** The pace values the backend accepts, in the wording a person reads. */
-private val GROUP_PACE_CHOICES = listOf(
+internal val TRAVELLER_PACE_CHOICES = listOf(
     "relaxed" to "Relaxed",
     "balanced" to "Balanced",
     "packed" to "Packed"
@@ -442,7 +445,7 @@ private fun AddPersonDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    GROUP_PACE_CHOICES.forEach { (value, label) ->
+                    TRAVELLER_PACE_CHOICES.forEach { (value, label) ->
                         TrippinChoiceChip(
                             text = label,
                             selected = pace == value,
@@ -455,7 +458,7 @@ private fun AddPersonDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    GROUP_INTEREST_WORDS.forEach { word ->
+                    TRAVELLER_INTEREST_WORDS.forEach { word ->
                         TrippinChoiceChip(
                             text = word,
                             selected = interests.contains(word),
