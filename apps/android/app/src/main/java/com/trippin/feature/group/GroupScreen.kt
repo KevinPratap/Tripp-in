@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -84,9 +85,11 @@ import retrofit2.HttpException
  * rather than filled with a stand-in, which is why a person's row still says Not set for anything
  * nobody has stated.
  *
- * Each person's own row now carries the way into changing what they set, because a cap typed wrong
- * was permanent from the app. That path sends a PATCH holding only the fields the owner changed, and
- * the reason it is a diff rather than the whole form is recorded on savePerson below.
+ * Each person's own row now carries the two ways off the wrong state, because a cap typed wrong was
+ * permanent from the app and so was a person added twice. Changing them sends a PATCH holding only
+ * the fields the owner changed, and the reason it is a diff rather than the whole form is recorded on
+ * savePerson below. Removing them is the app's own destructive recipe, a confirm that fills with
+ * DangerCrimson and names what goes with them.
  */
 @Composable
 fun GroupScreen(tripId: String) {
@@ -100,6 +103,11 @@ fun GroupScreen(tripId: String) {
     var editing by remember { mutableStateOf<TravellerDto?>(null) }
     var isSaving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
+    // The person about to be taken off the trip, and the state of that write. Same shape again: the
+    // confirm is its own composable and this screen holds only the request state.
+    var removing by remember { mutableStateOf<TravellerDto?>(null) }
+    var isRemoving by remember { mutableStateOf(false) }
+    var removeError by remember { mutableStateOf<String?>(null) }
     // Bumped after a person is added, so the screen redraws from the server's own answer rather than
     // from the row the app hoped for.
     var refreshTick by remember { mutableStateOf(0) }
@@ -186,6 +194,41 @@ fun GroupScreen(tripId: String) {
                 saveError = "Could not reach the server. Check the connection and try again."
             } finally {
                 isSaving = false
+            }
+        }
+    }
+
+    /**
+     * Takes one person off the trip, which is the only way off it: nothing else in the app can clean
+     * up somebody added twice or a name typed wrong.
+     *
+     * This call is checked differently from the two writes above and the difference matters.
+     * deleteTraveller answers with a bare response rather than a body, so a 401 or a 404 comes back
+     * as an ordinary value instead of being thrown, and a call that read it as "no exception, so it
+     * worked" would close the confirm and refetch while the person was still on the trip. The
+     * response's own status decides here, the dialog stays open with the reason when it failed, and
+     * the screen only refreshes from the server once the delete is confirmed.
+     */
+    fun removePerson(travellerId: String) {
+        scope.launch {
+            isRemoving = true
+            removeError = null
+            try {
+                val response = NetworkModule.apiService.deleteTraveller(tripId, travellerId)
+                if (response.isSuccessful) {
+                    removing = null
+                    refreshTick++
+                } else {
+                    removeError = when (response.code()) {
+                        401 -> "Sign in again, then remove them."
+                        404 -> "That person is already off this trip."
+                        else -> "The server did not accept that, so they are still on the trip."
+                    }
+                }
+            } catch (_: Exception) {
+                removeError = "Could not reach the server. Check the connection and try again."
+            } finally {
+                isRemoving = false
             }
         }
     }
@@ -315,6 +358,10 @@ fun GroupScreen(tripId: String) {
                     onEdit = {
                         saveError = null
                         editing = traveller
+                    },
+                    onRemove = {
+                        removeError = null
+                        removing = traveller
                     }
                 )
             }
@@ -409,6 +456,21 @@ fun GroupScreen(tripId: String) {
                 }
             },
             onSave = { body -> savePerson(person.id, body) }
+        )
+    }
+
+    removing?.let { person ->
+        RemovePersonDialog(
+            name = person.name.trim(),
+            isBusy = isRemoving,
+            error = removeError,
+            onDismiss = {
+                if (!isRemoving) {
+                    removing = null
+                    removeError = null
+                }
+            },
+            onRemove = { removePerson(person.id) }
         )
     }
 }
@@ -747,6 +809,76 @@ private fun EditPersonDialog(
 }
 
 /**
+ * Takes one person off the trip. The sentence states what goes with them and nothing more: their cap,
+ * wants and pace, and their own share row, which the server computes from the people on the trip. It
+ * does not promise that the plan itself is rebuilt, because removing a person does not rebuild it.
+ *
+ * The confirm fills with DangerCrimson and its dismiss reads Keep, which is the pair the Trips tab
+ * uses for a delete, and the failed sentence sits in the dialog rather than closing it, so a removal
+ * that did not happen never looks like one that did.
+ */
+@Composable
+private fun RemovePersonDialog(
+    name: String,
+    isBusy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onRemove: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isBusy) onDismiss() },
+        title = { Text("Remove this person", style = TrippinType.Heading) },
+        text = {
+            Column {
+                Text(
+                    text = if (name.isEmpty()) {
+                        "Remove this person from the trip?"
+                    } else {
+                        "Remove $name from the trip?"
+                    } + " The budget cap, wants and pace they set go with them, and their own " +
+                        "share of the plan is not counted any more.",
+                    style = TrippinType.Label,
+                    color = Ink
+                )
+                if (error != null) {
+                    Text(
+                        text = error,
+                        style = TrippinType.Label,
+                        color = DangerCrimson,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DangerCrimson,
+                    contentColor = OnCrimson
+                ),
+                enabled = !isBusy,
+                onClick = onRemove
+            ) {
+                if (isBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = OnCrimson
+                    )
+                } else {
+                    Text("Remove", style = TrippinType.Label)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !isBusy, onClick = onDismiss) {
+                Text("Keep", style = TrippinType.Label)
+            }
+        }
+    )
+}
+
+/**
  * A cap put back into a field: no currency symbol, because the field's own label names the currency,
  * and no decimal point on a whole number, because 4500.0 is not how anybody writes a cap.
  */
@@ -762,7 +894,8 @@ private fun TravellerCard(
     share: PerTravellerCostDto?,
     currency: String?,
     costKnown: Boolean,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onRemove: () -> Unit
 ) {
     val cap = traveller.budgetCap
     val overCap = share?.overCap == true && cap != null
@@ -846,12 +979,13 @@ private fun TravellerCard(
                 )
             }
 
-            // The way into changing what this person set, drawn the way the Trips row draws Invite:
-            // ink and underlined rather than crimson, because crimson is the filled button. The
-            // padding is what makes the touch target 44dp without drawing a control that loud.
+            // The two ways to fix a wrong person, drawn the way the Trips row draws Invite: not a
+            // filled control, just a word with padding that makes the touch target 44dp. Remove is
+            // the one destructive label in the app with a colour rather than a fill, which is what
+            // the Plan screen's own menu entry for Delete this trip already does.
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
                 Text(
                     text = "Edit",
@@ -860,6 +994,15 @@ private fun TravellerCard(
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier
                         .clickable { onEdit() }
+                        .padding(horizontal = 8.dp, vertical = 14.dp)
+                )
+                Text(
+                    text = "Remove",
+                    style = TrippinType.Label,
+                    color = DangerCrimson,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier
+                        .clickable { onRemove() }
                         .padding(horizontal = 8.dp, vertical = 14.dp)
                 )
             }
