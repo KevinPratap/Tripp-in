@@ -57,7 +57,10 @@ import retrofit2.HttpException
  * Each tab below is a job rather than a feature:
  *
  *  Trips  the trips you have, and starting a new one
- *  Plan   the trip you are working on: its days, today, its options, what changed, what it costs
+ *  Plan   the trip you are working on: its days, and the stops for the day you are on. Only those
+ *         two sub-views exist. Options, Changes and Money are deliberately absent until there is a
+ *         real alternative plan to choose between, a change log, and a recorded spend behind them,
+ *         and no copy anywhere in this shell may name them before then.
  *  Group  the people you are going with and what each of them wants
  *  You    your own defaults, and where you have been
  *
@@ -210,7 +213,7 @@ fun TrippinAppShell() {
                     if (tripId.isBlank()) {
                         NoTripSelected(
                             headline = "No trip open",
-                            body = "Pick a trip on the Trips tab and its plan opens here, with the days, today, the options, what changed and what it costs."
+                            body = "Pick a trip on the Trips tab and its plan opens here, with the days planned and the stops for the day you are on."
                         )
                     } else {
                         CurrentTripStore.setTripId(context, tripId)
