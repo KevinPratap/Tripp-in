@@ -981,8 +981,26 @@ private fun dateRangeLine(trip: TripSummaryDto): String {
     }
 }
 
-private fun travellersLine(trip: TripSummaryDto): String =
-    if (trip.travelersCount == 1) "1 traveller" else "${trip.travelersCount} travellers"
+/**
+ * Who is on this trip, counted from the traveller list the server sends, never from travelersCount.
+ *
+ * travelersCount is the size the trip was set up for and not a headcount: the frozen interface says
+ * it is derived from the traveller list, and on the live wire every trip carries 2 while its
+ * travellers array is empty, so printing it as people would claim two travellers who never joined
+ * and would disagree with the Group tab, which already counts the list. So the line counts the list,
+ * and the set-up size is stated as a plan only while nobody has added their details, in the words
+ * GroupScreen already uses for the same fact.
+ */
+private fun travellersLine(trip: TripSummaryDto): String {
+    val added = trip.travellers.size
+    return when {
+        added == 1 -> "1 traveller"
+        added > 1 -> "$added travellers"
+        trip.travelersCount == 1 -> "Set up for 1 traveller"
+        trip.travelersCount > 1 -> "Set up for ${trip.travelersCount} travellers"
+        else -> "Nobody has added their details yet"
+    }
+}
 
 /**
  * The header count says "shown" whenever the list came back at the feed's cap, because then the app
