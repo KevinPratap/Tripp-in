@@ -109,7 +109,10 @@ fun ItineraryScreen(
 
     val isLocked = tripDetails?.trip?.isLocked == true
     val days = tripDetails?.itinerary?.days ?: emptyList()
-    val destinationName = tripDetails?.trip?.destination ?: "Trip"
+    // The destination the server sent, or nothing at all. A bar titled TRIP for a trip that has
+    // not loaded names a place this trip does not have, which is the stand-in Map and Today
+    // dropped; the subtitle below already says which state the screen is in.
+    val destinationName = tripDetails?.trip?.destination?.takeIf { it.isNotBlank() }
 
     // Money honesty. Every amount on this screen is printed in the currency its own stop declares,
     // never in the trip's currency, because the two have already disagreed on the wire (a JPY trip
@@ -230,7 +233,7 @@ fun ItineraryScreen(
                 title = {
                     Column {
                         Text(
-                            text = destinationName.uppercase(),
+                            text = destinationName?.uppercase() ?: "PLAN",
                             style = TrippinType.Heading
                         )
                         Text(
@@ -250,11 +253,16 @@ fun ItineraryScreen(
                         Icon(Icons.Default.Map, contentDescription = "Map")
                     }
                     IconButton(onClick = {
+                        // The destination is named only when the trip has one, so an invite never
+                        // asks somebody to join a group going to a place we do not know.
+                        val inviteLine = destinationName
+                            ?.let { "Join the group for $it on Tripp'in" }
+                            ?: "Join the group on Tripp'in"
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Join the group for $destinationName on Tripp'in: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
+                                "$inviteLine: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
                             )
                             type = "text/plain"
                         }
@@ -609,7 +617,10 @@ fun ItineraryScreen(
                                             val exact = point
                                                 ?.takeIf { it.latitude != 0.0 || it.longitude != 0.0 }
                                                 ?.let { String.format(java.util.Locale.US, "%f,%f", it.latitude, it.longitude) }
-                                            val query = Uri.encode(exact ?: "${act.title} $destinationName")
+                                            val query = Uri.encode(
+                                                exact ?: listOfNotNull(act.title, destinationName)
+                                                    .joinToString(" ")
+                                            )
                                             val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
                                             context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
                                         }
