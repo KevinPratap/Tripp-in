@@ -56,7 +56,7 @@ fun ItineraryScreen(
     var tripDetails by remember { mutableStateOf(cachedTrip) }
     var isLoading by remember { mutableStateOf(cachedTrip == null) }
     var isRefreshing by remember { mutableStateOf(false) }
-    var loadError by remember { mutableStateOf<String?>(null) }
+    var loadFailed by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var editInstruction by remember { mutableStateOf("") }
     var isModifying by remember { mutableStateOf(false) }
@@ -85,13 +85,16 @@ fun ItineraryScreen(
                 } else if (tripDetails == null) {
                     isLoading = true
                 }
-                loadError = null
+                loadFailed = false
                 val fetched = NetworkModule.apiService.getTripDetails(tripId)
                 tripDetails = fetched
                 TripCacheManager.putTrip(tripId, fetched)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                // No cause is named, because the one catch covers being offline and a trip that
+                // is not there alike, and the raw message reads HTTP 404 to a person. Same shape
+                // as the Map and Today screens.
                 if (tripDetails == null) {
-                    loadError = e.message ?: "Could not load the plan"
+                    loadFailed = true
                 }
             } finally {
                 isLoading = false
@@ -174,8 +177,8 @@ fun ItineraryScreen(
                 val updated = NetworkModule.apiService.getTripDetails(tripId)
                 tripDetails = updated
                 TripCacheManager.putTrip(tripId, updated)
-            } catch (e: Exception) {
-                modifyError = e.message ?: "Could not change the lock"
+            } catch (_: Exception) {
+                modifyError = "Could not change the lock"
             } finally {
                 isLocking = false
             }
@@ -195,9 +198,9 @@ fun ItineraryScreen(
                 tripDetails = updated
                 TripCacheManager.putTrip(tripId, updated)
                 replanStatusMsg = "Plan updated."
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 replanFailed = true
-                replanStatusMsg = "Could not replan: ${e.message}"
+                replanStatusMsg = "Could not replan"
             } finally {
                 isReplanning = false
             }
@@ -214,8 +217,8 @@ fun ItineraryScreen(
                 TripCacheManager.invalidateTrip(tripId)
                 showScrapDialog = false
                 onNavigateBack()
-            } catch (e: Exception) {
-                modifyError = e.message ?: "Could not delete this trip"
+            } catch (_: Exception) {
+                modifyError = "Could not delete this trip"
                 isScrapping = false
             }
         }
@@ -312,7 +315,7 @@ fun ItineraryScreen(
                     Text("Loading the plan...", style = TrippinType.Body)
                 }
             }
-        } else if (loadError != null && tripDetails == null) {
+        } else if (loadFailed && tripDetails == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -322,8 +325,6 @@ fun ItineraryScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Could not load the plan", color = DangerCrimson, style = TrippinType.Title)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(loadError!!, style = TrippinType.Body)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
@@ -690,8 +691,8 @@ fun ItineraryScreen(
                                     TripCacheManager.putTrip(tripId, updated)
                                     editInstruction = ""
                                     showEditDialog = false
-                                } catch (e: Exception) {
-                                    modifyError = e.message ?: "Could not apply that change"
+                                } catch (_: Exception) {
+                                    modifyError = "Could not apply that change"
                                 } finally {
                                     isModifying = false
                                 }
