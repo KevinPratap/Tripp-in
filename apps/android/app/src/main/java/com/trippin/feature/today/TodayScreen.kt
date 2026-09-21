@@ -54,7 +54,7 @@ fun TodayScreen(
     var tripDetails by remember { mutableStateOf(cached) }
     var isLoading by remember { mutableStateOf(cached == null) }
     var isRefreshing by remember { mutableStateOf(false) }
-    var loadError by remember { mutableStateOf<String?>(null) }
+    var loadFailed by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -65,15 +65,18 @@ fun TodayScreen(
         scope.launch {
             if (isManual) isRefreshing = true
             else if (tripDetails == null) isLoading = true
-            loadError = null
+            loadFailed = false
             try {
                 val fetched = NetworkModule.apiService.getTripDetails(tripId)
                 tripDetails = fetched
                 TripCacheManager.putTrip(tripId, fetched)
-            } catch (e: Exception) {
-                if (tripDetails == null) {
-                    loadError = e.message ?: "Could not load today's plan"
-                }
+            } catch (_: Exception) {
+                /* A failed load is stated on the screen rather than guessed at, and the cause is
+                 * not claimed here: this one catch covers being offline and a trip that is not
+                 * there alike. The exception's own message is deliberately not shown, because it
+                 * reads as HTTP 404 or Unable to resolve host, and neither is something a person
+                 * on a trip can act on. */
+                if (tripDetails == null) loadFailed = true
             } finally {
                 isLoading = false
                 isRefreshing = false
@@ -94,7 +97,10 @@ fun TodayScreen(
         days.firstOrNull { it.date.startsWith(todayDateStr) } ?: days.firstOrNull()
     }
     val activities = activeDay?.activities ?: emptyList()
-    val destinationName = tripDetails?.trip?.destination ?: "Destination"
+    /* Only ever the destination the server sent. There is no stand-in, because a bar that names a
+     * place the trip does not have is worse than one that names none, which is the rule the Map
+     * screen already follows. */
+    val destination = tripDetails?.trip?.destination
 
     val currentTimeMinutes = remember {
         val cal = Calendar.getInstance()
@@ -156,16 +162,21 @@ fun TodayScreen(
                 title = {
                     Column {
                         Text(
-                            // The bar may only say Today when the day under it really is today.
+                            // The bar may only say Today when the day under it really is today, and
+                            // it may only name the destination once the trip carrying it has
+                            // arrived. Until then it says what the screen is, not what the trip
+                            // contains.
                             text = when {
-                                dayIsToday -> "Today · $destinationName"
-                                activeDay != null -> "Day ${activeDay.dayIndex} · $destinationName"
-                                else -> destinationName
+                                destination == null -> "Today"
+                                dayIsToday -> "Today · $destination"
+                                activeDay != null -> "Day ${activeDay.dayIndex} · $destination"
+                                else -> destination
                             }.uppercase(),
                             style = TrippinType.Heading
                         )
                         Text(
                             text = when {
+                                tripDetails == null -> if (loadFailed) "Trip not loaded" else "Loading the trip"
                                 activeDay == null -> "No days planned yet"
                                 activities.isEmpty() -> if (dayIsToday) "Nothing planned for today" else "Nothing planned for this day"
                                 dayIsToday -> "$stopCountText today"
@@ -211,7 +222,7 @@ fun TodayScreen(
                     )
                 }
             }
-        } else if (loadError != null && tripDetails == null) {
+        } else if (loadFailed && tripDetails == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -220,19 +231,21 @@ fun TodayScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    /* The app's one error recipe, the same one the Map screen draws. No cause is
+                     * named, because a load this screen cannot complete is not necessarily a
+                     * network problem: a trip this session does not own answers 404 the same way
+                     * a dead connection does. */
                     Text(
-                        "You are offline",
+                        "Could not load today's plan",
                         color = DangerCrimson,
                         style = TrippinType.Title
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(loadError ?: "", style = TrippinType.Body)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
                     ) {
-                        Text("Retry", style = TrippinType.Label)
+                        Text("Retry", style = TrippinType.Label, color = Paper)
                     }
                 }
             }
@@ -485,7 +498,11 @@ fun TodayScreen(
 
                                             Button(
                                                 onClick = {
-                                                    val query = Uri.encode("${currentStop.title} $destinationName")
+                                                    val query = Uri.encode(
+                                                        listOf(currentStop.title, destination)
+                                                            .filterNotNull()
+                                                            .joinToString(" ")
+                                                    )
                                                     val webMapsUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
                                                     context.startActivity(Intent(Intent.ACTION_VIEW, webMapsUri))
                                                 },
