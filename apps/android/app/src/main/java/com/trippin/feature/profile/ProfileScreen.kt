@@ -25,10 +25,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.SavedSpotsManager
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
@@ -139,8 +137,7 @@ fun ProfileScreen(
                             Text(
                                 text = "Where you have been",
                                 style = TrippinType.Caption,
-                                color = InkMuted,
-                                letterSpacing = 1.sp
+                                color = InkMuted
                             )
                             Spacer(modifier = Modifier.height(10.dp))
 
@@ -222,8 +219,7 @@ fun ProfileScreen(
                             Text(
                                 text = "This device",
                                 style = TrippinType.Caption,
-                                color = InkMuted,
-                                letterSpacing = 1.sp
+                                color = InkMuted
                             )
                         }
 
@@ -355,8 +351,7 @@ fun ProfileScreen(
                                 Text(
                                     text = "Where our numbers come from",
                                     style = TrippinType.Caption,
-                                    color = InkMuted,
-                                    letterSpacing = 1.sp
+                                    color = InkMuted
                                 )
                                 Text(
                                     text = "Built from map data, opening hours and travel times",

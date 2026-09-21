@@ -18,13 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
@@ -424,8 +422,7 @@ fun TodayScreen(
                                         Text(
                                             text = currentStop.title,
                                             style = TrippinType.Title,
-                                            color = Ink,
-                                            lineHeight = 24.sp
+                                            color = Ink
                                         )
 
                                         if (!currentStop.reason.isNullOrBlank()) {
@@ -531,10 +528,10 @@ fun TodayScreen(
                     // Remaining Stops Section
                     item {
                         Text(
-                            // "Later today" is only true on the day that is today.
+                            // "Later today" is only true on the day that is today. The role decides
+                            // the tracking: this line used to override it to 1sp.
                             text = if (dayIsToday) "Later today" else "Later that day",
                             style = TrippinType.Label,
-                            letterSpacing = 1.sp,
                             color = InkMuted,
                             modifier = Modifier.padding(top = 8.dp)
                         )
