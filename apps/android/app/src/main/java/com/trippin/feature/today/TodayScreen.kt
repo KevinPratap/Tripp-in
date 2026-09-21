@@ -183,7 +183,7 @@ fun TodayScreen(
                 },
                 actions = {
                     IconButton(onClick = { onOpenMap(tripId) }) {
-                        Icon(Icons.Default.Map, contentDescription = "Map", tint = ComicBlack)
+                        Icon(Icons.Default.Map, contentDescription = "Map", tint = Ink)
                     }
                 }
             )
@@ -207,7 +207,7 @@ fun TodayScreen(
                     Text(
                         "Loading today's plan...",
                         style = TrippinType.Body,
-                        color = ComicBlack
+                        color = Ink
                     )
                 }
             }
@@ -243,7 +243,7 @@ fun TodayScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(ComicPaper)
+                    .background(Paper)
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -255,8 +255,8 @@ fun TodayScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(2.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                            color = ComicPanel,
+                                .border(2.5.dp, Ink, RoundedCornerShape(8.dp)),
+                            color = Panel,
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
@@ -283,7 +283,7 @@ fun TodayScreen(
                                                 else -> "DAY ${activeDay.dayIndex} - $dayDate"
                                             },
                                             style = TrippinType.Label,
-                                            color = ComicBlack
+                                            color = Ink
                                         )
                                     }
                                     if (!activeDay?.weatherSummary.isNullOrBlank()) {
@@ -291,7 +291,7 @@ fun TodayScreen(
                                         Text(
                                             text = activeDay.weatherSummary,
                                             style = TrippinType.Caption,
-                                            color = ComicMuted
+                                            color = InkMuted
                                         )
                                     }
                                 }
@@ -302,7 +302,7 @@ fun TodayScreen(
                                     Surface(
                                         color = NeutralInkSurface,
                                         shape = RoundedCornerShape(4.dp),
-                                        modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                        modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(4.dp))
                                     ) {
                                         Text(
                                             text = "Today",
@@ -327,8 +327,8 @@ fun TodayScreen(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .border(2.5.dp, ComicBlack, RoundedCornerShape(12.dp)),
-                                color = ComicPanel,
+                                    .border(2.5.dp, Ink, RoundedCornerShape(12.dp)),
+                                color = Panel,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column {
@@ -347,7 +347,7 @@ fun TodayScreen(
                                                     .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                             )
                                             Surface(
-                                                color = ComicBlack.copy(alpha = 0.75f),
+                                                color = Ink.copy(alpha = 0.75f),
                                                 shape = RoundedCornerShape(4.dp),
                                                 modifier = Modifier
                                                     .align(Alignment.BottomEnd)
@@ -355,13 +355,13 @@ fun TodayScreen(
                                             ) {
                                                 Text(
                                                     text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
-                                                    color = ComicPaper,
+                                                    color = Paper,
                                                     style = TrippinType.Caption,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
                                         }
-                                        HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                                        HorizontalDivider(thickness = 2.dp, color = Ink)
                                     } else {
                                         // Half of a real trip's stops have no genuine photograph of
                                         // the venue on Wikidata, and a stand-in image is not allowed.
@@ -371,7 +371,7 @@ fun TodayScreen(
                                             category = currentStop.type,
                                             height = 160.dp
                                         )
-                                        HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                                        HorizontalDivider(thickness = 2.dp, color = Ink)
                                     }
 
                                     Column(modifier = Modifier.padding(18.dp)) {
@@ -389,11 +389,11 @@ fun TodayScreen(
                                                 Surface(
                                                     color = if (isRunningNow) AccentCrimson else NeutralInkSurface,
                                                     shape = RoundedCornerShape(4.dp),
-                                                    modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                                    modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(4.dp))
                                                 ) {
                                                     Text(
                                                         text = stopTimeLabel,
-                                                        color = if (isRunningNow) ComicPaper else NeutralInk,
+                                                        color = if (isRunningNow) Paper else NeutralInk,
                                                         style = TrippinType.Caption,
                                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                                     )
@@ -403,7 +403,7 @@ fun TodayScreen(
                                             Text(
                                                 text = "${currentStop.startTime} - ${currentStop.endTime}",
                                                 style = TrippinType.Label,
-                                                color = ComicBlack
+                                                color = Ink
                                             )
                                         }
 
@@ -411,7 +411,7 @@ fun TodayScreen(
                                         Text(
                                             text = currentStop.title,
                                             style = TrippinType.Title,
-                                            color = ComicBlack,
+                                            color = Ink,
                                             lineHeight = 24.sp
                                         )
 
@@ -420,7 +420,7 @@ fun TodayScreen(
                                             Text(
                                                 text = currentStop.reason,
                                                 style = TrippinType.Body,
-                                                color = ComicBlack.copy(alpha = 0.8f)
+                                                color = Ink.copy(alpha = 0.8f)
                                             )
                                         }
 
@@ -430,16 +430,16 @@ fun TodayScreen(
                                             Text(
                                                 text = address,
                                                 style = TrippinType.Body,
-                                                color = ComicMuted
+                                                color = InkMuted
                                             )
                                         }
 
                                         if (currentStop.travelTimeFromPreviousMinutes > 0) {
                                             Spacer(modifier = Modifier.height(10.dp))
                                             Surface(
-                                                color = ComicPaper,
+                                                color = Paper,
                                                 shape = RoundedCornerShape(6.dp),
-                                                modifier = Modifier.border(1.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                                modifier = Modifier.border(1.dp, Ink.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                                             ) {
                                                 Row(
                                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -455,7 +455,7 @@ fun TodayScreen(
                                                     Text(
                                                         text = "${currentStop.travelTimeFromPreviousMinutes} min travel, from OSRM",
                                                         style = TrippinType.Caption,
-                                                        color = ComicBlack
+                                                        color = Ink
                                                     )
                                                 }
                                             }
@@ -477,7 +477,7 @@ fun TodayScreen(
                                                     },
                                                     modifier = Modifier
                                                         .size(48.dp)
-                                                        .border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp))
+                                                        .border(1.5.dp, Ink, RoundedCornerShape(8.dp))
                                                 ) {
                                                     Icon(Icons.Default.ContentCopy, contentDescription = "Copy address")
                                                 }
@@ -492,16 +492,16 @@ fun TodayScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(48.dp)
-                                                    .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                                                    .border(2.dp, Ink, RoundedCornerShape(8.dp)),
                                                 colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
-                                                Icon(Icons.Default.Navigation, contentDescription = null, tint = ComicPaper)
+                                                Icon(Icons.Default.Navigation, contentDescription = null, tint = Paper)
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = "Take me there",
                                                     style = TrippinType.Label,
-                                                    color = ComicPaper
+                                                    color = Paper
                                                 )
                                             }
                                         }
@@ -518,7 +518,7 @@ fun TodayScreen(
                             text = if (dayIsToday) "Later today" else "Later that day",
                             style = TrippinType.Label,
                             letterSpacing = 1.sp,
-                            color = ComicMuted,
+                            color = InkMuted,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -528,14 +528,14 @@ fun TodayScreen(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .border(1.5.dp, ComicBlack.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
-                                color = ComicPanel,
+                                    .border(1.5.dp, Ink.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                                color = Panel,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     text = "That is every stop for today.",
                                     style = TrippinType.Body,
-                                    color = ComicMuted,
+                                    color = InkMuted,
                                     modifier = Modifier.padding(16.dp)
                                 )
                             }
@@ -546,8 +546,8 @@ fun TodayScreen(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                                color = ComicPanel,
+                                    .border(2.dp, Ink, RoundedCornerShape(8.dp)),
+                                color = Panel,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Row(
@@ -562,7 +562,7 @@ fun TodayScreen(
                                             modifier = Modifier
                                                 .size(54.dp)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .border(1.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                                .border(1.dp, Ink, RoundedCornerShape(6.dp))
                                         ) {
                                             AsyncImage(
                                                 model = photo,
@@ -579,7 +579,7 @@ fun TodayScreen(
                                             modifier = Modifier
                                                 .size(54.dp)
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .border(1.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                                .border(1.dp, Ink, RoundedCornerShape(6.dp))
                                         ) {
                                             PlacePlate(
                                                 title = act.title,
@@ -594,13 +594,13 @@ fun TodayScreen(
                                         Text(
                                             text = "${act.startTime} - ${act.endTime}",
                                             style = TrippinType.Label,
-                                            color = ComicBlack
+                                            color = Ink
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = act.title,
                                             style = TrippinType.Heading,
-                                            color = ComicBlack
+                                            color = Ink
                                         )
                                     }
 
@@ -611,7 +611,7 @@ fun TodayScreen(
                                         },
                                         modifier = Modifier
                                             .size(40.dp)
-                                            .border(1.5.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                            .border(1.5.dp, Ink, RoundedCornerShape(6.dp))
                                     ) {
                                         Icon(
                                             Icons.Default.Directions,

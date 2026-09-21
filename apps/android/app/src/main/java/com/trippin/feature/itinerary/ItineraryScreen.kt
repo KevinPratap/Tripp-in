@@ -275,7 +275,7 @@ fun ItineraryScreen(
                                     Icon(
                                         if (isLocked) Icons.Default.LockOpen else Icons.Default.Lock,
                                         contentDescription = null,
-                                        tint = ComicBlack
+                                        tint = Ink
                                     )
                                 },
                                 onClick = {
@@ -340,7 +340,7 @@ fun ItineraryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(ComicPaper)
+                    .background(Paper)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Locked Plan Banner
@@ -349,7 +349,7 @@ fun ItineraryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                                .border(2.dp, Ink, RoundedCornerShape(8.dp)),
                             color = GoodInkSurface,
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -456,7 +456,7 @@ fun ItineraryScreen(
                         ScrollableTabRow(
                             selectedTabIndex = pagerState.currentPage.coerceIn(0, days.size - 1),
                             edgePadding = 16.dp,
-                            containerColor = ComicPaper
+                            containerColor = Paper
                         ) {
                             days.forEachIndexed { index, day ->
                                 val isSelected = pagerState.currentPage == index
@@ -472,7 +472,7 @@ fun ItineraryScreen(
                                             text = "DAY ${day.dayIndex}",
                                             style = TrippinType.Label,
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                            color = if (isSelected) AccentCrimson else ComicBlack
+                                            color = if (isSelected) AccentCrimson else Ink
                                         )
                                     }
                                 )
@@ -523,8 +523,8 @@ fun ItineraryScreen(
                                          Surface(
                                              modifier = Modifier
                                                  .fillMaxWidth()
-                                                 .border(2.dp, ComicBlack, RoundedCornerShape(8.dp)),
-                                             color = ComicPanel,
+                                                 .border(2.dp, Ink, RoundedCornerShape(8.dp)),
+                                             color = Panel,
                                              shape = RoundedCornerShape(8.dp)
                                          ) {
                                         Column(modifier = Modifier.padding(14.dp)) {
@@ -543,7 +543,7 @@ fun ItineraryScreen(
                                                         text = "Stops total " +
                                                             formatStatedAmount(dayTotal, dayCurrency),
                                                         style = TrippinType.Caption,
-                                                        color = ComicBlack
+                                                        color = Ink
                                                     )
                                                 }
                                             }
@@ -553,7 +553,7 @@ fun ItineraryScreen(
                                                 Text(
                                                     text = day.summary,
                                                     style = TrippinType.Body,
-                                                    color = ComicBlack
+                                                    color = Ink
                                                 )
                                             }
 
@@ -566,12 +566,12 @@ fun ItineraryScreen(
                                                 Text(
                                                     text = "${activities.size} ${if (activities.size == 1) "stop" else "stops"} · $visitedCount visited",
                                                     style = TrippinType.Caption,
-                                                    color = ComicMuted
+                                                    color = InkMuted
                                                 )
                                                 Text(
                                                     text = "Swipe for other days",
                                                     style = TrippinType.Caption,
-                                                    color = ComicMuted
+                                                    color = InkMuted
                                                 )
                                             }
 
@@ -586,7 +586,7 @@ fun ItineraryScreen(
                                                     text = "No day total: some stops here do not " +
                                                         "say which currency their amount is in.",
                                                     style = TrippinType.Body,
-                                                    color = ComicMuted
+                                                    color = InkMuted
                                                 )
                                             }
                                         }
@@ -628,7 +628,7 @@ fun ItineraryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp),
-                        color = ComicPaper
+                        color = Paper
                     ) {
                         TrippinButton(
                             text = if (isLocked) "Plan is locked" else "Change the plan",
@@ -770,10 +770,10 @@ fun QuickReplanChip(
         enabled = enabled,
         modifier = Modifier.border(
             width = 1.5.dp,
-            color = if (enabled) ComicBlack else ComicBlack.copy(alpha = 0.3f),
+            color = if (enabled) Ink else Ink.copy(alpha = 0.3f),
             shape = RoundedCornerShape(6.dp)
         ),
-        color = if (enabled) ComicPanel else ComicPaper,
+        color = if (enabled) Panel else Paper,
         shape = RoundedCornerShape(6.dp)
     ) {
         Row(
@@ -783,14 +783,14 @@ fun QuickReplanChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (enabled) AccentCrimson else ComicMuted,
+                tint = if (enabled) AccentCrimson else InkMuted,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 style = TrippinType.Caption,
-                color = if (enabled) ComicBlack else ComicMuted
+                color = if (enabled) Ink else InkMuted
             )
         }
     }
@@ -851,8 +851,8 @@ fun ActivityComicCard(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
-                color = if (isVisited) GoodInkSurface else ComicPaper,
+                    .border(2.dp, Ink, RoundedCornerShape(10.dp)),
+                color = if (isVisited) GoodInkSurface else Paper,
                 shape = RoundedCornerShape(10.dp)
             ) {
             Column {
@@ -873,7 +873,7 @@ fun ActivityComicCard(
                         )
                         // Photo Source Tag
                         Surface(
-                            color = ComicBlack.copy(alpha = 0.75f),
+                            color = Ink.copy(alpha = 0.75f),
                             shape = RoundedCornerShape(4.dp),
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
@@ -881,13 +881,13 @@ fun ActivityComicCard(
                         ) {
                             Text(
                                 text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
-                                color = ComicPaper,
+                                color = Paper,
                                 style = TrippinType.Caption,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
-                    HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                    HorizontalDivider(thickness = 2.dp, color = Ink)
                 } else {
                     // No real photograph of this venue exists, so no photograph is shown. The plate
                     // names the place in its own letters and its own category instead of using a
@@ -898,7 +898,7 @@ fun ActivityComicCard(
                         category = activity.type,
                         height = 150.dp
                     )
-                    HorizontalDivider(thickness = 2.dp, color = ComicBlack)
+                    HorizontalDivider(thickness = 2.dp, color = Ink)
                 }
 
                 Column(modifier = Modifier.padding(14.dp)) {
@@ -911,11 +911,11 @@ fun ActivityComicCard(
                             Surface(
                                 color = AccentCrimson,
                                 shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(4.dp))
+                                modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(4.dp))
                             ) {
                                 Text(
                                     text = String.format("%02d", index),
-                                    color = ComicPaper,
+                                    color = Paper,
                                     style = TrippinType.Caption,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 )
@@ -924,7 +924,7 @@ fun ActivityComicCard(
                             Text(
                                 text = "${activity.startTime} - ${activity.endTime}",
                                 style = TrippinType.Label,
-                                color = ComicBlack
+                                color = Ink
                             )
                         }
 
@@ -953,12 +953,12 @@ fun ActivityComicCard(
                                     visitedCommits++
                                 },
                                 shape = RoundedCornerShape(4.dp),
-                                color = if (isVisited) GoodInkSurface else ComicPanel,
+                                color = if (isVisited) GoodInkSurface else Panel,
                                 modifier = Modifier
                                     .tickOnCommit(visitedCommits)
                                     .border(
                                         1.dp,
-                                        if (isVisited) GoodInk else ComicBlack,
+                                        if (isVisited) GoodInk else Ink,
                                         RoundedCornerShape(4.dp)
                                     )
                             ) {
@@ -969,14 +969,14 @@ fun ActivityComicCard(
                                     Icon(
                                         imageVector = if (isVisited) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                                         contentDescription = "Mark visited",
-                                        tint = if (isVisited) GoodInk else ComicBlack,
+                                        tint = if (isVisited) GoodInk else Ink,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = if (isVisited) "Visited" else "Mark visited",
                                         style = TrippinType.Caption,
-                                        color = if (isVisited) GoodInk else ComicBlack
+                                        color = if (isVisited) GoodInk else Ink
                                     )
                                 }
                             }
@@ -987,7 +987,7 @@ fun ActivityComicCard(
                     Text(
                         text = activity.title,
                         style = TrippinType.Heading,
-                        color = ComicBlack
+                        color = Ink
                     )
 
                     if (!activity.reason.isNullOrBlank()) {
@@ -995,7 +995,7 @@ fun ActivityComicCard(
                         Text(
                             text = activity.reason,
                             style = TrippinType.Body,
-                            color = ComicBlack.copy(alpha = 0.8f)
+                            color = Ink.copy(alpha = 0.8f)
                         )
                     }
 
@@ -1004,7 +1004,7 @@ fun ActivityComicCard(
                         Text(
                             text = address,
                             style = TrippinType.Body,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                     } else {
                         // The map data has no street for this venue, so the screen says that and gives
@@ -1017,7 +1017,7 @@ fun ActivityComicCard(
                                 "No street address in the map data for this venue."
                             },
                             style = TrippinType.Body,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                     }
 
@@ -1043,7 +1043,7 @@ fun ActivityComicCard(
                                 },
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .border(1.dp, ComicBlack, RoundedCornerShape(6.dp))
+                                    .border(1.dp, Ink, RoundedCornerShape(6.dp))
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = "Copy Address", modifier = Modifier.size(16.dp))
                             }

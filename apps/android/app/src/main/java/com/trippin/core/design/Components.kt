@@ -55,7 +55,7 @@ fun TrippinButton(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             enabled = enabled,
             shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(2.dp, ComicInk),
+            border = BorderStroke(2.dp, Ink),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AccentCrimson,
                 contentColor = PureWhite,
@@ -83,8 +83,8 @@ fun TrippinCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(2.dp, ComicInk),
-            colors = CardDefaults.cardColors(containerColor = ComicPanel),
+            border = BorderStroke(2.dp, Ink),
+            colors = CardDefaults.cardColors(containerColor = Panel),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             content()
@@ -106,8 +106,8 @@ fun TrippinSegmentedTabs(
         modifier = modifier
             .fillMaxWidth()
             .height(44.dp)
-            .background(ComicPanel, RoundedCornerShape(8.dp))
-            .border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+            .background(Panel, RoundedCornerShape(8.dp))
+            .border(2.dp, Ink, RoundedCornerShape(8.dp))
             .padding(3.dp)
     ) {
         Row(
@@ -116,8 +116,8 @@ fun TrippinSegmentedTabs(
         ) {
             options.forEachIndexed { index, option ->
                 val isSelected = index == selectedIndex
-                val pillBackground = if (isSelected) ComicInk else ComicPanel
-                val pillTextColor = if (isSelected) ComicPaper else ComicInk
+                val pillBackground = if (isSelected) Ink else Panel
+                val pillTextColor = if (isSelected) Paper else Ink
 
                 Box(
                     modifier = Modifier
@@ -157,7 +157,7 @@ fun TrippinStatusBadge(
     Box(
         modifier = modifier
             .background(badgeColor, RoundedCornerShape(4.dp))
-            .border(1.5.dp, ComicInk, RoundedCornerShape(4.dp))
+            .border(1.5.dp, Ink, RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
@@ -243,7 +243,7 @@ fun TrippinStamp(
             }
             .rotate(-1.5f)
             .border(BorderStroke(2.dp, AccentCrimson), RoundedCornerShape(3.dp))
-            .background(ComicPanel)
+            .background(Panel)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
@@ -262,7 +262,7 @@ fun TrippinStamp(
         detail?.let {
             Text(
                 text = it.uppercase(),
-                color = ComicMuted,
+                color = InkMuted,
                 style = TrippinType.Caption
             )
         }

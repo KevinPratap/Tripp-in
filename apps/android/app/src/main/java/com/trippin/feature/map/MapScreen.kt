@@ -105,8 +105,8 @@ fun MapScreen(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .border(2.5.dp, ComicBlack, RoundedCornerShape(12.dp)),
-                    color = ComicPaper,
+                        .border(2.5.dp, Ink, RoundedCornerShape(12.dp)),
+                    color = Paper,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -117,7 +117,7 @@ fun MapScreen(
                             Text(
                                 text = "${firstAct.title} ${if (secondAct != null && secondAct != firstAct) "→ " + secondAct.title else ""}",
                                 style = TrippinType.Heading,
-                                color = ComicBlack
+                                color = Ink
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -129,7 +129,7 @@ fun MapScreen(
                         Button(
                             colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.border(1.5.dp, ComicBlack, RoundedCornerShape(8.dp)),
+                            modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(8.dp)),
                             onClick = {
                                 val query = Uri.encode("${firstAct.title}, $destination")
                                 val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
@@ -137,9 +137,9 @@ fun MapScreen(
                                 context.startActivity(mapIntent)
                             }
                         ) {
-                            Icon(Icons.Default.Directions, contentDescription = null, tint = ComicPaper)
+                            Icon(Icons.Default.Directions, contentDescription = null, tint = Paper)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Take me there", style = TrippinType.Label, color = ComicPaper)
+                            Text("Take me there", style = TrippinType.Label, color = Paper)
                         }
                     }
                 }

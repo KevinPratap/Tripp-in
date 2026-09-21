@@ -85,7 +85,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(ComicPaper),
+                .background(Paper),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -95,8 +95,8 @@ fun ProfileScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(2.dp, ComicInk),
-                        colors = CardDefaults.cardColors(containerColor = ComicPanel),
+                        border = BorderStroke(2.dp, Ink),
+                        colors = CardDefaults.cardColors(containerColor = Panel),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(modifier = Modifier.padding(18.dp)) {
@@ -111,22 +111,22 @@ fun ProfileScreen(
                                             .size(44.dp)
                                             .clip(CircleShape)
                                             .background(Ink)
-                                            .border(1.5.dp, ComicInk, CircleShape),
+                                            .border(1.5.dp, Ink, CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Icons.Default.Public, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Default.Public, contentDescription = null, tint = Paper, modifier = Modifier.size(24.dp))
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = "Your trips",
                                             style = TrippinType.Heading,
-                                            color = ComicInk
+                                            color = Ink
                                         )
                                         Text(
                                             text = "$tripCount $tripWord · ${SavedSpotsManager.savedSpots.size} $placeWord",
                                             style = TrippinType.Caption,
-                                            color = ComicMuted
+                                            color = InkMuted
                                         )
                                     }
                                 }
@@ -139,7 +139,7 @@ fun ProfileScreen(
                             Text(
                                 text = "Where you have been",
                                 style = TrippinType.Caption,
-                                color = ComicMuted,
+                                color = InkMuted,
                                 letterSpacing = 1.sp
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -153,7 +153,7 @@ fun ProfileScreen(
                                 Text(
                                     text = "Trips you take show up here as stamps.",
                                     style = TrippinType.Label,
-                                    color = ComicMuted
+                                    color = InkMuted
                                 )
                             } else {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -186,7 +186,7 @@ fun ProfileScreen(
                                                     Text(
                                                         text = trip.destination.uppercase(),
                                                         style = TrippinType.Caption,
-                                                        color = ComicInk
+                                                        color = Ink
                                                     )
                                                     Text(
                                                         text = monthYear(trip.startDate),
@@ -209,8 +209,8 @@ fun ProfileScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(2.dp, ComicInk, RoundedCornerShape(10.dp)),
-                    color = ComicPanel,
+                        .border(2.dp, Ink, RoundedCornerShape(10.dp)),
+                    color = Panel,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -222,7 +222,7 @@ fun ProfileScreen(
                             Text(
                                 text = "This device",
                                 style = TrippinType.Caption,
-                                color = ComicMuted,
+                                color = InkMuted,
                                 letterSpacing = 1.sp
                             )
                         }
@@ -231,20 +231,20 @@ fun ProfileScreen(
                         Text(
                             text = accountName,
                             style = TrippinType.Title,
-                            color = ComicInk
+                            color = Ink
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = accountEmail,
                             style = TrippinType.Body,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Your trips are kept on this account, so the same account sees the " +
                                 "same trips on any phone. Nothing is tied to this device.",
                             style = TrippinType.Body,
-                            color = ComicMuted
+                            color = InkMuted
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -261,12 +261,12 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
-                                    .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
+                                    .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = ComicInk)
+                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = Ink)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copy email", style = TrippinType.Label, color = ComicInk)
+                                Text("Copy email", style = TrippinType.Label, color = Ink)
                             }
 
                             Button(
@@ -274,13 +274,13 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
-                                    .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
+                                    .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
                                 colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Icon(Icons.Default.CardTravel, contentDescription = null, tint = ComicPaper, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.CardTravel, contentDescription = null, tint = Paper, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("My trips", style = TrippinType.Label, color = ComicPaper)
+                                Text("My trips", style = TrippinType.Label, color = Paper)
                             }
                         }
                     }
@@ -292,22 +292,22 @@ fun ProfileScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(2.dp, ComicInk, RoundedCornerShape(10.dp)),
-                    color = ComicPanel,
+                        .border(2.dp, Ink, RoundedCornerShape(10.dp)),
+                    color = Panel,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Account",
                             style = TrippinType.Label,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Signing in is how a trip belongs to you rather than to a phone. " +
                                 "There is no password to remember: the server issues a single use link.",
                             style = TrippinType.Body,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
@@ -318,17 +318,17 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(40.dp)
-                                .border(1.5.dp, ComicInk, RoundedCornerShape(6.dp)),
+                                .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
                             shape = RoundedCornerShape(6.dp)
                         ) {
-                            Text("Sign out", style = TrippinType.Label, color = ComicInk)
+                            Text("Sign out", style = TrippinType.Label, color = Ink)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Signing out removes the session from this phone. Your trips stay on " +
                                 "the account and come back when you sign in again.",
                             style = TrippinType.Caption,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                     }
                 }
@@ -339,8 +339,8 @@ fun ProfileScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.5.dp, ComicInk, RoundedCornerShape(10.dp)),
-                    color = ComicPanel,
+                        .border(1.5.dp, Ink, RoundedCornerShape(10.dp)),
+                    color = Panel,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -355,25 +355,25 @@ fun ProfileScreen(
                                 Text(
                                     text = "Where our numbers come from",
                                     style = TrippinType.Caption,
-                                    color = ComicMuted,
+                                    color = InkMuted,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
                                     text = "Built from map data, opening hours and travel times",
                                     style = TrippinType.Caption,
-                                    color = ComicInk
+                                    color = Ink
                                 )
                             }
                             Icon(
                                 imageVector = if (showEngineDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
-                                tint = ComicInk
+                                tint = Ink
                             )
                         }
 
                         if (showEngineDetails) {
                             Spacer(modifier = Modifier.height(14.dp))
-                            HorizontalDivider(thickness = 1.dp, color = ComicInk.copy(alpha = 0.15f))
+                            HorizontalDivider(thickness = 1.dp, color = Ink.copy(alpha = 0.15f))
                             Spacer(modifier = Modifier.height(12.dp))
 
                             EngineRow(title = "Travel times", desc = "Drive times and distances, from OSRM")
@@ -399,8 +399,8 @@ private fun EngineRow(title: String, desc: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = TrippinType.Label, color = ComicInk)
-            Text(desc, style = TrippinType.Caption, color = ComicMuted)
+            Text(title, style = TrippinType.Label, color = Ink)
+            Text(desc, style = TrippinType.Caption, color = InkMuted)
         }
     }
 }

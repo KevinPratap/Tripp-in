@@ -30,9 +30,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.trippin.core.design.AccentCrimson
-import com.trippin.core.design.ComicInk
-import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.Ink
+import com.trippin.core.design.Panel
 import com.trippin.core.design.TrippinType
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.SessionStore
@@ -115,9 +114,9 @@ fun TrippinAppShell() {
                 unselectedTextColor = Ink.copy(alpha = 0.42f)
             )
             NavigationBar(
-                containerColor = ComicPanel,
+                containerColor = Panel,
                 tonalElevation = 0.dp,
-                modifier = Modifier.border(width = 2.dp, color = ComicInk)
+                modifier = Modifier.border(width = 2.dp, color = Ink)
             ) {
                 ShellTab.entries.forEach { tab ->
                     val selected = when (tab) {
@@ -329,12 +328,12 @@ private fun NoTripSelected(headline: String, body: String) {
         Text(
             text = headline,
             style = TrippinType.Display,
-            color = ComicInk
+            color = Ink
         )
         Text(
             text = body,
             style = TrippinType.Body,
-            color = ComicInk.copy(alpha = 0.7f),
+            color = Ink.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 8.dp)
         )
     }

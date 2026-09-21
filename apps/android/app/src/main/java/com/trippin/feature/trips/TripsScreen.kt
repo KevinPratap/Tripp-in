@@ -42,10 +42,7 @@ import com.trippin.core.design.NeutralInkSurface
 import com.trippin.core.design.Panel
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
-import com.trippin.core.design.ComicInk
-import com.trippin.core.design.ComicMuted
-import com.trippin.core.design.ComicPanel
-import com.trippin.core.design.ComicPaper
+import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
@@ -237,12 +234,12 @@ fun TripsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ComicInk)
+                    .background(Ink)
                     .padding(start = 20.dp, end = 14.dp, top = 20.dp, bottom = 16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "TRIPS", style = TrippinType.Title, color = ComicPaper)
+                        Text(text = "TRIPS", style = TrippinType.Title, color = Paper)
                         if (trips.isNotEmpty()) {
                             Text(
                                 text = tripCountLine(
@@ -250,7 +247,7 @@ fun TripsScreen(
                                     ordered.count { it.second != TripState.FINISHED }
                                 ),
                                 style = TrippinType.Caption,
-                                color = ComicPaper.copy(alpha = 0.72f),
+                                color = Paper.copy(alpha = 0.72f),
                                 modifier = Modifier.padding(top = 6.dp)
                             )
                         }
@@ -259,7 +256,7 @@ fun TripsScreen(
                         onClick = { onNavigateToPlanner(null) },
                         modifier = Modifier
                             .size(44.dp)
-                            .border(1.5.dp, ComicPaper.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                            .border(1.5.dp, Paper.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "New trip", tint = AccentCrimson)
                     }
@@ -273,7 +270,7 @@ fun TripsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(ComicPaper)
+                .background(Paper)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // The same four states as words with a rule under the selected one. The control
@@ -298,7 +295,7 @@ fun TripsScreen(
                             Text(
                                 text = label.uppercase(),
                                 style = TrippinType.Label,
-                                color = if (isOn) ComicInk else ComicMuted
+                                color = if (isOn) Ink else InkMuted
                             )
                             Box(
                                 modifier = Modifier
@@ -344,7 +341,7 @@ fun TripsScreen(
                                 Text(
                                     text = "WHERE NEXT",
                                     style = TrippinType.Label,
-                                    color = ComicMuted
+                                    color = InkMuted
                                 )
                                 suggestions.take(4).forEach { destination ->
                                     SuggestionCard(
@@ -405,13 +402,13 @@ fun TripsScreen(
                                                     Icon(
                                                         Icons.Default.DeleteOutline,
                                                         contentDescription = null,
-                                                        tint = ComicPaper,
+                                                        tint = Paper,
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
                                                         "Delete",
-                                                        color = ComicPaper,
+                                                        color = Paper,
                                                         style = TrippinType.Label,
                                                     )
                                                 }
@@ -441,7 +438,7 @@ fun TripsScreen(
                                         Text(
                                             text = "WHERE NEXT",
                                             style = TrippinType.Label,
-                                            color = ComicMuted,
+                                            color = InkMuted,
                                             modifier = Modifier.padding(top = 8.dp)
                                         )
                                         suggestions.take(4).forEach { destination ->
@@ -515,24 +512,24 @@ fun TripsScreen(
                             inviteError != null -> Text(
                                 text = inviteError.orEmpty(),
                                 style = TrippinType.Body,
-                                color = ComicInk
+                                color = Ink
                             )
                             inviteCode == null -> Text(
                                 text = "Asking the server for this trip's invite code.",
                                 style = TrippinType.Body,
-                                color = ComicMuted
+                                color = InkMuted
                             )
                             else -> {
                                 Text(
                                     text = inviteCode.orEmpty(),
                                     style = TrippinType.Heading,
-                                    color = ComicInk
+                                    color = Ink
                                 )
                                 Text(
                                     text = "Copied to the clipboard. Send it to your friends, and they " +
                                         "tap Join a trip on the Trips screen and enter it.",
                                     style = TrippinType.Body,
-                                    color = ComicMuted
+                                    color = InkMuted
                                 )
                             }
                         }
@@ -573,7 +570,7 @@ fun TripsScreen(
                             text = "Enter the invite code the trip's owner sent you, and the name the " +
                                 "others will see on this trip.",
                             style = TrippinType.Caption,
-                            color = ComicMuted
+                            color = InkMuted
                         )
                         OutlinedTextField(
                             value = joinCode,
@@ -583,7 +580,7 @@ fun TripsScreen(
                             label = { Text("Invite code", style = TrippinType.Label) },
                             textStyle = TrippinType.Body,
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth().border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+                            modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                         )
                         OutlinedTextField(
                             value = joinName,
@@ -593,10 +590,10 @@ fun TripsScreen(
                             label = { Text("Your name", style = TrippinType.Label) },
                             textStyle = TrippinType.Body,
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth().border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+                            modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                         )
                         joinError?.let {
-                            Text(text = it, style = TrippinType.Body, color = ComicInk)
+                            Text(text = it, style = TrippinType.Body, color = Ink)
                         }
                     }
                 },
@@ -640,8 +637,8 @@ private fun SuggestionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .border(2.dp, ComicInk, RoundedCornerShape(12.dp)),
-        color = ComicPanel,
+            .border(2.dp, Ink, RoundedCornerShape(12.dp)),
+        color = Panel,
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -653,7 +650,7 @@ private fun SuggestionCard(
                 modifier = Modifier
                     .width(96.dp)
                     .fillMaxHeight()
-                    .background(ComicInk)
+                    .background(Ink)
             ) {
                 if (photo != null) {
                     AsyncImage(
@@ -667,7 +664,7 @@ private fun SuggestionCard(
                     Text(
                         text = destination.name.take(2).uppercase(),
                         style = TrippinType.Title,
-                        color = ComicPaper,
+                        color = Paper,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -679,12 +676,12 @@ private fun SuggestionCard(
                 Text(
                     text = destination.name,
                     style = TrippinType.Heading,
-                    color = ComicInk
+                    color = Ink
                 )
                 Text(
                     text = destination.country,
                     style = TrippinType.Caption,
-                    color = ComicMuted
+                    color = InkMuted
                 )
                 Text(
                     text = "Plan a trip here",
@@ -706,29 +703,29 @@ private fun JoinPrompt(onClick: () -> Unit) {
         Text(
             text = "JOINED BY INVITE?",
             style = TrippinType.Label,
-            color = ComicMuted,
+            color = InkMuted,
             modifier = Modifier.padding(top = 8.dp)
         )
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onClick() }
-                .border(2.dp, ComicInk, RoundedCornerShape(12.dp)),
-            color = ComicPaper,
+                .border(2.dp, Ink, RoundedCornerShape(12.dp)),
+            color = Paper,
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Join a trip with a code",
                     style = TrippinType.Heading,
-                    color = ComicInk
+                    color = Ink
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Someone planned a trip and sent you a code. Enter it and your name, and the " +
                         "trip opens with their plan in it.",
                     style = TrippinType.Body,
-                    color = ComicMuted
+                    color = InkMuted
                 )
             }
         }
@@ -757,8 +754,8 @@ private fun EmptyTripsPanel(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(2.5.dp, ComicInk, RoundedCornerShape(12.dp)),
-            color = ComicPanel,
+                .border(2.5.dp, Ink, RoundedCornerShape(12.dp)),
+            color = Panel,
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(
@@ -768,13 +765,13 @@ private fun EmptyTripsPanel(
                 Text(
                     text = title,
                     style = TrippinType.Heading,
-                    color = ComicInk
+                    color = Ink
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = body,
                     style = TrippinType.Label,
-                    color = ComicMuted
+                    color = InkMuted
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -783,7 +780,7 @@ private fun EmptyTripsPanel(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .height(44.dp)
-                        .border(2.dp, ComicInk, RoundedCornerShape(8.dp))
+                        .border(2.dp, Ink, RoundedCornerShape(8.dp))
                 ) {
                     Text("Plan a trip", style = TrippinType.Label)
                 }
