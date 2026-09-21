@@ -855,7 +855,7 @@ fun ActivityComicCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(2.dp, ComicBlack, RoundedCornerShape(10.dp)),
-                color = if (isVisited) Color(0xFFF4F8F4) else ComicPaper,
+                color = if (isVisited) GoodInkSurface else ComicPaper,
                 shape = RoundedCornerShape(10.dp)
             ) {
             Column {
@@ -956,12 +956,12 @@ fun ActivityComicCard(
                                     visitedCommits++
                                 },
                                 shape = RoundedCornerShape(4.dp),
-                                color = if (isVisited) Color(0xFF16A34A) else ComicPanel,
+                                color = if (isVisited) GoodInkSurface else ComicPanel,
                                 modifier = Modifier
                                     .tickOnCommit(visitedCommits)
                                     .border(
                                         1.dp,
-                                        if (isVisited) Color(0xFF16A34A) else ComicBlack,
+                                        if (isVisited) GoodInk else ComicBlack,
                                         RoundedCornerShape(4.dp)
                                     )
                             ) {
@@ -972,14 +972,14 @@ fun ActivityComicCard(
                                     Icon(
                                         imageVector = if (isVisited) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                                         contentDescription = "Mark visited",
-                                        tint = if (isVisited) ComicPaper else ComicBlack,
+                                        tint = if (isVisited) GoodInk else ComicBlack,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = if (isVisited) "Visited" else "Mark visited",
                                         style = TrippinType.Caption,
-                                        color = if (isVisited) ComicPaper else ComicBlack
+                                        color = if (isVisited) GoodInk else ComicBlack
                                     )
                                 }
                             }
