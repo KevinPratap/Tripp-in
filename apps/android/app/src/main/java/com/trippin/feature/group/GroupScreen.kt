@@ -346,9 +346,10 @@ fun GroupScreen(tripId: String) {
 
 /**
  * The words the engine matches interests on: the frozen vocabulary the backend validates a traveller
- * against, and the same words it looks for on a stop when it counts support. Its matching is case
- * sensitive, so the value sent is the lowercase word and only the chip's label is drawn capitalised.
- * Any other spelling would be stored on the person and silently match nothing.
+ * against, and the same words it looks for on a stop when it counts support. The server trims and
+ * lowercases whatever is sent and then keeps only the words on this list, so a word that is not here
+ * is dropped rather than stored, and the value that is drawn capitalised is sent exactly as it is
+ * written here. The chips offer the whole list rather than a guess at what a person might want.
  */
 private val GROUP_INTEREST_WORDS = listOf(
     "culture", "food", "nightlife", "nature", "adventure", "shopping",
