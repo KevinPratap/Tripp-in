@@ -2,6 +2,7 @@ package com.trippin.feature.group
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
@@ -58,6 +60,7 @@ import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
 import com.trippin.core.network.TravellerDto
 import com.trippin.core.network.TripDetailsDto
+import com.trippin.core.network.UpdateTravellerRequestDto
 import kotlin.math.roundToLong
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -80,6 +83,10 @@ import retrofit2.HttpException
  * forever. Add someone sends only what was typed, and a field left blank is left out of the request
  * rather than filled with a stand-in, which is why a person's row still says Not set for anything
  * nobody has stated.
+ *
+ * Each person's own row now carries the way into changing what they set, because a cap typed wrong
+ * was permanent from the app. That path sends a PATCH holding only the fields the owner changed, and
+ * the reason it is a diff rather than the whole form is recorded on savePerson below.
  */
 @Composable
 fun GroupScreen(tripId: String) {
@@ -88,6 +95,11 @@ fun GroupScreen(tripId: String) {
     var showAddPerson by remember { mutableStateOf(false) }
     var isAdding by remember { mutableStateOf(false) }
     var addError by remember { mutableStateOf<String?>(null) }
+    // The person whose own answers are being changed, and the state of that write. Same shape as the
+    // add path above: the sheet is its own composable and this screen holds only the request state.
+    var editing by remember { mutableStateOf<TravellerDto?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf<String?>(null) }
     // Bumped after a person is added, so the screen redraws from the server's own answer rather than
     // from the row the app hoped for.
     var refreshTick by remember { mutableStateOf(0) }
@@ -137,6 +149,43 @@ fun GroupScreen(tripId: String) {
                 addError = "Could not reach the server. Check the connection and try again."
             } finally {
                 isAdding = false
+            }
+        }
+    }
+
+    /**
+     * Changes one person's own answers. The body carries only the fields the owner actually changed,
+     * and that is a rule rather than a preference: a field left out of a PATCH keeps the value it has,
+     * while a field sent as null clears it, so sending the whole form would wipe anything this sheet
+     * does not show. Dislikes are the live example, they are on the person's row and this sheet does
+     * not ask about them, so they are left out of the body and the person keeps them.
+     *
+     * The other half of the same rule is why the sheet refuses to save an emptied cap or an unpicked
+     * pace: this app cannot put an explicit null on the wire at all. Its serializer omits every
+     * property that still holds its default, so budgetCap = null and pace = null are written as
+     * nothing at all and the server reads that as "leave it alone". A clearance typed here would look
+     * saved and would not be, so the sheet says a cap or a pace can be changed but not removed yet,
+     * and holds Save until the field holds a real value.
+     */
+    fun savePerson(travellerId: String, body: UpdateTravellerRequestDto) {
+        scope.launch {
+            isSaving = true
+            saveError = null
+            try {
+                NetworkModule.apiService.updateTraveller(tripId, travellerId, body)
+                editing = null
+                refreshTick++
+            } catch (e: HttpException) {
+                saveError = when (e.code()) {
+                    401 -> "Sign in again, then try this."
+                    403 -> "Only the person who created this trip can change people on it."
+                    404 -> "That person is no longer on this trip."
+                    else -> "The server did not accept that, so nothing changed."
+                }
+            } catch (_: Exception) {
+                saveError = "Could not reach the server. Check the connection and try again."
+            } finally {
+                isSaving = false
             }
         }
     }
@@ -262,7 +311,11 @@ fun GroupScreen(tripId: String) {
                     traveller = traveller,
                     share = share,
                     currency = currency,
-                    costKnown = costKnown
+                    costKnown = costKnown,
+                    onEdit = {
+                        saveError = null
+                        editing = traveller
+                    }
                 )
             }
         }
@@ -340,6 +393,22 @@ fun GroupScreen(tripId: String) {
                 }
             },
             onAdd = { name, cap, pace, interests -> addPerson(name, cap, pace, interests) }
+        )
+    }
+
+    editing?.let { person ->
+        EditPersonDialog(
+            traveller = person,
+            currency = currency,
+            isBusy = isSaving,
+            error = saveError,
+            onDismiss = {
+                if (!isSaving) {
+                    editing = null
+                    saveError = null
+                }
+            },
+            onSave = { body -> savePerson(person.id, body) }
         )
     }
 }
@@ -505,13 +574,195 @@ private fun AddPersonDialog(
     )
 }
 
+/**
+ * Changes one person's own answers. Every field starts at what that person set, which is the truth
+ * about them and not a guess at it: a cap they set is drawn in the cap field, their pace is the
+ * selected chip and their interests are the selected words. Only the fields the owner actually
+ * changes are sent, so nothing this sheet does not show is touched.
+ *
+ * The cap and the pace can be changed here but not removed, and the sheet says so only when the
+ * owner tries to empty one rather than apologising in advance. The reason is on savePerson: a null
+ * never reaches the wire from this app, so a cleared field would be a save that saved nothing.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EditPersonDialog(
+    traveller: TravellerDto,
+    currency: String?,
+    isBusy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSave: (UpdateTravellerRequestDto) -> Unit
+) {
+    var name by remember { mutableStateOf(traveller.name) }
+    var capText by remember {
+        mutableStateOf(traveller.budgetCap?.let { capFieldText(it) } ?: "")
+    }
+    var pace by remember { mutableStateOf(traveller.pace?.takeIf { it.isNotBlank() }) }
+    var interests by remember { mutableStateOf(traveller.interests) }
+
+    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val capProblem = when {
+        capText.isBlank() && traveller.budgetCap != null ->
+            "A cap can be changed here but not removed yet, so enter the cap they should have."
+        capText.isBlank() -> null
+        cap == null || cap <= 0.0 -> "Enter their cap as a number, or leave the field blank."
+        else -> null
+    }
+    val paceProblem = if (pace == null && traveller.pace != null) {
+        "A pace can be changed here but not removed yet, so pick one of the three."
+    } else {
+        null
+    }
+
+    // Only the differences travel, and interests are compared as sets so that tapping a word off and
+    // back on is not mistaken for a change.
+    val body = UpdateTravellerRequestDto(
+        name = name.trim().takeIf { it != traveller.name },
+        budgetCap = cap.takeIf { it != null && it != traveller.budgetCap },
+        interests = interests.takeIf { it.toSet() != traveller.interests.toSet() },
+        dislikes = null,
+        pace = pace.takeIf { it != traveller.pace }
+    )
+    val changed = body.name != null || body.budgetCap != null ||
+        body.interests != null || body.pace != null
+    val canSave = name.isNotBlank() && capProblem == null && paceProblem == null && changed
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Edit " + traveller.name.ifBlank { "this person" },
+                style = TrippinType.Heading
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "These are the answers they set. Only what you change here is saved.",
+                    style = TrippinType.Caption,
+                    color = InkMuted
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { typed -> if (typed.length <= 60) name = typed },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = { Text("Their name", style = TrippinType.Label) },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                OutlinedTextField(
+                    value = capText,
+                    onValueChange = { typed ->
+                        if (typed.all { it.isDigit() || it == '.' || it == ',' }) capText = typed
+                    },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = {
+                        Text(
+                            text = if (currency.isNullOrBlank()) {
+                                "Budget cap (optional)"
+                            } else {
+                                "Budget cap in ${currency.uppercase()} (optional)"
+                            },
+                            style = TrippinType.Label
+                        )
+                    },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                capProblem?.let {
+                    Text(text = it, style = TrippinType.Caption, color = DangerCrimson)
+                }
+                Text(text = "Pace", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TRAVELLER_PACE_CHOICES.forEach { (value, label) ->
+                        TrippinChoiceChip(
+                            text = label,
+                            selected = pace == value,
+                            onClick = { pace = if (pace == value) null else value }
+                        )
+                    }
+                }
+                paceProblem?.let {
+                    Text(text = it, style = TrippinType.Caption, color = DangerCrimson)
+                }
+                Text(text = "Wants", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TRAVELLER_INTEREST_WORDS.forEach { word ->
+                        TrippinChoiceChip(
+                            text = word,
+                            selected = interests.contains(word),
+                            onClick = {
+                                interests = if (interests.contains(word)) {
+                                    interests - word
+                                } else {
+                                    interests + word
+                                }
+                            }
+                        )
+                    }
+                }
+                if (error != null) {
+                    Text(text = error, style = TrippinType.Body, color = DangerCrimson)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentCrimson,
+                    contentColor = OnCrimson
+                ),
+                enabled = !isBusy && canSave,
+                onClick = { onSave(body) }
+            ) {
+                if (isBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = OnCrimson
+                    )
+                } else {
+                    Text("Save", style = TrippinType.Label)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !isBusy, onClick = onDismiss) {
+                Text("Cancel", style = TrippinType.Label)
+            }
+        }
+    )
+}
+
+/**
+ * A cap put back into a field: no currency symbol, because the field's own label names the currency,
+ * and no decimal point on a whole number, because 4500.0 is not how anybody writes a cap.
+ */
+private fun capFieldText(cap: Double): String {
+    val whole = cap.roundToLong()
+    return if (cap == whole.toDouble()) whole.toString() else cap.toString()
+}
+
 /** One person, with everything they set themselves and their own share of the plan. */
 @Composable
 private fun TravellerCard(
     traveller: TravellerDto,
     share: PerTravellerCostDto?,
     currency: String?,
-    costKnown: Boolean
+    costKnown: Boolean,
+    onEdit: () -> Unit
 ) {
     val cap = traveller.budgetCap
     val overCap = share?.overCap == true && cap != null
@@ -592,6 +843,24 @@ private fun TravellerCard(
                     style = TrippinType.Caption,
                     color = Ink,
                     modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+
+            // The way into changing what this person set, drawn the way the Trips row draws Invite:
+            // ink and underlined rather than crimson, because crimson is the filled button. The
+            // padding is what makes the touch target 44dp without drawing a control that loud.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "Edit",
+                    style = TrippinType.Label,
+                    color = Ink,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier
+                        .clickable { onEdit() }
+                        .padding(horizontal = 8.dp, vertical = 14.dp)
                 )
             }
         }
