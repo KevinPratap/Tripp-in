@@ -44,6 +44,15 @@ val CategoryTransit = Color(0xFF0284C7)
 /** The one interactive colour: primary buttons, the selected tab, the selected chip, links. */
 val AccentCrimson = ComicRed
 
+/**
+ * The label, icon or spinner on a filled crimson control, and nothing else: the accent button and
+ * the destructive button alike. Section 1 of the design system has no token for this job, which is
+ * why the filled button used to reach for a surface token and the spinners inside two dialogs used
+ * a raw white. It is its own literal on purpose: ink on crimson is not a card surface and must not
+ * follow one if the surface value ever moves.
+ */
+val OnCrimson = Color(0xFFFFFFFF)
+
 /** A destructive or failed action only: Delete, a plan that failed, a budget exceeded. */
 val DangerCrimson = Color(0xFFB31B3E)
 

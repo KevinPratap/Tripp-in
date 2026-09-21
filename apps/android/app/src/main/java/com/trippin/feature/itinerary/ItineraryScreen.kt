@@ -24,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -714,7 +713,7 @@ fun ItineraryScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = OnCrimson
                             )
                         } else {
                             Text("Apply", style = TrippinType.Label)
@@ -750,7 +749,7 @@ fun ItineraryScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = OnCrimson
                             )
                         } else {
                             Text("Delete", style = TrippinType.Label)

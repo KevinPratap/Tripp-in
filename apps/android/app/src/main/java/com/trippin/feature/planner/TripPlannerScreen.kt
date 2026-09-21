@@ -330,15 +330,15 @@ fun TripPlannerScreen(
                         .border(2.dp, Ink, RoundedCornerShape(8.dp)),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AccentCrimson,
-                        contentColor = Panel,
+                        contentColor = OnCrimson,
                         disabledContainerColor = AccentCrimson.copy(alpha = 0.4f),
-                        disabledContentColor = Panel
+                        disabledContentColor = OnCrimson
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     if (isSubmitting) {
                         CircularProgressIndicator(
-                            color = Panel,
+                            color = OnCrimson,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(20.dp)
                         )
@@ -346,15 +346,15 @@ fun TripPlannerScreen(
                         Text(
                             text = "Building your plan",
                             style = TrippinType.Label,
-                            color = Panel
+                            color = OnCrimson
                         )
                     } else {
-                        Icon(Icons.Default.Bolt, contentDescription = null, tint = Panel)
+                        Icon(Icons.Default.Bolt, contentDescription = null, tint = OnCrimson)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Build my plan",
                             style = TrippinType.Label,
-                            color = Panel
+                            color = OnCrimson
                         )
                     }
                 }
@@ -483,7 +483,7 @@ private fun PlannerChoiceChip(
         Text(
             text = text.uppercase(),
             style = TrippinType.Caption,
-            color = if (selected) Panel else Ink
+            color = if (selected) OnCrimson else Ink
         )
     }
 }

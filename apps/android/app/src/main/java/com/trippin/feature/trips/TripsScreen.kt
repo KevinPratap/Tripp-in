@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
@@ -39,6 +38,7 @@ import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
 import com.trippin.core.design.NeutralInk
 import com.trippin.core.design.NeutralInkSurface
+import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.Panel
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
@@ -479,7 +479,7 @@ fun TripsScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = OnCrimson
                             )
                         } else {
                             Text("Delete", style = TrippinType.Label)
@@ -607,7 +607,7 @@ fun TripsScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = OnCrimson
                             )
                         } else {
                             Text("Join", style = TrippinType.Label)

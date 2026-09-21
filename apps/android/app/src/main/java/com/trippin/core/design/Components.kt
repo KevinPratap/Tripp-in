@@ -58,16 +58,16 @@ fun TrippinButton(
             border = BorderStroke(2.dp, Ink),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AccentCrimson,
-                contentColor = PureWhite,
+                contentColor = OnCrimson,
                 disabledContainerColor = AccentCrimson.copy(alpha = 0.4f),
-                disabledContentColor = PureWhite.copy(alpha = 0.8f)
+                disabledContentColor = OnCrimson.copy(alpha = 0.8f)
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
             Text(
                 text = text.uppercase(),
                 style = TrippinType.Label,
-                color = PureWhite
+                color = OnCrimson
             )
         }
     }
