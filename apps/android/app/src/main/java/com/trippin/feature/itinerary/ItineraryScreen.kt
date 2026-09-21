@@ -25,11 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -80,7 +78,7 @@ fun ItineraryScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val haptic = LocalHapticFeedback.current
+    val commitHaptic = rememberCommitHaptic()
 
     val loadTripData: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
         scope.launch {
@@ -155,10 +153,13 @@ fun ItineraryScreen(
     val pageCount = days.size.coerceAtLeast(1)
     val pagerState = rememberPagerState(initialPage = 0) { pageCount }
 
-    // Haptic feedback when swiping between days
+    // One haptic per day the user actually swiped to, and none on arrival: the first composition of
+    // this effect is the screen opening, which is not something the user committed.
+    var settledPage by remember { mutableIntStateOf(pagerState.currentPage) }
     LaunchedEffect(pagerState.currentPage) {
-        if (days.isNotEmpty()) {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        if (days.isNotEmpty() && pagerState.currentPage != settledPage) {
+            settledPage = pagerState.currentPage
+            commitHaptic()
         }
     }
 
@@ -167,7 +168,7 @@ fun ItineraryScreen(
         scope.launch {
             try {
                 isLocking = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                commitHaptic()
                 if (isLocked) {
                     NetworkModule.apiService.unlockTrip(tripId)
                 } else {
@@ -189,7 +190,7 @@ fun ItineraryScreen(
         scope.launch {
             try {
                 isReplanning = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                commitHaptic()
                 replanFailed = false
                 replanStatusMsg = "Replanning..."
                 NetworkModule.apiService.replanTrip(tripId, ReplanRequestDto(intent = intentKey))
@@ -211,7 +212,7 @@ fun ItineraryScreen(
         scope.launch {
             try {
                 isScrapping = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                commitHaptic()
                 NetworkModule.apiService.deleteTrip(tripId)
                 TripCacheManager.invalidateTrip(tripId)
                 showScrapDialog = false
@@ -806,10 +807,13 @@ fun ActivityComicCard(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    val haptic = LocalHapticFeedback.current
+    val commitHaptic = rememberCommitHaptic()
     var isVisited by remember {
         mutableStateOf(TripCacheManager.isActivityVisited(activity.id))
     }
+    // The tick counts committed marks rather than reading isVisited, so the motion runs when the
+    // user marks the stop and not when the card is composed already marked.
+    var visitedCommits by remember { mutableIntStateOf(0) }
 
     val photoUrl = activity.effectivePhotoUrl
     val place = activity.place
@@ -947,16 +951,19 @@ fun ActivityComicCard(
                             // Visited Check-Off Badge
                             Surface(
                                 onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    commitHaptic()
                                     isVisited = TripCacheManager.toggleActivityVisited(activity.id)
+                                    visitedCommits++
                                 },
                                 shape = RoundedCornerShape(4.dp),
                                 color = if (isVisited) Color(0xFF16A34A) else ComicPanel,
-                                modifier = Modifier.border(
-                                    1.dp,
-                                    if (isVisited) Color(0xFF16A34A) else ComicBlack,
-                                    RoundedCornerShape(4.dp)
-                                )
+                                modifier = Modifier
+                                    .tickOnCommit(visitedCommits)
+                                    .border(
+                                        1.dp,
+                                        if (isVisited) Color(0xFF16A34A) else ComicBlack,
+                                        RoundedCornerShape(4.dp)
+                                    )
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -1030,7 +1037,7 @@ fun ActivityComicCard(
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(copyable))
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    commitHaptic()
                                     Toast.makeText(
                                         context,
                                         if (address != null) "Address copied" else "Coordinates copied",

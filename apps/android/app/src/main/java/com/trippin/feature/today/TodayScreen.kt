@@ -19,11 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,7 +59,7 @@ fun TodayScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
-    val haptic = LocalHapticFeedback.current
+    val commitHaptic = rememberCommitHaptic()
 
     val loadTripData: (isManual: Boolean) -> Unit = { isManual ->
         scope.launch {
@@ -474,7 +472,7 @@ fun TodayScreen(
                                                 IconButton(
                                                     onClick = {
                                                         clipboardManager.setText(AnnotatedString(address))
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        commitHaptic()
                                                         Toast.makeText(context, "Address copied", Toast.LENGTH_SHORT).show()
                                                     },
                                                     modifier = Modifier

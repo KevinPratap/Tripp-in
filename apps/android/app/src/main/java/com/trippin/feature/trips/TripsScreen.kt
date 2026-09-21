@@ -23,10 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -49,6 +47,7 @@ import com.trippin.core.design.ComicPanel
 import com.trippin.core.design.ComicPaper
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
+import com.trippin.core.design.rememberCommitHaptic
 import com.trippin.core.network.DestinationCardDto
 import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.NetworkModule
@@ -115,7 +114,7 @@ fun TripsScreen(
     var joinError by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
-    val haptic = LocalHapticFeedback.current
+    val commitHaptic = rememberCommitHaptic()
     val context = LocalContext.current
     val today = LocalDate.now()
 
@@ -149,7 +148,7 @@ fun TripsScreen(
         scope.launch {
             try {
                 isDeleting = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                commitHaptic()
                 NetworkModule.apiService.deleteTrip(tripId)
                 TripCacheManager.invalidateTrip(tripId)
                 tripToDelete = null
@@ -291,7 +290,7 @@ fun TripsScreen(
                         Column(
                             modifier = Modifier
                                 .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    commitHaptic()
                                     selectedFilter = index
                                 }
                                 .padding(bottom = 6.dp)
@@ -381,7 +380,7 @@ fun TripsScreen(
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { value ->
                                         if (value == SwipeToDismissBoxValue.EndToStart) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            commitHaptic()
                                             tripToDelete = trip
                                         }
                                         false

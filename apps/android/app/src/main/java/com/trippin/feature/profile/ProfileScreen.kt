@@ -26,9 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.SavedSpotsManager
@@ -43,7 +41,7 @@ fun ProfileScreen(
     onNavigateToTrips: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val commitHaptic = rememberCommitHaptic()
     var showEngineDetails by remember { mutableStateOf(false) }
 
     // The account this app is signed in as. It comes from POST /auth/verify and it is the only
@@ -257,7 +255,7 @@ fun ProfileScreen(
                             OutlinedButton(
                                 onClick = {
                                     copyToClipboard(context, "My Tripp'in account", accountEmail)
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    commitHaptic()
                                     Toast.makeText(context, "Email copied", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier
@@ -314,7 +312,7 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                commitHaptic()
                                 SessionStore.clear()
                             },
                             modifier = Modifier

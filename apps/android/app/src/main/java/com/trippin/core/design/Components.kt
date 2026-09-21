@@ -3,6 +3,7 @@ package com.trippin.core.design
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -308,6 +309,36 @@ fun StampLanding(
 fun rememberCommitHaptic(): () -> Unit {
     val haptic = LocalHapticFeedback.current
     return remember(haptic) { { haptic.performHapticFeedback(HapticFeedbackType.LongPress) } }
+}
+
+/**
+ * The tick: the shortest motion in the set, 120ms from 0.96 back to 1, on the control that
+ * committed. Design system section 4 puts it on a committed action and names a mark visited, a vote
+ * cast and a field saved, so pass a counter the action increments rather than a boolean, which is
+ * what keeps the motion tied to the commit and off the screen's arrival:
+ *
+ *   var commits by remember { mutableIntStateOf(0) }
+ *   val commitHaptic = rememberCommitHaptic()
+ *   ...
+ *   modifier = Modifier.tickOnCommit(commits)
+ *   onClick = { commitHaptic(); commits++ }
+ *
+ * Nothing loops, nothing bounces and the figure is never animated before it is known: the control
+ * snaps to 0.96 and settles back to 1 on the one easing curve the app uses.
+ */
+@Composable
+fun Modifier.tickOnCommit(commits: Int): Modifier {
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(commits) {
+        if (commits > 0) {
+            scale.snapTo(0.96f)
+            scale.animateTo(1f, animationSpec = tween(durationMillis = 120, easing = TrippinSettle))
+        }
+    }
+    return graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+    }
 }
 
 /**
