@@ -43,10 +43,7 @@ import com.trippin.core.network.ReplanRequestDto
 import com.trippin.core.network.TripDetailsDto
 import com.trippin.feature.today.TodayScreen
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.time.LocalDate
-import java.util.Locale
-import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -544,7 +541,7 @@ fun ItineraryScreen(
                                                 if (dayTotal != null && dayTotal > 0) {
                                                     Text(
                                                         text = "Stops total " +
-                                                            formatAmount(dayTotal, dayCurrency),
+                                                            formatStatedAmount(dayTotal, dayCurrency),
                                                         style = TrippinType.Caption,
                                                         color = ComicBlack
                                                     )
@@ -942,7 +939,7 @@ fun ActivityComicCard(
                             val stopMoney = activity.statedMoney()
                             if (stopMoney != null) {
                                 Text(
-                                    text = formatAmount(stopMoney.value, stopMoney.currency),
+                                    text = formatStatedAmount(stopMoney.value, stopMoney.currency),
                                     style = TrippinType.Label,
                                     color = Ink
                                 )
@@ -1115,18 +1112,3 @@ private fun ActivityDto.statedMoney(): StatedMoney? {
     return StatedMoney(amount, code)
 }
 
-/** A whole amount with its currency, and no symbol at all when the currency is not known. */
-private fun formatAmount(value: Double, currency: String?): String {
-    val grouped = NumberFormat.getIntegerInstance(Locale.US).format(value.roundToLong())
-    val code = currency?.trim()?.uppercase()
-    val prefix = when (code) {
-        null, "" -> ""
-        "INR" -> "₹"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        "JPY" -> "¥"
-        "USD" -> "$"
-        else -> "$code "
-    }
-    return "$prefix$grouped"
-}

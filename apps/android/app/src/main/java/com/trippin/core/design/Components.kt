@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.NumberFormat
+import java.util.Locale
+import kotlin.math.roundToLong
 
 
 /**
@@ -408,5 +411,29 @@ private val PLATE_SKIP_WORDS = setOf(
     "of", "the", "and", "a", "an", "de", "du", "des", "la", "le", "les", "di", "del",
     "el", "los", "las", "y", "et", "da", "do", "van", "von"
 )
+
+/**
+ * A whole amount with the currency it was handed, and no symbol at all when it was handed none.
+ *
+ * Money is a claim about a real price, so this is one rule for the whole app rather than one rule
+ * per screen. The symbol prints only for a code the caller actually stated, an unrecognised code
+ * prints its own letters, and no code at all prints the bare number, which is the honest answer
+ * when nobody has said what the number is in. Three screens carried their own copy of this until
+ * 2026-09-21, which is three places the rule could drift apart without anyone noticing.
+ */
+fun formatStatedAmount(value: Double, currency: String?): String {
+    val grouped = NumberFormat.getIntegerInstance(Locale.US).format(value.roundToLong())
+    val code = currency?.trim()?.uppercase()
+    val prefix = when (code) {
+        null, "" -> ""
+        "INR" -> "₹"
+        "EUR" -> "€"
+        "GBP" -> "£"
+        "JPY" -> "¥"
+        "USD" -> "$"
+        else -> "$code "
+    }
+    return "$prefix$grouped"
+}
 
 

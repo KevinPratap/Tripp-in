@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.ArriveOnEnter
+import com.trippin.core.design.formatStatedAmount
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.ComicInk
 import com.trippin.core.design.ComicMuted
@@ -40,8 +41,6 @@ import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
 import com.trippin.core.network.TravellerDto
 import com.trippin.core.network.TripDetailsDto
-import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.roundToLong
 
 /**
@@ -294,7 +293,7 @@ private fun TravellerCard(
 
             DetailRow(
                 label = "Budget cap",
-                value = if (cap == null) "Not set" else formatAmount(cap, currency)
+                value = if (cap == null) "Not set" else formatStatedAmount(cap, currency)
             )
             DetailRow(
                 label = "Wants",
@@ -327,8 +326,8 @@ private fun TravellerCard(
                 text = when {
                     share == null && costKnown -> "Not worked out for them yet"
                     share == null -> "This trip has no cost estimate yet"
-                    else -> "${formatAmount(share.shareMin, currency)} to " +
-                        formatAmount(share.shareMax, currency)
+                    else -> "${formatStatedAmount(share.shareMin, currency)} to " +
+                        formatStatedAmount(share.shareMax, currency)
                 },
                 style = TrippinType.Body,
                 color = ComicInk,
@@ -419,8 +418,8 @@ private fun DecisionsCard(
             budgetConflicts.forEach { conflict ->
                 Text(
                     text = "${conflict.name.ifBlank { "This person" }} set a cap of " +
-                        "${formatAmount(conflict.cap, currency)}. This plan comes to " +
-                        "${formatAmount(conflict.share.shareMax, currency)} for them at the top " +
+                        "${formatStatedAmount(conflict.cap, currency)}. This plan comes to " +
+                        "${formatStatedAmount(conflict.share.shareMax, currency)} for them at the top " +
                         "of the range.",
                     style = TrippinType.Label,
                     color = ComicInk,
@@ -522,7 +521,7 @@ private fun overByLine(cap: Double, shareMax: Double, currency: String?): String
     return if (over.roundToLong() <= 0L) {
         "Their share goes just past the cap they set."
     } else {
-        "That is ${formatAmount(over, currency)} past the cap they set."
+        "That is ${formatStatedAmount(over, currency)} past the cap they set."
     }
 }
 
@@ -539,18 +538,3 @@ private fun currencyOf(details: TripDetailsDto?): String? =
             activity.currency?.takeIf { it.isNotBlank() }
         }
 
-/** A whole amount with its currency, and no symbol at all when the currency is not known. */
-private fun formatAmount(value: Double, currency: String?): String {
-    val grouped = NumberFormat.getIntegerInstance(Locale.US).format(value.roundToLong())
-    val code = currency?.trim()?.uppercase()
-    val prefix = when (code) {
-        null, "" -> ""
-        "INR" -> "₹"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        "JPY" -> "¥"
-        "USD" -> "$"
-        else -> "$code "
-    }
-    return "$prefix$grouped"
-}

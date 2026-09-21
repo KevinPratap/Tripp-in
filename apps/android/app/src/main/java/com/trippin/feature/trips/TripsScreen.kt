@@ -32,6 +32,7 @@ import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
+import com.trippin.core.design.formatStatedAmount
 import com.trippin.core.design.GoodInk
 import com.trippin.core.design.GoodInkSurface
 import com.trippin.core.design.Ink
@@ -54,7 +55,6 @@ import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.TripSummaryDto
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -1031,27 +1031,10 @@ private fun costLine(trip: TripSummaryDto): String? {
     val high = shares.maxOf { it.shareMax }
     val currency = trip.currency
     return if (high.roundToLong() == low.roundToLong()) {
-        "${formatAmount(low, currency)} per person"
+        "${formatStatedAmount(low, currency)} per person"
     } else {
-        "${formatAmount(low, currency)} to ${formatAmount(high, currency)} per person"
+        "${formatStatedAmount(low, currency)} to ${formatStatedAmount(high, currency)} per person"
     }
 }
 
-/**
- * A whole amount with its currency, and no symbol at all when the trip does not state one. The
- * Group screen carries its own copy of this on purpose: both files stayed independent this tick.
- */
-private fun formatAmount(value: Double, currency: String?): String {
-    val grouped = NumberFormat.getIntegerInstance(Locale.US).format(value.roundToLong())
-    val code = currency?.trim()?.uppercase()
-    val prefix = when (code) {
-        null, "" -> ""
-        "INR" -> "₹"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        "JPY" -> "¥"
-        "USD" -> "$"
-        else -> "$code "
-    }
-    return "$prefix$grouped"
-}
+
