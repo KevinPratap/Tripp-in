@@ -132,6 +132,7 @@ fun TripPlannerScreen(
                         onValueChange = { destination = it },
                         placeholder = { Text("e.g. Manali, Lisbon, Tokyo", style = TrippinType.Body, color = InkMuted) },
                         modifier = Modifier.fillMaxWidth(),
+                        colors = trippinFieldInk(),
                         shape = RoundedCornerShape(8.dp),
                         singleLine = true
                     )
@@ -175,6 +176,7 @@ fun TripPlannerScreen(
                             readOnly = true,
                             label = { Text("Travellers", style = TrippinType.Caption) },
                             modifier = Modifier.weight(1f),
+                            colors = trippinFieldInk(),
                             shape = RoundedCornerShape(8.dp),
                             trailingIcon = {
                                 Row {
@@ -201,6 +203,7 @@ fun TripPlannerScreen(
                             label = { Text("Budget per person ($currencySymbol)", style = TrippinType.Caption) },
                             placeholder = { Text("Optional", style = TrippinType.Body, color = InkMuted) },
                             modifier = Modifier.weight(1f),
+                            colors = trippinFieldInk(),
                             shape = RoundedCornerShape(8.dp),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)

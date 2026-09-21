@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +25,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,6 +35,7 @@ import com.trippin.core.design.Panel
 import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinButton
 import com.trippin.core.design.TrippinType
+import com.trippin.core.design.trippinFieldInk
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.RequestMagicLinkDto
 import com.trippin.core.network.SessionStore
@@ -164,13 +163,7 @@ fun SignInScreen(onSignedIn: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(2.dp, Ink, RoundedCornerShape(8.dp)),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Panel,
-                        unfocusedContainerColor = Panel,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = AccentCrimson
-                    )
+                    colors = trippinFieldInk(container = Panel)
                 )
             }
 

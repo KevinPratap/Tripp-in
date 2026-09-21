@@ -692,6 +692,9 @@ fun ItineraryScreen(
         if (showEditDialog) {
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
+                containerColor = Panel,
+                titleContentColor = Ink,
+                textContentColor = Ink,
                 title = { Text("Change the plan", style = TrippinType.Heading) },
                 text = {
                     Column {
@@ -705,6 +708,7 @@ fun ItineraryScreen(
                             onValueChange = { editInstruction = it },
                             placeholder = { Text("e.g. Add a coffee break at 3pm", style = TrippinType.Body) },
                             modifier = Modifier.fillMaxWidth(),
+                            colors = trippinFieldInk(),
                             shape = RoundedCornerShape(8.dp)
                         )
                         modifyError?.let { message ->
@@ -771,6 +775,9 @@ fun ItineraryScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
+                containerColor = Panel,
+                titleContentColor = Ink,
+                textContentColor = Ink,
                 title = { Text("Delete this trip", style = TrippinType.Heading) },
                 text = {
                     Text(

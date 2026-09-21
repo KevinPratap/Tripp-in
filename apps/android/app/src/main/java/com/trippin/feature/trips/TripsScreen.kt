@@ -49,6 +49,7 @@ import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
+import com.trippin.core.design.trippinFieldInk
 import com.trippin.core.network.DestinationCardDto
 import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.NetworkModule
@@ -480,6 +481,9 @@ fun TripsScreen(
         if (pendingDelete != null) {
             AlertDialog(
                 onDismissRequest = { if (!isDeleting) tripToDelete = null },
+                containerColor = Panel,
+                titleContentColor = Ink,
+                textContentColor = Ink,
                 title = { Text("Delete this trip", style = TrippinType.Heading) },
                 text = {
                     Text(
@@ -521,6 +525,9 @@ fun TripsScreen(
         if (inviting != null) {
             AlertDialog(
                 onDismissRequest = { inviteTrip = null; inviteCode = null; inviteError = null },
+                containerColor = Panel,
+                titleContentColor = Ink,
+                textContentColor = Ink,
                 title = {
                     Text("Invite people to ${inviting.destination}", style = TrippinType.Heading)
                 },
@@ -699,6 +706,9 @@ private fun JoinTripDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Panel,
+        titleContentColor = Ink,
+        textContentColor = Ink,
         title = { Text("Join a trip", style = TrippinType.Heading) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -715,6 +725,7 @@ private fun JoinTripDialog(
                     enabled = !isBusy,
                     label = { Text("Invite code", style = TrippinType.Label) },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                 )
@@ -725,6 +736,7 @@ private fun JoinTripDialog(
                     enabled = !isBusy,
                     label = { Text("Your name", style = TrippinType.Label) },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                 )
@@ -737,6 +749,7 @@ private fun JoinTripDialog(
                     enabled = !isBusy,
                     label = { Text("Your budget cap (optional)", style = TrippinType.Label) },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))

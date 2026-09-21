@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -496,5 +497,39 @@ internal fun isStreetLevelAddress(address: String?): Boolean {
 
     return parts.any { part -> part.any { it.isDigit() } }
 }
+
+/**
+ * The ink in a field this app draws.
+ *
+ * A Material text field takes its text, label, cursor and placeholder colours from the system
+ * scheme, and this app is parchment in every theme. So a field that named only its own border and
+ * left the ink to the scheme drew stock dark-mode colours: on a phone in dark mode the sign-in field
+ * put near-white text into the white box the app had already pinned, which made what a person typed
+ * invisible, and every other field drew grey on a cream page. The dark scheme is a separate decision
+ * that belongs to Kevin; what a field this app draws is not, and it is ink on the surface the screen
+ * around it already declares.
+ *
+ * One function, beside formatStatedAmount and isStreetLevelAddress, so a field's ink is decided once
+ * rather than once per screen. Only the ink is named. The container is whatever the screen around the
+ * field declares, transparent by default, and Panel for the one field that sits on the page rather
+ * than inside a dialog.
+ */
+@Composable
+fun trippinFieldInk(container: Color = Color.Transparent): TextFieldColors =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Ink,
+        unfocusedTextColor = Ink,
+        disabledTextColor = InkMuted,
+        cursorColor = AccentCrimson,
+        focusedContainerColor = container,
+        unfocusedContainerColor = container,
+        disabledContainerColor = container,
+        focusedLabelColor = InkMuted,
+        unfocusedLabelColor = InkMuted,
+        disabledLabelColor = InkMuted,
+        focusedPlaceholderColor = InkMuted,
+        unfocusedPlaceholderColor = InkMuted,
+        disabledPlaceholderColor = InkMuted
+    )
 
 

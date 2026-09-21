@@ -56,6 +56,7 @@ import com.trippin.core.design.Paper
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.TrippinCard
+import com.trippin.core.design.trippinFieldInk
 import com.trippin.core.network.CreateTravellerRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
@@ -527,6 +528,9 @@ private fun AddPersonDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Panel,
+        titleContentColor = Ink,
+        textContentColor = Ink,
         title = { Text("Add someone to this trip", style = TrippinType.Heading) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -543,6 +547,7 @@ private fun AddPersonDialog(
                     enabled = !isBusy,
                     label = { Text("Their name", style = TrippinType.Label) },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                 )
@@ -564,6 +569,7 @@ private fun AddPersonDialog(
                         )
                     },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
@@ -692,6 +698,9 @@ private fun EditPersonDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Panel,
+        titleContentColor = Ink,
+        textContentColor = Ink,
         title = {
             Text(
                 text = "Edit " + traveller.name.ifBlank { "this person" },
@@ -712,6 +721,7 @@ private fun EditPersonDialog(
                     enabled = !isBusy,
                     label = { Text("Their name", style = TrippinType.Label) },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
                 )
@@ -733,6 +743,7 @@ private fun EditPersonDialog(
                         )
                     },
                     textStyle = TrippinType.Body,
+                    colors = trippinFieldInk(),
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
@@ -827,6 +838,9 @@ private fun RemovePersonDialog(
 ) {
     AlertDialog(
         onDismissRequest = { if (!isBusy) onDismiss() },
+        containerColor = Panel,
+        titleContentColor = Ink,
+        textContentColor = Ink,
         title = { Text("Remove this person", style = TrippinType.Heading) },
         text = {
             Column {
