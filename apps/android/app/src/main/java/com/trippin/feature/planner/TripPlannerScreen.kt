@@ -467,6 +467,27 @@ private fun PlannerDateField(
     }
 }
 
+/**
+ * The day picker, in this app's own colours rather than the system theme's.
+ *
+ * Material's date picker resolves every colour it draws through its own tokens to the scheme, and
+ * [com.trippin.core.design.TrippinTheme] maps five rows of that scheme, so this dialog was drawing
+ * Material's colours inside a parchment app: on a phone in dark mode a dark card with pale greys,
+ * and even in light mode a lavender grey card (#ECE6F0) with #49454F ink rather than this app's
+ * white and ink. Every colour this dialog is able to draw is on a token below.
+ *
+ * The values that are primary derived keep the value the light scheme already resolved to, because
+ * this app's primary is [AccentCrimson] and its onPrimary is white, so those pixels do not move in
+ * light mode and stop following the dark scheme's own red. The rest are the app's ink and surface,
+ * which in light mode do move: the card is [Panel] rather than Material's lavender grey and the
+ * digits, weekdays, months and rule are [Ink] or [InkMuted] rather than #49454F.
+ *
+ * Deliberately NOT named, because this dialog cannot draw them: the six disabled colours, the two
+ * selection range colours, and the month subhead, which Material draws only in a range picker. The
+ * keyboard half is not a colour this file owns either, so the date field in Input mode takes the
+ * same [trippinFieldInk] the other twelve fields in the app take rather than the scheme's own field
+ * colours.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlannerDatePickerDialog(
@@ -477,7 +498,26 @@ private fun PlannerDatePickerDialog(
     val state = rememberDatePickerState(
         initialSelectedDateMillis = initial?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
     )
+    val pickerColors = DatePickerDefaults.colors(
+        containerColor = Panel,
+        titleContentColor = Ink,
+        headlineContentColor = Ink,
+        weekdayContentColor = InkMuted,
+        navigationContentColor = Ink,
+        yearContentColor = Ink,
+        currentYearContentColor = AccentCrimson,
+        selectedYearContentColor = OnCrimson,
+        selectedYearContainerColor = AccentCrimson,
+        dayContentColor = Ink,
+        selectedDayContentColor = OnCrimson,
+        selectedDayContainerColor = AccentCrimson,
+        todayContentColor = AccentCrimson,
+        todayDateBorderColor = AccentCrimson,
+        dividerColor = Ink,
+        dateTextFieldColors = trippinFieldInk()
+    )
     DatePickerDialog(
+        colors = pickerColors,
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(
@@ -497,6 +537,6 @@ private fun PlannerDatePickerDialog(
             }
         }
     ) {
-        DatePicker(state = state)
+        DatePicker(state = state, colors = pickerColors)
     }
 }
