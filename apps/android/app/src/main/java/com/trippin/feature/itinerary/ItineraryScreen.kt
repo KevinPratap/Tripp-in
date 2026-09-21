@@ -741,7 +741,7 @@ fun ItineraryScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                        colors = ButtonDefaults.buttonColors(containerColor = DangerCrimson),
                         enabled = !isScrapping,
                         onClick = { handleScrapTrip() }
                     ) {
