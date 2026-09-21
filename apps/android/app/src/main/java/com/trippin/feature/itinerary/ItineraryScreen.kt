@@ -324,7 +324,7 @@ fun ItineraryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Could not load the plan", color = MaterialTheme.colorScheme.error, style = TrippinType.Title)
+                    Text("Could not load the plan", color = DangerCrimson, style = TrippinType.Title)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(loadError!!, style = TrippinType.Body)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -666,7 +666,7 @@ fun ItineraryScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 message,
-                                color = MaterialTheme.colorScheme.error,
+                                color = DangerCrimson,
                                 style = TrippinType.Body
                             )
                         }

@@ -7,6 +7,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.trippin.core.design.AccentCrimson
+import com.trippin.core.design.DangerCrimson
+import com.trippin.core.design.Ink
+import com.trippin.core.design.InkMuted
+import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinType
 import kotlinx.coroutines.delay
 
@@ -45,7 +50,7 @@ fun GeneratingScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = Paper
     ) {
         Column(
             modifier = Modifier
@@ -58,37 +63,40 @@ fun GeneratingScreen(
                 Text(
                     text = "Could not build the plan",
                     style = TrippinType.Title,
-                    color = MaterialTheme.colorScheme.error
+                    color = DangerCrimson
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = errorMessage!!,
                     style = TrippinType.Body,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Ink,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { onGenerationComplete(tripId) }) {
+                Button(
+                    onClick = { onGenerationComplete(tripId) },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
+                ) {
                     Text("Continue anyway", style = TrippinType.Label)
                 }
             } else {
                 CircularProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.size(72.dp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AccentCrimson,
                     strokeWidth = 6.dp
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "Building your plan",
                     style = TrippinType.Display,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = Ink
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = statusMessage,
                     style = TrippinType.Body,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = InkMuted,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -98,7 +106,7 @@ fun GeneratingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = AccentCrimson
                 )
             }
         }

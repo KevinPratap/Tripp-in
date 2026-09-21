@@ -222,7 +222,7 @@ fun TodayScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "You are offline",
-                        color = MaterialTheme.colorScheme.error,
+                        color = DangerCrimson,
                         style = TrippinType.Title
                     )
                     Spacer(modifier = Modifier.height(8.dp))
