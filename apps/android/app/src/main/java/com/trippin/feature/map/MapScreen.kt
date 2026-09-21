@@ -71,6 +71,9 @@ fun MapScreen(
     val activities = firstDay?.activities ?: emptyList()
     val firstAct = activities.firstOrNull()
     val secondAct = activities.getOrNull(1)?.takeIf { it.id != firstAct?.id }
+    /* The day this card shows is read off the day itself. "Day 1" was a literal, which is only
+     * ever true while the first day really is the first one. */
+    val dayLabel = firstDay?.let { "Day ${it.dayIndex}" }
 
     Scaffold(
         topBar = {
@@ -182,7 +185,12 @@ fun MapScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Day 1, ${firstAct.startTime} to ${firstAct.endTime}",
+                                    // The day's own day index, then the stop's own times. No day
+                                    // claim at all if the day states none.
+                                    text = listOfNotNull(
+                                        dayLabel,
+                                        "${firstAct.startTime} to ${firstAct.endTime}"
+                                    ).joinToString(", "),
                                     style = TrippinType.Caption,
                                     color = InkMuted
                                 )
