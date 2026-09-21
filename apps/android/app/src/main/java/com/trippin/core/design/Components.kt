@@ -469,4 +469,32 @@ fun formatStatedAmount(value: Double, currency: String?): String {
     return "$prefix$grouped"
 }
 
+/**
+ * Whether an address names a street, which is the only thing that makes it usable on foot.
+ *
+ * An address is either navigable or it is not printed as one, so this is one rule for the whole app
+ * rather than one rule per screen. The audit found two kinds of unusable address: `東京都, 東京都,
+ * 日本`, where the prefecture is repeated and nothing else is there, and `13, 台東区, 東京都, 日本`,
+ * a bare number in a ward. Neither is walkable, and both sat next to a button offering to navigate.
+ * A street-level address carries a number or a named street of its own, and it does not repeat one
+ * of its parts.
+ *
+ * It lived as a private helper on the Plan screen until 2026-09-21, and the Today hero printed the
+ * raw field with a copy action beside it, which is the same defect on the screen a traveller opens
+ * on the day. Both screens call this now.
+ */
+internal fun isStreetLevelAddress(address: String?): Boolean {
+    if (address.isNullOrBlank()) return false
+    val parts = address.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.size < 2) return false
+
+    val repeatsItself = parts
+        .groupingBy { it.lowercase() }
+        .eachCount()
+        .any { it.value > 1 }
+    if (repeatsItself) return false
+
+    return parts.any { part -> part.any { it.isDigit() } }
+}
+
 

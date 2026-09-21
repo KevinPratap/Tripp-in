@@ -434,7 +434,18 @@ fun TodayScreen(
                                             )
                                         }
 
-                                        val address = currentStop.place?.formattedAddress ?: ""
+                                        // An address is either navigable or it is not printed as one,
+                                        // which is the same rule the Plan stop card applies through
+                                        // this same helper. The Today hero used to print the raw
+                                        // field and offer to copy it, so a ward with no street was
+                                        // shown as a place to go while the button beside it promised
+                                        // to take somebody there. No street-level address means no
+                                        // address line and no copy action, which is what this screen
+                                        // already does when the map data holds none at all.
+                                        val address = currentStop.place?.formattedAddress
+                                            .orEmpty()
+                                            .takeIf { isStreetLevelAddress(it) }
+                                            .orEmpty()
                                         if (address.isNotBlank()) {
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(

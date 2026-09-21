@@ -1126,28 +1126,6 @@ fun ActivityComicCard(
 private data class StatedMoney(val value: Double, val currency: String)
 
 /**
- * Whether an address names a street, which is the only thing that makes it usable on foot.
- *
- * The audit found two kinds of unusable address on this screen: `東京都, 東京都, 日本`, where the
- * prefecture is repeated and nothing else is there, and `13, 台東区, 東京都, 日本`, a bare number in a
- * ward. Neither is walkable, and both sat next to a button offering to navigate. A street-level
- * address carries a number or a named street, and it does not repeat one of its own parts.
- */
-private fun isStreetLevelAddress(address: String?): Boolean {
-    if (address.isNullOrBlank()) return false
-    val parts = address.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-    if (parts.size < 2) return false
-
-    val repeatsItself = parts
-        .groupingBy { it.lowercase() }
-        .eachCount()
-        .any { it.value > 1 }
-    if (repeatsItself) return false
-
-    return parts.any { part -> part.any { it.isDigit() } }
-}
-
-/**
  * The amount this stop may be printed with, or null when it may not be printed at all.
  *
  * A stop that states an amount but no currency of its own is not printable: there is no honest
