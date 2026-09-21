@@ -73,6 +73,39 @@ fun TrippinButton(
     }
 }
 
+/**
+ * The house chip: one choice a person makes, drawn the same way wherever it is asked for.
+ *
+ * Crimson when it is the selected one, panel and ink when it is not, on the same 2dp ink edge as
+ * every other control, so a chip and a button read as one family. It is a selection and never an
+ * action, and it is never the only place a value is stated: it always sits under its own label.
+ * TripPlannerScreen carried its own private copy of this until 2026-09-21, which is two places the
+ * same control could drift apart in.
+ */
+@Composable
+fun TrippinChoiceChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .heightIn(min = 44.dp)
+            .border(2.dp, Ink, RoundedCornerShape(4.dp))
+            .background(if (selected) AccentCrimson else Panel, RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text.uppercase(),
+            style = TrippinType.Caption,
+            color = if (selected) OnCrimson else Ink
+        )
+    }
+}
+
 @Composable
 fun TrippinCard(
     modifier: Modifier = Modifier,

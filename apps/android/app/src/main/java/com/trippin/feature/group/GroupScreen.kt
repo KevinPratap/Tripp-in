@@ -5,29 +5,46 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.trippin.core.cache.TripCacheManager
+import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ArriveOnEnter
+import com.trippin.core.design.DangerCrimson
+import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.formatStatedAmount
+import com.trippin.core.design.TrippinButton
+import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
@@ -36,11 +53,14 @@ import com.trippin.core.design.Paper
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.TrippinCard
+import com.trippin.core.network.CreateTravellerRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
 import com.trippin.core.network.TravellerDto
 import com.trippin.core.network.TripDetailsDto
 import kotlin.math.roundToLong
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 /**
  * The people you are going with, and what each of them wants.
@@ -54,13 +74,26 @@ import kotlin.math.roundToLong
  *
  * The conflicts are the whole point: a cap below that person's share, and a stop somebody listed as
  * a dislike. Both are shown with the real figures attached so the group can decide something.
+ *
+ * The write half lives here too, because until 2026-09-21 this screen could only read: nothing in the
+ * app could add a traveller, so every trip showed an empty group and every person on it read Not set
+ * forever. Add someone sends only what was typed, and a field left blank is left out of the request
+ * rather than filled with a stand-in, which is why a person's row still says Not set for anything
+ * nobody has stated.
  */
 @Composable
 fun GroupScreen(tripId: String) {
     var details by remember { mutableStateOf(TripCacheManager.getTrip(tripId)) }
     var isLoading by remember { mutableStateOf(details == null) }
+    var showAddPerson by remember { mutableStateOf(false) }
+    var isAdding by remember { mutableStateOf(false) }
+    var addError by remember { mutableStateOf<String?>(null) }
+    // Bumped after a person is added, so the screen redraws from the server's own answer rather than
+    // from the row the app hoped for.
+    var refreshTick by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(tripId) {
+    LaunchedEffect(tripId, refreshTick) {
         try {
             val fresh = NetworkModule.apiService.getTripDetails(tripId)
             TripCacheManager.putTrip(tripId, fresh)
@@ -69,6 +102,43 @@ fun GroupScreen(tripId: String) {
             // Offline, or the trip is gone. Whatever was cached stays on screen.
         }
         isLoading = false
+    }
+
+    /**
+     * Adds one person to the trip. The cap is sent only when a number was typed, because a blank
+     * field sent as a zero would be stored as a real cap of zero and would then read as that person's
+     * own decision. The one fixed sentence for an unknown failure claims no cause, the same shape the
+     * failed-load states use; the two status codes that mean something a person can act on are named.
+     */
+    fun addPerson(name: String, cap: Double?, pace: String?, interests: List<String>) {
+        scope.launch {
+            isAdding = true
+            addError = null
+            try {
+                NetworkModule.apiService.addTraveller(
+                    tripId,
+                    CreateTravellerRequestDto(
+                        name = name.trim(),
+                        budgetCap = cap,
+                        interests = interests,
+                        dislikes = emptyList(),
+                        pace = pace
+                    )
+                )
+                showAddPerson = false
+                refreshTick++
+            } catch (e: HttpException) {
+                addError = when (e.code()) {
+                    401 -> "Sign in again, then add them."
+                    403 -> "Only the person who created this trip can add people to it."
+                    else -> "The server did not accept that, so they were not added."
+                }
+            } catch (_: Exception) {
+                addError = "Could not reach the server. Check the connection and try again."
+            } finally {
+                isAdding = false
+            }
+        }
     }
 
     val trip = details?.trip
@@ -151,6 +221,13 @@ fun GroupScreen(tripId: String) {
                         color = InkMuted,
                         modifier = Modifier.padding(top = 8.dp)
                     )
+                    if (trip != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        TrippinButton(
+                            text = "Add someone",
+                            onClick = { showAddPerson = true }
+                        )
+                    }
                 }
             }
         }
@@ -213,8 +290,8 @@ fun GroupScreen(tripId: String) {
                     )
                     if (currency == null && costKnown) {
                         append(
-                            " The plan does not state a currency, so amounts are shown as plain " +
-                                "numbers."
+                            " Neither the trip nor the plan states a currency, so amounts are " +
+                                "shown as plain numbers."
                         )
                     }
                 },
@@ -250,6 +327,178 @@ fun GroupScreen(tripId: String) {
             }
         }
     }
+
+    if (showAddPerson) {
+        AddPersonDialog(
+            currency = currency,
+            isBusy = isAdding,
+            error = addError,
+            onDismiss = {
+                if (!isAdding) {
+                    showAddPerson = false
+                    addError = null
+                }
+            },
+            onAdd = { name, cap, pace, interests -> addPerson(name, cap, pace, interests) }
+        )
+    }
+}
+
+/**
+ * The words the engine matches interests on: the frozen vocabulary the backend validates a traveller
+ * against, and the same words it looks for on a stop when it counts support. Its matching is case
+ * sensitive, so the value sent is the lowercase word and only the chip's label is drawn capitalised.
+ * Any other spelling would be stored on the person and silently match nothing.
+ */
+private val GROUP_INTEREST_WORDS = listOf(
+    "culture", "food", "nightlife", "nature", "adventure", "shopping",
+    "museums", "history", "photography", "wellness", "relaxation", "landmark"
+)
+
+/** The pace values the backend accepts, in the wording a person reads. */
+private val GROUP_PACE_CHOICES = listOf(
+    "relaxed" to "Relaxed",
+    "balanced" to "Balanced",
+    "packed" to "Packed"
+)
+
+/**
+ * Adds one person to the trip. The name is the only field that is required, which is also the only
+ * one the server insists on; everything else is optional and a blank field is left out of the request
+ * rather than sent as a zero or an empty word. The cap is stated in the trip's own currency and its
+ * label says which one, so a number here cannot be read as being in another currency.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AddPersonDialog(
+    currency: String?,
+    isBusy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onAdd: (String, Double?, String?, List<String>) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var capText by remember { mutableStateOf("") }
+    var pace by remember { mutableStateOf<String?>(null) }
+    var interests by remember { mutableStateOf(emptyList<String>()) }
+
+    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val capProblem = when {
+        capText.isBlank() -> null
+        cap == null || cap <= 0.0 -> "Enter their cap as a number, or leave the field blank."
+        else -> null
+    }
+    val canAdd = name.isNotBlank() && capProblem == null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add someone to this trip", style = TrippinType.Heading) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Only what you type here is saved. Leave anything blank and their row " +
+                        "says Not set until they fill it in themselves.",
+                    style = TrippinType.Caption,
+                    color = InkMuted
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { typed -> if (typed.length <= 60) name = typed },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = { Text("Their name", style = TrippinType.Label) },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                OutlinedTextField(
+                    value = capText,
+                    onValueChange = { typed ->
+                        if (typed.all { it.isDigit() || it == '.' || it == ',' }) capText = typed
+                    },
+                    singleLine = true,
+                    enabled = !isBusy,
+                    label = {
+                        Text(
+                            text = if (currency.isNullOrBlank()) {
+                                "Budget cap (optional)"
+                            } else {
+                                "Budget cap in ${currency.uppercase()} (optional)"
+                            },
+                            style = TrippinType.Label
+                        )
+                    },
+                    textStyle = TrippinType.Body,
+                    shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().border(2.dp, Ink, RoundedCornerShape(8.dp))
+                )
+                capProblem?.let {
+                    Text(text = it, style = TrippinType.Caption, color = DangerCrimson)
+                }
+                Text(text = "Pace", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GROUP_PACE_CHOICES.forEach { (value, label) ->
+                        TrippinChoiceChip(
+                            text = label,
+                            selected = pace == value,
+                            onClick = { pace = if (pace == value) null else value }
+                        )
+                    }
+                }
+                Text(text = "Wants", style = TrippinType.Caption, color = InkMuted)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GROUP_INTEREST_WORDS.forEach { word ->
+                        TrippinChoiceChip(
+                            text = word,
+                            selected = interests.contains(word),
+                            onClick = {
+                                interests = if (interests.contains(word)) {
+                                    interests - word
+                                } else {
+                                    interests + word
+                                }
+                            }
+                        )
+                    }
+                }
+                if (error != null) {
+                    Text(text = error, style = TrippinType.Body, color = DangerCrimson)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentCrimson,
+                    contentColor = OnCrimson
+                ),
+                enabled = !isBusy && canAdd,
+                onClick = { onAdd(name, cap, pace, interests) }
+            ) {
+                if (isBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = OnCrimson
+                    )
+                } else {
+                    Text("Add", style = TrippinType.Label)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !isBusy, onClick = onDismiss) {
+                Text("Cancel", style = TrippinType.Label)
+            }
+        }
+    )
 }
 
 /** One person, with everything they set themselves and their own share of the plan. */
@@ -525,15 +774,16 @@ private fun overByLine(cap: Double, shareMax: Double, currency: String?): String
 }
 
 /**
- * The currency of the trip, taken from the plan's own stop prices. The server sends the trip
- * currency on the requirements block, which the Android client does not carry yet, so this reads
- * the same value off the priced stops instead of assuming one. Null means no stop stated a
- * currency, and then no symbol is printed.
+ * The currency of the trip. The server states it on the trip itself, and that is the currency it
+ * priced the trip and each person's share in, which is also the currency a budget cap is stated in.
+ * Only when the trip states none does this fall back to a currency on the plan's own priced stops.
+ * Null means neither stated one, and then no symbol is printed and the footnote below says so.
  */
 private fun currencyOf(details: TripDetailsDto?): String? =
-    details?.itinerary?.days
-        ?.flatMap { it.activities }
-        ?.firstNotNullOfOrNull { activity ->
-            activity.currency?.takeIf { it.isNotBlank() }
-        }
+    details?.trip?.currency?.takeIf { it.isNotBlank() }
+        ?: details?.itinerary?.days
+            ?.flatMap { it.activities }
+            ?.firstNotNullOfOrNull { activity ->
+                activity.currency?.takeIf { it.isNotBlank() }
+            }
 

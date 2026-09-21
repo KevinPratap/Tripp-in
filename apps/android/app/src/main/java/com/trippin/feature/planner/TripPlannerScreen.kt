@@ -218,7 +218,7 @@ fun TripPlannerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         plannerCurrencies.forEach { (code, symbol) ->
-                            PlannerChoiceChip(
+                            TrippinChoiceChip(
                                 text = "$symbol $code",
                                 selected = currency == code,
                                 onClick = { currency = code }
@@ -244,7 +244,7 @@ fun TripPlannerScreen(
                     ) {
                         listOf("RELAXED", "MODERATE", "FAST").forEach { pace ->
                             Box(modifier = Modifier.weight(1f)) {
-                                PlannerChoiceChip(
+                                TrippinChoiceChip(
                                     text = pace,
                                     selected = selectedPace == pace,
                                     onClick = { selectedPace = pace }
@@ -265,7 +265,7 @@ fun TripPlannerScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         availableInterests.forEach { interest ->
-                            PlannerChoiceChip(
+                            TrippinChoiceChip(
                                 text = interest,
                                 selected = selectedInterests.contains(interest),
                                 onClick = {
@@ -461,30 +461,6 @@ private fun PlannerDateField(
                 modifier = Modifier.size(20.dp)
             )
         }
-    }
-}
-
-/** The house chip: crimson when it is selected, ink and paper when it is not. */
-@Composable
-private fun PlannerChoiceChip(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .heightIn(min = 44.dp)
-            .border(2.dp, Ink, RoundedCornerShape(4.dp))
-            .background(if (selected) AccentCrimson else Panel, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text.uppercase(),
-            style = TrippinType.Caption,
-            color = if (selected) OnCrimson else Ink
-        )
     }
 }
 
