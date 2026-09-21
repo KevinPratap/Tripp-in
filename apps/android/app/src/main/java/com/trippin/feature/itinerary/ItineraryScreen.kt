@@ -40,6 +40,7 @@ import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PlaceSearchResultDto
 import com.trippin.core.network.ReplanRequestDto
 import com.trippin.core.network.TripDetailsDto
+import com.trippin.feature.generating.GeneratingScreen
 import com.trippin.feature.today.TodayScreen
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -71,6 +72,10 @@ fun ItineraryScreen(
     var showScrapDialog by remember { mutableStateOf(false) }
     var isScrapping by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
+    // Set when the build state has said its piece, either because the plan landed or because the
+    // person moved past a failure. It is the one thing that stops a failed run from being redrawn
+    // after it has been read.
+    var buildStateDismissed by remember(tripId) { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -120,11 +125,22 @@ fun ItineraryScreen(
     // states the same one. That is the same rule the backend now enforces when it serializes a
     // stop price: no amount travels without a named source and a confirmed provenance check.
 
+    // Generation is a state of this screen rather than a destination of its own. The server says
+    // which state the trip is in, so the wait is drawn in place of a plan only while the server
+    // says a plan is being built for this trip or its last attempt failed. A trip that was never
+    // generated therefore still reads No plan yet, rather than a spinner for a run that is not
+    // happening and may never happen, and the wait is never drawn over a plan that already exists.
+    val isBuilding = tripDetails?.trip?.status == "GENERATING"
+    val buildFailed = tripDetails?.trip?.status == "FAILED"
+    val showBuildState = days.isEmpty() && !buildStateDismissed && (isBuilding || buildFailed)
+
     // Plain state for the header. Nothing is asserted that the loaded data does not show:
     // locked or not, how many days the plan has, or that there is no plan yet.
     val planSubtitle = when {
         isLocked -> "Locked by whoever set this up"
         isLoading -> "Loading the plan"
+        showBuildState && isBuilding -> "Building your plan"
+        showBuildState && buildFailed -> "The plan could not be built"
         days.isEmpty() -> "No plan yet"
         days.size == 1 -> "1 day planned"
         else -> "${days.size} days planned"
@@ -341,6 +357,27 @@ fun ItineraryScreen(
                     }
                 }
             }
+        } else if (showBuildState) {
+            /*
+             * The wait, as a state of this screen. Section 3 of the plan asks for exactly this:
+             * the generation stops being a screen and becomes a state of Plan, and the stage
+             * sentence is the display element. This screen's own bar stays above it, so the trip
+             * you are waiting on is named, and nothing here is a second copy of the readout.
+             */
+            GeneratingScreen(
+                tripId = tripId,
+                embedded = true,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                onGenerationComplete = {
+                    // Ready, or given up on. Either way this screen stops drawing the wait and asks
+                    // the server for the plan again, so the plan appears on the screen that waited
+                    // for it rather than on one pushed over it.
+                    buildStateDismissed = true
+                    loadTripData(false)
+                }
+            )
         } else {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,

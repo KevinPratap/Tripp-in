@@ -15,10 +15,23 @@ import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinType
 import kotlinx.coroutines.delay
 
+/**
+ * The wait while a plan is built.
+ *
+ * This is a state and not a place. It has no bar, no name of its own and no route of its own any
+ * more: the Plan screen draws it in place of a plan that does not exist yet, so the screen you wait
+ * on is the screen you opened, with its own destination in the bar above. [embedded] is false only
+ * for a caller that wants the whole window.
+ *
+ * Nothing here is invented. The stage sentence and the percentage are the server's own status
+ * answer, and a failure prints the server's own message with a way past it.
+ */
 @Composable
 fun GeneratingScreen(
     tripId: String,
-    onGenerationComplete: (String) -> Unit
+    onGenerationComplete: (String) -> Unit,
+    embedded: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     var statusMessage by remember { mutableStateOf("Getting the plan started...") }
     var progress by remember { mutableFloatStateOf(0.10f) }
@@ -49,13 +62,16 @@ fun GeneratingScreen(
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        // Inside the Plan screen the surface takes the room its parent gives it, which is why that
+        // caller passes a weight. On its own it fills the window. The content is the same either
+        // way, so there is one readout and not two that can drift apart.
+        modifier = if (embedded) modifier.fillMaxWidth() else Modifier.fillMaxSize(),
         color = Paper
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(if (embedded) 24.dp else 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

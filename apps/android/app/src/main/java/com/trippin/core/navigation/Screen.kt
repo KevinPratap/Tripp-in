@@ -8,7 +8,9 @@ package com.trippin.core.navigation
  * the itinerary screen, so "itinerary/{tripId}" was a second way to the same screen that nothing
  * navigated to. All four are deleted rather than left as dead entries, because a route nothing
  * reaches is a screen that looks reachable and is not, and the bottom bar's own route checks had to
- * carry legacy prefixes ("itinerary", "profile") to keep them highlighted.
+ * carry legacy prefixes ("itinerary", "profile") to keep them highlighted. Generating is gone the
+ * same way: the plan's build state is drawn inside the Plan screen, so the route that used to show
+ * it had nothing left that navigated to it.
  */
 sealed class Screen(val route: String) {
     object Trips : Screen("trips")
@@ -33,9 +35,6 @@ sealed class Screen(val route: String) {
     object Planner : Screen("planner?destination={destination}") {
         fun createRoute(destination: String? = null): String =
             if (destination.isNullOrBlank()) "planner?destination=" else "planner?destination=${destination.trim()}"
-    }
-    object Generating : Screen("generating/{tripId}") {
-        fun createRoute(tripId: String) = "generating/$tripId"
     }
     object Map : Screen("map/{tripId}") {
         fun createRoute(tripId: String) = "map/$tripId"

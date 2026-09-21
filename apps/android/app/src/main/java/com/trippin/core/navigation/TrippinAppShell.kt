@@ -36,7 +36,6 @@ import com.trippin.core.design.TrippinType
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.SessionStore
 import com.trippin.feature.auth.SignInScreen
-import com.trippin.feature.generating.GeneratingScreen
 import com.trippin.feature.group.GroupScreen
 import com.trippin.feature.itinerary.ItineraryScreen
 import com.trippin.feature.map.MapScreen
@@ -268,17 +267,9 @@ fun TrippinAppShell() {
                         initialDestination = entry.arguments?.getString("destination").orEmpty(),
                         onNavigateBack = { navController.popBackStack() },
                         onTripCreated = { tripId ->
-                            CurrentTripStore.setTripId(context, tripId)
-                            navController.navigate(Screen.Generating.createRoute(tripId))
-                        }
-                    )
-                }
-
-                composable(Screen.Generating.route) { entry ->
-                    val tripId = entry.arguments?.getString("tripId").orEmpty()
-                    GeneratingScreen(
-                        tripId = tripId,
-                        onGenerationComplete = {
+                            // The new trip opens its own plan, and the wait for the plan is drawn
+                            // there. Generation is a state of the Plan screen, not a destination, so
+                            // there is no intermediate screen between creating a trip and reading it.
                             CurrentTripStore.setTripId(context, tripId)
                             navController.navigate(Screen.Plan.createRoute(tripId)) {
                                 popUpTo(Screen.Trips.route)
