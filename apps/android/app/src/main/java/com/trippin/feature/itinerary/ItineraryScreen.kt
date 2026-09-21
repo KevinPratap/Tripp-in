@@ -62,15 +62,15 @@ fun ItineraryScreen(
     var isModifying by remember { mutableStateOf(false) }
     var modifyError by remember { mutableStateOf<String?>(null) }
 
-    // Lock, Replan & Scrap states
+    // Lock, Replan and Delete states
     var isLocking by remember { mutableStateOf(false) }
     var isReplanning by remember { mutableStateOf(false) }
     var replanStatusMsg by remember { mutableStateOf<String?>(null) }
     // Beside the message, because the line carries three meanings and one colour cannot hold
     // them: a run in progress, a run that worked, a run that failed.
     var replanFailed by remember { mutableStateOf(false) }
-    var showScrapDialog by remember { mutableStateOf(false) }
-    var isScrapping by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     // Set when the build state has said its piece, either because the plan landed or because the
     // person moved past a failure. It is the one thing that stops a failed run from being redrawn
@@ -225,19 +225,19 @@ fun ItineraryScreen(
         }
     }
 
-    fun handleScrapTrip() {
-        if (isScrapping) return
+    fun handleDeleteTrip() {
+        if (isDeleting) return
         scope.launch {
             try {
-                isScrapping = true
+                isDeleting = true
                 commitHaptic()
                 NetworkModule.apiService.deleteTrip(tripId)
                 TripCacheManager.invalidateTrip(tripId)
-                showScrapDialog = false
+                showDeleteDialog = false
                 onNavigateBack()
             } catch (_: Exception) {
                 modifyError = "Could not delete this trip"
-                isScrapping = false
+                isDeleting = false
             }
         }
     }
@@ -287,7 +287,7 @@ fun ItineraryScreen(
                     }
                     Box {
                         IconButton(onClick = { showMoreMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
                         }
                         DropdownMenu(
                             expanded = showMoreMenu,
@@ -315,7 +315,7 @@ fun ItineraryScreen(
                                 leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DangerCrimson) },
                                 onClick = {
                                     showMoreMenu = false
-                                    showScrapDialog = true
+                                    showDeleteDialog = true
                                 }
                             )
                         }
@@ -765,10 +765,12 @@ fun ItineraryScreen(
             )
         }
 
-        // Scrap Ticket Confirmation Dialog
-        if (showScrapDialog) {
+        // Delete trip confirmation dialog. The plan's section 7 table gives this control's wording as
+        // Delete trip, and the identifiers here used to say Scrap, which is the same table's costume
+        // language for it.
+        if (showDeleteDialog) {
             AlertDialog(
-                onDismissRequest = { if (!isScrapping) showScrapDialog = false },
+                onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
                 title = { Text("Delete this trip", style = TrippinType.Heading) },
                 text = {
                     Text(
@@ -779,10 +781,10 @@ fun ItineraryScreen(
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = DangerCrimson),
-                        enabled = !isScrapping,
-                        onClick = { handleScrapTrip() }
+                        enabled = !isDeleting,
+                        onClick = { handleDeleteTrip() }
                     ) {
-                        if (isScrapping) {
+                        if (isDeleting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
@@ -795,8 +797,8 @@ fun ItineraryScreen(
                 },
                 dismissButton = {
                     TextButton(
-                        enabled = !isScrapping,
-                        onClick = { showScrapDialog = false }
+                        enabled = !isDeleting,
+                        onClick = { showDeleteDialog = false }
                     ) {
                         Text("Keep", style = TrippinType.Label)
                     }
