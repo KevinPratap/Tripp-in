@@ -1,7 +1,16 @@
 package com.trippin.core.navigation
 
+/**
+ * Every route the app can actually reach.
+ *
+ * A route object exists here only while something navigates to it. Home, Explore and Profile were
+ * declared for screens that are gone, and Itinerary was declared twice over: the Plan tab renders
+ * the itinerary screen, so "itinerary/{tripId}" was a second way to the same screen that nothing
+ * navigated to. All four are deleted rather than left as dead entries, because a route nothing
+ * reaches is a screen that looks reachable and is not, and the bottom bar's own route checks had to
+ * carry legacy prefixes ("itinerary", "profile") to keep them highlighted.
+ */
 sealed class Screen(val route: String) {
-    object Home : Screen("home")
     object Trips : Screen("trips")
 
     /**
@@ -28,15 +37,10 @@ sealed class Screen(val route: String) {
     object Generating : Screen("generating/{tripId}") {
         fun createRoute(tripId: String) = "generating/$tripId"
     }
-    object Itinerary : Screen("itinerary/{tripId}") {
-        fun createRoute(tripId: String) = "itinerary/$tripId"
-    }
-    object Explore : Screen("explore")
     object Map : Screen("map/{tripId}") {
         fun createRoute(tripId: String) = "map/$tripId"
     }
     object Today : Screen("today/{tripId}") {
         fun createRoute(tripId: String) = "today/$tripId"
     }
-    object Profile : Screen("profile")
 }

@@ -124,11 +124,9 @@ fun TrippinAppShell() {
                 ShellTab.entries.forEach { tab ->
                     val selected = when (tab) {
                         ShellTab.TRIPS -> route?.startsWith("trips") == true
-                        ShellTab.PLAN ->
-                            route?.startsWith("plan") == true || route?.startsWith("itinerary") == true
+                        ShellTab.PLAN -> route?.startsWith("plan") == true
                         ShellTab.GROUP -> route?.startsWith("group") == true
-                        ShellTab.YOU ->
-                            route?.startsWith("you") == true || route?.startsWith("profile") == true
+                        ShellTab.YOU -> route?.startsWith("you") == true
                     }
                     NavigationBarItem(
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
@@ -286,16 +284,6 @@ fun TrippinAppShell() {
                                 popUpTo(Screen.Trips.route)
                             }
                         }
-                    )
-                }
-
-                composable(Screen.Itinerary.route) { entry ->
-                    val tripId = entry.arguments?.getString("tripId").orEmpty()
-                    CurrentTripStore.setTripId(context, tripId)
-                    ItineraryScreen(
-                        tripId = tripId,
-                        onNavigateBack = { navController.navigate(Screen.Trips.route) { launchSingleTop = true } },
-                        onOpenMap = { navController.navigate(Screen.Map.createRoute(tripId)) }
                     )
                 }
 
