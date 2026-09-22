@@ -358,7 +358,7 @@ fun ItineraryScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
+                        colors = trippinButtonColors()
                     ) {
                         Text("Retry", style = TrippinType.Label)
                     }
@@ -730,7 +730,7 @@ fun ItineraryScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                        colors = trippinButtonColors(),
                         enabled = !isModifying && editInstruction.isNotBlank(),
                         onClick = {
                             val instruction = editInstruction.trim()
@@ -761,7 +761,7 @@ fun ItineraryScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = OnCrimson
+                                color = LocalContentColor.current
                             )
                         } else {
                             Text("Apply", style = TrippinType.Label)
@@ -797,7 +797,7 @@ fun ItineraryScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = DangerCrimson),
+                        colors = trippinButtonColors(DangerCrimson),
                         enabled = !isDeleting,
                         onClick = { handleDeleteTrip() }
                     ) {
@@ -805,7 +805,7 @@ fun ItineraryScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = OnCrimson
+                                color = LocalContentColor.current
                             )
                         } else {
                             Text("Delete", style = TrippinType.Label)

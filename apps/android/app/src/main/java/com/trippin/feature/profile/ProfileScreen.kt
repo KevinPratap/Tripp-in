@@ -272,12 +272,12 @@ fun ProfileScreen(
                                     .weight(1f)
                                     .height(38.dp)
                                     .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                                colors = trippinButtonColors(),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
-                                Icon(Icons.Default.CardTravel, contentDescription = null, tint = Paper, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.CardTravel, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("My trips", style = TrippinType.Label, color = Paper)
+                                Text("My trips", style = TrippinType.Label)
                             }
                         }
                     }

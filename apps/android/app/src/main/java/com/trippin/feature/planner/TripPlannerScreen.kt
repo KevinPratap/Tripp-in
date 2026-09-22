@@ -332,33 +332,26 @@ fun TripPlannerScreen(
                         .fillMaxWidth()
                         .heightIn(min = 52.dp)
                         .border(2.dp, Ink, RoundedCornerShape(8.dp)),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentCrimson,
-                        contentColor = OnCrimson,
-                        disabledContainerColor = AccentCrimson.copy(alpha = 0.4f),
-                        disabledContentColor = OnCrimson
-                    ),
+                    colors = trippinButtonColors(),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     if (isSubmitting) {
                         CircularProgressIndicator(
-                            color = OnCrimson,
+                            color = LocalContentColor.current,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Building your plan",
-                            style = TrippinType.Label,
-                            color = OnCrimson
+                            style = TrippinType.Label
                         )
                     } else {
-                        Icon(Icons.Default.Bolt, contentDescription = null, tint = OnCrimson)
+                        Icon(Icons.Default.Bolt, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Build my plan",
-                            style = TrippinType.Label,
-                            color = OnCrimson
+                            style = TrippinType.Label
                         )
                     }
                 }

@@ -13,6 +13,7 @@ import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
 import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinType
+import com.trippin.core.design.trippinButtonColors
 import kotlinx.coroutines.delay
 
 /**
@@ -98,7 +99,7 @@ fun GeneratingScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = { onGenerationComplete(tripId) },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
+                    colors = trippinButtonColors()
                 ) {
                     Text("Continue anyway", style = TrippinType.Label)
                 }

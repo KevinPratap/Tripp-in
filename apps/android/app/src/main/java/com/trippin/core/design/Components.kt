@@ -57,18 +57,12 @@ fun TrippinButton(
             enabled = enabled,
             shape = RoundedCornerShape(8.dp),
             border = BorderStroke(2.dp, Ink),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AccentCrimson,
-                contentColor = OnCrimson,
-                disabledContainerColor = AccentCrimson.copy(alpha = 0.4f),
-                disabledContentColor = OnCrimson.copy(alpha = 0.8f)
-            ),
+            colors = trippinButtonColors(),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
             Text(
                 text = text.uppercase(),
-                style = TrippinType.Label,
-                color = OnCrimson
+                style = TrippinType.Label
             )
         }
     }
@@ -601,6 +595,47 @@ fun trippinTextButtonColors(contentColor: Color = Ink): ButtonColors =
     ButtonDefaults.textButtonColors(
         contentColor = contentColor,
         disabledContentColor = InkMuted
+    )
+
+/**
+ * The four colours of a filled button this app draws.
+ *
+ * A Material filled button takes its container from the scheme's primary and its label from the
+ * scheme's onPrimary, and, when it cannot be tapped, its container from onSurface at 12 percent and
+ * its label from onSurface at 38 percent. That is material3's own FilledButtonTokens read out of the
+ * artifact this app builds against rather than guessed: ContainerColor is Primary, LabelTextColor is
+ * OnPrimary, DisabledContainerColor is OnSurface with DisabledContainerOpacity 0.12 and
+ * DisabledLabelTextColor is OnSurface with DisabledLabelTextOpacity 0.38. Theme.kt maps seven rows of
+ * the scheme and leaves the rest at Material's defaults, and a colours object that names only its
+ * container keeps all three of the others, so of the eighteen filled buttons in this app the one
+ * that named every slot was the house button and the other seventeen drew stock colours: on a phone
+ * in dark mode the scheme's onPrimary is Material's dark purple #381E72, which put a purple label on
+ * a crimson fill, and every button that could not be tapped drew two library greys that no screen in
+ * this app had chosen.
+ *
+ * So all four are named here and nowhere else. The container is the caller's, defaulting to
+ * AccentCrimson because the accent is the primary button's own colour, and the destructive confirm
+ * passes DangerCrimson. The ink on it is OnCrimson, the token declared for the label, icon or spinner
+ * on a filled crimson control. A button that cannot be tapped is neither good nor bad, which is the
+ * meaning section 1 gives the NeutralInk pair on its own surface, the pair the Draft chip on Trips,
+ * the Upcoming chip on Today and the venue plate already draw: a disabled button drains to that
+ * neutral fill with neutral ink on it rather than carrying an accent it cannot honour. It
+ * deliberately follows the table's pair rather than the InkMuted the three helpers beside this one
+ * use, because those name the ink of a line of text that cannot be edited or tapped, and a filled
+ * control is a surface.
+ *
+ * The ink inside a filled button is the button's own: a Text or Icon child takes it from
+ * LocalContentColor, and that is what a spinner inside one must name too, since
+ * CircularProgressIndicator defaults to the scheme's primary and would stay white on a fill that has
+ * drained to neutral.
+ */
+@Composable
+fun trippinButtonColors(container: Color = AccentCrimson): ButtonColors =
+    ButtonDefaults.buttonColors(
+        containerColor = container,
+        contentColor = OnCrimson,
+        disabledContainerColor = NeutralInkSurface,
+        disabledContentColor = NeutralInk
     )
 
 

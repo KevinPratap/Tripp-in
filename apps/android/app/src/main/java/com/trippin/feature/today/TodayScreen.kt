@@ -242,9 +242,9 @@ fun TodayScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { loadTripData(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson)
+                        colors = trippinButtonColors()
                     ) {
-                        Text("Retry", style = TrippinType.Label, color = Paper)
+                        Text("Retry", style = TrippinType.Label)
                     }
                 }
             }
@@ -519,15 +519,14 @@ fun TodayScreen(
                                                     .weight(1f)
                                                     .height(48.dp)
                                                     .border(2.dp, Ink, RoundedCornerShape(8.dp)),
-                                                colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                                                colors = trippinButtonColors(),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
-                                                Icon(Icons.Default.Navigation, contentDescription = null, tint = Paper)
+                                                Icon(Icons.Default.Navigation, contentDescription = null)
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = "Take me there",
-                                                    style = TrippinType.Label,
-                                                    color = Paper
+                                                    style = TrippinType.Label
                                                 )
                                             }
                                         }

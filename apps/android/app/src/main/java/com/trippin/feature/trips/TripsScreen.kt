@@ -40,7 +40,6 @@ import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
 import com.trippin.core.design.NeutralInk
 import com.trippin.core.design.NeutralInkSurface
-import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.Panel
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
@@ -49,6 +48,7 @@ import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
+import com.trippin.core.design.trippinButtonColors
 import com.trippin.core.design.trippinFieldInk
 import com.trippin.core.design.trippinTextButtonColors
 import com.trippin.core.network.DestinationCardDto
@@ -494,7 +494,7 @@ fun TripsScreen(
                 },
                 confirmButton = {
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = DangerCrimson),
+                        colors = trippinButtonColors(DangerCrimson),
                         enabled = !isDeleting,
                         onClick = { handleDeleteTrip(pendingDelete.id) }
                     ) {
@@ -502,7 +502,7 @@ fun TripsScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = OnCrimson
+                                color = LocalContentColor.current
                             )
                         } else {
                             Text("Delete", style = TrippinType.Label)
@@ -568,7 +568,7 @@ fun TripsScreen(
                 confirmButton = {
                     if (inviteCode != null) {
                         Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                            colors = trippinButtonColors(),
                             onClick = {
                                 copyToClipboard(context, "Tripp'in invite code", inviteCode.orEmpty())
                             }
@@ -809,10 +809,7 @@ private fun JoinTripDialog(
         },
         confirmButton = {
             Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentCrimson,
-                    contentColor = OnCrimson
-                ),
+                colors = trippinButtonColors(),
                 enabled = !isBusy && canJoin,
                 onClick = { onJoin(code, name, cap, pace, interests) }
             ) {
@@ -820,7 +817,7 @@ private fun JoinTripDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = OnCrimson
+                        color = LocalContentColor.current
                     )
                 } else {
                     Text("Join", style = TrippinType.Label)
@@ -922,7 +919,7 @@ private fun EmptyTripsPanel(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onPlan,
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                    colors = trippinButtonColors(),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .height(44.dp)

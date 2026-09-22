@@ -21,8 +21,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +44,6 @@ import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
-import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.formatStatedAmount
 import com.trippin.core.design.TrippinButton
 import com.trippin.core.design.TrippinChoiceChip
@@ -56,6 +55,7 @@ import com.trippin.core.design.Paper
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.TrippinCard
+import com.trippin.core.design.trippinButtonColors
 import com.trippin.core.design.trippinFieldInk
 import com.trippin.core.design.trippinTextButtonColors
 import com.trippin.core.network.CreateTravellerRequestDto
@@ -617,10 +617,7 @@ private fun AddPersonDialog(
         },
         confirmButton = {
             Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentCrimson,
-                    contentColor = OnCrimson
-                ),
+                colors = trippinButtonColors(),
                 enabled = !isBusy && canAdd,
                 onClick = { onAdd(name, cap, pace, interests) }
             ) {
@@ -628,7 +625,7 @@ private fun AddPersonDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = OnCrimson
+                        color = LocalContentColor.current
                     )
                 } else {
                     Text("Add", style = TrippinType.Label)
@@ -798,10 +795,7 @@ private fun EditPersonDialog(
         },
         confirmButton = {
             Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentCrimson,
-                    contentColor = OnCrimson
-                ),
+                colors = trippinButtonColors(),
                 enabled = !isBusy && canSave,
                 onClick = { onSave(body) }
             ) {
@@ -809,7 +803,7 @@ private fun EditPersonDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = OnCrimson
+                        color = LocalContentColor.current
                     )
                 } else {
                     Text("Save", style = TrippinType.Label)
@@ -875,10 +869,7 @@ private fun RemovePersonDialog(
         },
         confirmButton = {
             Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = DangerCrimson,
-                    contentColor = OnCrimson
-                ),
+                colors = trippinButtonColors(DangerCrimson),
                 enabled = !isBusy,
                 onClick = onRemove
             ) {
@@ -886,7 +877,7 @@ private fun RemovePersonDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = OnCrimson
+                        color = LocalContentColor.current
                     )
                 } else {
                     Text("Remove", style = TrippinType.Label)

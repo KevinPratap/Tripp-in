@@ -137,10 +137,10 @@ fun MapScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                        colors = trippinButtonColors(),
                         onClick = { loadTrip() }
                     ) {
-                        Text("Retry", style = TrippinType.Label, color = Paper)
+                        Text("Retry", style = TrippinType.Label)
                     }
                 }
             } else {
@@ -197,7 +197,7 @@ fun MapScreen(
                                 )
                             }
                             Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCrimson),
+                                colors = trippinButtonColors(),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(8.dp)),
                                 onClick = {
@@ -207,9 +207,9 @@ fun MapScreen(
                                     context.startActivity(mapIntent)
                                 }
                             ) {
-                                Icon(Icons.Default.Directions, contentDescription = null, tint = Paper)
+                                Icon(Icons.Default.Directions, contentDescription = null)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Take me there", style = TrippinType.Label, color = Paper)
+                                Text("Take me there", style = TrippinType.Label)
                             }
                         }
                     }
