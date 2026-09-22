@@ -23,8 +23,11 @@ import kotlinx.coroutines.delay
  * on is the screen you opened, with its own destination in the bar above. [embedded] is false only
  * for a caller that wants the whole window.
  *
- * Nothing here is invented. The stage sentence and the percentage are the server's own status
- * answer, and a failure prints the server's own message with a way past it.
+ * Nothing here is invented. The stage sentence is the server's own status answer, and the ring and
+ * the bar draw the server's own percentage and never a number past it. Until the server states one
+ * they are indeterminate, which claims no progress at all, so a run the server reports as 0 percent
+ * draws as 0 percent rather than as a fraction this screen guessed. A failure prints the server's
+ * own message with a way past it.
  */
 @Composable
 fun GeneratingScreen(
@@ -34,7 +37,9 @@ fun GeneratingScreen(
     modifier: Modifier = Modifier
 ) {
     var statusMessage by remember { mutableStateOf("Getting the plan started...") }
-    var progress by remember { mutableFloatStateOf(0.10f) }
+    // Null until the server states a percentage. A number this screen made up would be progress the
+    // wire never reported, so the ring and the bar claim none until there is one to draw.
+    var progress by remember { mutableStateOf<Float?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(tripId) {
@@ -43,7 +48,9 @@ fun GeneratingScreen(
             try {
                 val statusRes = com.trippin.core.network.NetworkModule.apiService.getTripStatus(tripId)
                 statusMessage = statusRes.currentStepMessage.ifBlank { "Working on the plan..." }
-                progress = (statusRes.progressPercentage / 100f).coerceIn(0.1f, 1.0f)
+                // The server's own number, held inside the range the control accepts. It is capped
+                // and never raised, so a run the server reports as 0 percent draws as 0 percent.
+                progress = (statusRes.progressPercentage / 100f).coerceIn(0f, 1f)
 
                 if (statusRes.status == "READY" || statusRes.status == "COMPLETED") {
                     delay(400)
@@ -96,12 +103,7 @@ fun GeneratingScreen(
                     Text("Continue anyway", style = TrippinType.Label)
                 }
             } else {
-                CircularProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.size(72.dp),
-                    color = AccentCrimson,
-                    strokeWidth = 6.dp
-                )
+                StatedProgressRing(progress)
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "Building your plan",
@@ -117,14 +119,45 @@ fun GeneratingScreen(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp),
-                    color = AccentCrimson
-                )
+                StatedProgressBar(progress)
             }
         }
+    }
+}
+
+/**
+ * The ring, determinate only when the server has stated a percentage. With none it is Material's
+ * indeterminate ring, which claims no fraction at all rather than a made up one.
+ */
+@Composable
+private fun StatedProgressRing(progress: Float?) {
+    val stated = progress
+    if (stated == null) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(72.dp),
+            color = AccentCrimson,
+            strokeWidth = 6.dp
+        )
+    } else {
+        CircularProgressIndicator(
+            progress = { stated },
+            modifier = Modifier.size(72.dp),
+            color = AccentCrimson,
+            strokeWidth = 6.dp
+        )
+    }
+}
+
+/** The bar under the stage sentence, determinate on the same rule as the ring. */
+@Composable
+private fun StatedProgressBar(progress: Float?) {
+    val stated = progress
+    val bar = Modifier
+        .fillMaxWidth()
+        .height(8.dp)
+    if (stated == null) {
+        LinearProgressIndicator(modifier = bar, color = AccentCrimson)
+    } else {
+        LinearProgressIndicator(progress = { stated }, modifier = bar, color = AccentCrimson)
     }
 }
