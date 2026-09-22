@@ -27,8 +27,14 @@ import kotlinx.coroutines.delay
  * Nothing here is invented. The stage sentence is the server's own status answer, and the ring and
  * the bar draw the server's own percentage and never a number past it. Until the server states one
  * they are indeterminate, which claims no progress at all, so a run the server reports as 0 percent
- * draws as 0 percent rather than as a fraction this screen guessed. A failure prints the server's
- * own message with a way past it.
+ * draws as 0 percent rather than as a fraction this screen guessed.
+ *
+ * A failure names no cause, because the only field that could carry one is a raw exception string.
+ * getGenerationStatus returns errorMessage straight off the job, and the job's own writer of that
+ * field is `error: err.message` in trips.service.ts, fed by the catch around processGenerationJob,
+ * so what arrives is whatever threw: a Prisma message, a fetch failure, or the engine's own
+ * developer wording. None of those was written for a person to read, so the failure draws the same
+ * recipe Plan, Map and Today draw, a DangerCrimson title and a way past it, and prints no body.
  */
 @Composable
 fun GeneratingScreen(
@@ -41,7 +47,7 @@ fun GeneratingScreen(
     // Null until the server states a percentage. A number this screen made up would be progress the
     // wire never reported, so the ring and the bar claim none until there is one to draw.
     var progress by remember { mutableStateOf<Float?>(null) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var buildFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(tripId) {
         var attempts = 0
@@ -58,7 +64,8 @@ fun GeneratingScreen(
                     onGenerationComplete(tripId)
                     break
                 } else if (statusRes.status == "FAILED") {
-                    errorMessage = statusRes.errorMessage ?: "The plan could not be built."
+                    // The status field this follows is a raw exception string, so it is not read.
+                    buildFailed = true
                     break
                 }
             } catch (e: Exception) {
@@ -83,18 +90,11 @@ fun GeneratingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (errorMessage != null) {
+            if (buildFailed) {
                 Text(
                     text = "Could not build the plan",
                     style = TrippinType.Title,
                     color = DangerCrimson
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = errorMessage!!,
-                    style = TrippinType.Body,
-                    color = Ink,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
