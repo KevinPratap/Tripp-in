@@ -638,4 +638,47 @@ fun trippinButtonColors(container: Color = AccentCrimson): ButtonColors =
         disabledContentColor = NeutralInk
     )
 
+/**
+ * The ink of an outlined button this app draws.
+ *
+ * A Material outlined button takes its label from the scheme's primary and, when it cannot be tapped,
+ * from onSurface at 38 percent, which is material3's own OutlinedButtonTokens read out of the artifact
+ * this app builds against rather than guessed: LabelTextColor is Primary, DisabledLabelTextColor is
+ * OnSurface with DisabledLabelTextOpacity 0.38. Theme.kt maps five rows of the scheme, so in light
+ * mode that primary is OceanBlue and therefore the accent, and on a phone in dark mode it is
+ * OceanBlueDark #BE123C, a hue no screen chose, which is the same defect the filled and text buttons
+ * carried until trippinButtonColors and trippinTextButtonColors.
+ *
+ * The ink is Ink, and the accent may be passed where the outlined control really is the one
+ * interactive thing on its row, which is the Plan stop card's Take me there. InkMuted is the ink that
+ * cannot be tapped, matching the two helpers beside this one. The two container slots are left alone
+ * on purpose for the same reason a text button's are: an outlined button's container is transparent
+ * in both states, so there is nothing there to name.
+ */
+@Composable
+fun trippinOutlinedButtonColors(contentColor: Color = Ink): ButtonColors =
+    ButtonDefaults.outlinedButtonColors(
+        contentColor = contentColor,
+        disabledContentColor = InkMuted
+    )
+
+/**
+ * The edge of an outlined button this app draws, which is the other half of the same control.
+ *
+ * A Material outlined button draws its own border when the caller passes none: 1dp of the scheme's
+ * outline row (ButtonDefaults.outlinedButtonBorder, colour OutlinedButtonTokens.OutlineColor and width
+ * OutlineWidth 1.0dp). Theme.kt maps five rows and leaves outline at Material's own value, so the Plan
+ * stop card's Take me there drew a #79747E grey hairline on a page whose every other control edge is
+ * ink. The other two outlined buttons, on You, draw their own 1.5dp ink border with a Modifier, which
+ * leaves the library's grey one nested underneath the ink one, hidden rather than gone; naming it here
+ * is what removes it, and it is a no-op for those two in every theme this app can currently draw
+ * because the stroke they already had is the stroke this hands them, in the same shape, at the same
+ * width, through the same Modifier.border that Material itself applies.
+ *
+ * The width is the caller's because the app's control edges are not all one weight: 1.5dp is the
+ * dominant recipe and is the default, and the Plan stop card passes 1dp to match the copy address
+ * button beside it in the same row.
+ */
+fun trippinOutlinedButtonBorder(width: Dp = 1.5.dp): BorderStroke = BorderStroke(width, Ink)
+
 

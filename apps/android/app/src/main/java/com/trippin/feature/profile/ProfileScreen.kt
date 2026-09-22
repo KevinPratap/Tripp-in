@@ -257,13 +257,14 @@ fun ProfileScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(38.dp)
-                                    .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
-                                shape = RoundedCornerShape(6.dp)
+                                    .height(38.dp),
+                                shape = RoundedCornerShape(6.dp),
+                                colors = trippinOutlinedButtonColors(),
+                                border = trippinOutlinedButtonBorder()
                             ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = Ink)
+                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copy email", style = TrippinType.Label, color = Ink)
+                                Text("Copy email", style = TrippinType.Label)
                             }
 
                             Button(
@@ -314,11 +315,12 @@ fun ProfileScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(40.dp)
-                                .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
-                            shape = RoundedCornerShape(6.dp)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = trippinOutlinedButtonColors(),
+                            border = trippinOutlinedButtonBorder()
                         ) {
-                            Text("Sign out", style = TrippinType.Label, color = Ink)
+                            Text("Sign out", style = TrippinType.Label)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(

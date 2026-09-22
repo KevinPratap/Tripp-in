@@ -1124,7 +1124,8 @@ fun ActivityComicCard(
                             OutlinedButton(
                                 onClick = onNavigateClick,
                                 shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentCrimson),
+                                colors = trippinOutlinedButtonColors(contentColor = AccentCrimson),
+                                border = trippinOutlinedButtonBorder(width = 1.dp),
                                 modifier = Modifier.height(36.dp)
                             ) {
                                 Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
