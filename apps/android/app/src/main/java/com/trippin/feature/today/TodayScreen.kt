@@ -642,7 +642,7 @@ fun TodayScreen(
                                             context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
                                         },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(44.dp)
                                             .border(1.5.dp, Ink, RoundedCornerShape(6.dp))
                                     ) {
                                         Icon(

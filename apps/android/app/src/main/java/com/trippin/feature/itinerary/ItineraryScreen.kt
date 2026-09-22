@@ -1140,7 +1140,7 @@ fun ActivityComicCard(
                                     ).show()
                                 },
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(44.dp)
                                     .border(1.dp, Ink, RoundedCornerShape(6.dp))
                             ) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = "Copy Address", modifier = Modifier.size(16.dp))
@@ -1156,7 +1156,7 @@ fun ActivityComicCard(
                                 shape = RoundedCornerShape(6.dp),
                                 colors = trippinOutlinedButtonColors(contentColor = AccentCrimson),
                                 border = trippinOutlinedButtonBorder(width = 1.dp),
-                                modifier = Modifier.height(36.dp)
+                                modifier = Modifier.height(44.dp)
                             ) {
                                 Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))

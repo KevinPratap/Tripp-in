@@ -172,7 +172,11 @@ fun TripPlannerScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedTextField(
-                            value = "$travelersCount ${if (travelersCount == 1) "traveller" else "travellers"}",
+                            // The count alone. The label already says Travellers, and the two
+                            // steppers in the trailing slot are 44dp each because that is the
+                            // project's touch target floor, so two of them take 88dp of this
+                            // field and the words would be cut. The label carries the word.
+                            value = "$travelersCount",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Travellers", style = TrippinType.Caption) },
@@ -183,13 +187,13 @@ fun TripPlannerScreen(
                                 Row {
                                     IconButton(
                                         onClick = { if (travelersCount > 1) travelersCount-- },
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(44.dp)
                                     ) {
                                         Icon(Icons.Default.Remove, contentDescription = "One traveller fewer")
                                     }
                                     IconButton(
                                         onClick = { travelersCount++ },
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(44.dp)
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = "One traveller more")
                                     }

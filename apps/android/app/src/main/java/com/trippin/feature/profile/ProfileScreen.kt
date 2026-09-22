@@ -257,7 +257,7 @@ fun ProfileScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(38.dp),
+                                    .height(44.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 colors = trippinOutlinedButtonColors(),
                                 border = trippinOutlinedButtonBorder()
@@ -271,7 +271,7 @@ fun ProfileScreen(
                                 onClick = onNavigateToTrips,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(38.dp)
+                                    .height(44.dp)
                                     .border(1.5.dp, Ink, RoundedCornerShape(6.dp)),
                                 colors = trippinButtonColors(),
                                 shape = RoundedCornerShape(6.dp)
@@ -315,7 +315,7 @@ fun ProfileScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(40.dp),
+                                .height(44.dp),
                             shape = RoundedCornerShape(6.dp),
                             colors = trippinOutlinedButtonColors(),
                             border = trippinOutlinedButtonBorder()
