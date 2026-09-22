@@ -50,6 +50,7 @@ import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
 import com.trippin.core.design.trippinFieldInk
+import com.trippin.core.design.trippinTextButtonColors
 import com.trippin.core.network.DestinationCardDto
 import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.NetworkModule
@@ -509,7 +510,11 @@ fun TripsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(enabled = !isDeleting, onClick = { tripToDelete = null }) {
+                    TextButton(
+                        enabled = !isDeleting,
+                        onClick = { tripToDelete = null },
+                        colors = trippinTextButtonColors()
+                    ) {
                         Text("Keep", style = TrippinType.Label)
                     }
                 }
@@ -573,7 +578,10 @@ fun TripsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { inviteTrip = null; inviteCode = null; inviteError = null }) {
+                    TextButton(
+                        onClick = { inviteTrip = null; inviteCode = null; inviteError = null },
+                        colors = trippinTextButtonColors()
+                    ) {
                         Text("Done", style = TrippinType.Label)
                     }
                 }
@@ -820,7 +828,11 @@ private fun JoinTripDialog(
             }
         },
         dismissButton = {
-            TextButton(enabled = !isBusy, onClick = onDismiss) {
+            TextButton(
+                enabled = !isBusy,
+                onClick = onDismiss,
+                colors = trippinTextButtonColors()
+            ) {
                 Text("Cancel", style = TrippinType.Label)
             }
         }

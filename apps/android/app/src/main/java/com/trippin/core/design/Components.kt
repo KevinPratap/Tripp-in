@@ -578,4 +578,29 @@ fun trippinMenuItemColors(): MenuItemColors =
         disabledTrailingIconColor = InkMuted
     )
 
+/**
+ * The ink on a plain text action this app draws.
+ *
+ * A Material text button takes its label from the scheme's primary and, when it cannot be tapped,
+ * from onSurface at 38 percent (material3's own TextButtonTokens: LabelTextColor is Primary,
+ * DisabledLabelTextColor is OnSurface with DisabledLabelTextOpacity 0.38, both read from the artifact
+ * this app builds against). So every way out of a dialog in this app was painted in whatever the
+ * scheme called primary rather than in a colour the app names, and a disabled one was painted in a
+ * washed out ink at about a third of the contrast the design system asks for. The two helpers beside
+ * this one already name InkMuted for ink that cannot be tapped, in a field and in a menu.
+ *
+ * AccentCrimson has three jobs and a low emphasis action is not one of them: a filled primary button,
+ * the selected tab or chip, and a link. A way out of a dialog is none of those, so the ink is Ink,
+ * which is the decision the planner's own Cancel action already made by hand. The committing action of
+ * a dialog may pass the accent instead, which is why the colour is a parameter. The two container
+ * slots are left alone on purpose: a text button's container is transparent in both states, which is
+ * what it should be, so there is nothing there to name.
+ */
+@Composable
+fun trippinTextButtonColors(contentColor: Color = Ink): ButtonColors =
+    ButtonDefaults.textButtonColors(
+        contentColor = contentColor,
+        disabledContentColor = InkMuted
+    )
+
 

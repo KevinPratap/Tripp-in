@@ -769,7 +769,10 @@ fun ItineraryScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showEditDialog = false }) {
+                    TextButton(
+                        onClick = { showEditDialog = false },
+                        colors = trippinTextButtonColors()
+                    ) {
                         Text("Cancel", style = TrippinType.Label)
                     }
                 }
@@ -812,7 +815,8 @@ fun ItineraryScreen(
                 dismissButton = {
                     TextButton(
                         enabled = !isDeleting,
-                        onClick = { showDeleteDialog = false }
+                        onClick = { showDeleteDialog = false },
+                        colors = trippinTextButtonColors()
                     ) {
                         Text("Keep", style = TrippinType.Label)
                     }

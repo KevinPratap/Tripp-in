@@ -527,14 +527,15 @@ private fun PlannerDatePickerDialog(
                         onPicked(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
                     onDismiss()
-                }
+                },
+                colors = trippinTextButtonColors(AccentCrimson)
             ) {
-                Text("Set", style = TrippinType.Label, color = AccentCrimson)
+                Text("Set", style = TrippinType.Label)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", style = TrippinType.Label, color = Ink)
+            TextButton(onClick = onDismiss, colors = trippinTextButtonColors()) {
+                Text("Cancel", style = TrippinType.Label)
             }
         }
     ) {

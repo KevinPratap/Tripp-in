@@ -57,6 +57,7 @@ import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.trippinFieldInk
+import com.trippin.core.design.trippinTextButtonColors
 import com.trippin.core.network.CreateTravellerRequestDto
 import com.trippin.core.network.NetworkModule
 import com.trippin.core.network.PerTravellerCostDto
@@ -635,7 +636,11 @@ private fun AddPersonDialog(
             }
         },
         dismissButton = {
-            TextButton(enabled = !isBusy, onClick = onDismiss) {
+            TextButton(
+                enabled = !isBusy,
+                onClick = onDismiss,
+                colors = trippinTextButtonColors()
+            ) {
                 Text("Cancel", style = TrippinType.Label)
             }
         }
@@ -812,7 +817,11 @@ private fun EditPersonDialog(
             }
         },
         dismissButton = {
-            TextButton(enabled = !isBusy, onClick = onDismiss) {
+            TextButton(
+                enabled = !isBusy,
+                onClick = onDismiss,
+                colors = trippinTextButtonColors()
+            ) {
                 Text("Cancel", style = TrippinType.Label)
             }
         }
@@ -885,7 +894,11 @@ private fun RemovePersonDialog(
             }
         },
         dismissButton = {
-            TextButton(enabled = !isBusy, onClick = onDismiss) {
+            TextButton(
+                enabled = !isBusy,
+                onClick = onDismiss,
+                colors = trippinTextButtonColors()
+            ) {
                 Text("Keep", style = TrippinType.Label)
             }
         }
