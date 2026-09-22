@@ -95,6 +95,7 @@ fun TripPlannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = trippinTopBarColors(),
                 title = {
                     Column {
                         Text(

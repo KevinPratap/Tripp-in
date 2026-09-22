@@ -532,4 +532,26 @@ fun trippinFieldInk(container: Color = Color.Transparent): TextFieldColors =
         disabledPlaceholderColor = InkMuted
     )
 
+/**
+ * The colours of the top bar this app draws.
+ *
+ * A Material top bar takes its container from the scheme's surface and its title, its back arrow and
+ * its actions from the scheme's onSurface and onSurfaceVariant (material3's own TopAppBarSmallTokens),
+ * so on a phone in dark mode every bar but the Trips tab drew Material's dark card with pale grey ink
+ * inside an app that is parchment on every other surface, and even in light mode it drew a pure white
+ * bar with Material's near-black on a cream page. The bar is part of the page and not a card, so it is
+ * Paper with Ink on it, which is the rule the dialogs already follow with Panel. The dark palette
+ * itself is a separate decision that belongs to Kevin and is untouched by this.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun trippinTopBarColors(): TopAppBarColors =
+    TopAppBarDefaults.topAppBarColors(
+        containerColor = Paper,
+        scrolledContainerColor = Paper,
+        navigationIconContentColor = Ink,
+        titleContentColor = Ink,
+        actionIconContentColor = Ink
+    )
+
 

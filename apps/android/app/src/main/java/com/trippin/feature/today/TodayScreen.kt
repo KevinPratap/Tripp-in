@@ -157,6 +157,7 @@ fun TodayScreen(
         // than printing a second title and a back arrow onto the screen you are already on.
         topBar = {
             if (!embedded) TopAppBar(
+                colors = trippinTopBarColors(),
                 title = {
                     Column {
                         Text(
