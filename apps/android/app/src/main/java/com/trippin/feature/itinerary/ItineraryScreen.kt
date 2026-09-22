@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+// The library's own underline geometry is a member extension of TabRowDefaults, so it needs the
+// explicit import to be called from here. Its colour is passed at the call site.
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -512,10 +515,30 @@ fun ItineraryScreen(
 
                     // Day selector tabs (synced with HorizontalPager)
                     if (days.isNotEmpty()) {
+                        val selectedDay = pagerState.currentPage.coerceIn(0, days.size - 1)
                         ScrollableTabRow(
-                            selectedTabIndex = pagerState.currentPage.coerceIn(0, days.size - 1),
+                            selectedTabIndex = selectedDay,
                             edgePadding = 16.dp,
-                            containerColor = Paper
+                            containerColor = Paper,
+                            /*
+                             * The library draws both of the lines under this row itself when these
+                             * two arguments are left out, and neither one names our ink. The
+                             * underline comes from the scheme's primary, which this app maps to
+                             * OceanBlue in the light scheme and OceanBlueDark in the dark one, so a
+                             * phone in dark mode would draw the underline in a crimson the day label
+                             * beside it does not use. The rule under it comes from the scheme's
+                             * outlineVariant, which is Material's own lavender grey. Both take a
+                             * token here, the way every other divider in the app already does.
+                             */
+                            indicator = { tabPositions ->
+                                tabPositions.getOrNull(selectedDay)?.let { position ->
+                                    TabRowDefaults.SecondaryIndicator(
+                                        modifier = Modifier.tabIndicatorOffset(position),
+                                        color = AccentCrimson
+                                    )
+                                }
+                            },
+                            divider = { HorizontalDivider(thickness = 2.dp, color = Ink) }
                         ) {
                             days.forEachIndexed { index, day ->
                                 val isSelected = pagerState.currentPage == index
