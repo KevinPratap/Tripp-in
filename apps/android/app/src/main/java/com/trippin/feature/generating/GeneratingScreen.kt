@@ -11,6 +11,7 @@ import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.DangerCrimson
 import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
+import com.trippin.core.design.NeutralInkSurface
 import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.trippinButtonColors
@@ -129,6 +130,13 @@ fun GeneratingScreen(
 /**
  * The ring, determinate only when the server has stated a percentage. With none it is Material's
  * indeterminate ring, which claims no fraction at all rather than a made up one.
+ *
+ * The track is named here and not left to the library: a determinate Material indicator paints the
+ * unfilled remainder with the scheme's secondaryContainer, which this app never maps, so the rest of
+ * the ring arrived in Material's own lavender #E8DEF8 on a parchment page. A track is neither good
+ * nor bad, so it takes NeutralInkSurface, the token design system section 1 gives that meaning, the
+ * surface the venue plate and a disabled button already draw. The indeterminate branch draws no
+ * track at all, which is why it passes no track colour.
  */
 @Composable
 private fun StatedProgressRing(progress: Float?) {
@@ -144,12 +152,19 @@ private fun StatedProgressRing(progress: Float?) {
             progress = { stated },
             modifier = Modifier.size(72.dp),
             color = AccentCrimson,
-            strokeWidth = 6.dp
+            strokeWidth = 6.dp,
+            trackColor = NeutralInkSurface
         )
     }
 }
 
-/** The bar under the stage sentence, determinate on the same rule as the ring. */
+/**
+ * The bar under the stage sentence, determinate on the same rule as the ring. Both branches draw a
+ * track, because a linear indicator always paints the unfilled remainder, so both name it: without
+ * the argument that remainder came from the scheme's secondaryContainer, the same unmapped lavender
+ * the ring above was drawing. Its stop indicator is not named here because Material draws it in the
+ * bar's own colour, which is the accent.
+ */
 @Composable
 private fun StatedProgressBar(progress: Float?) {
     val stated = progress
@@ -157,8 +172,13 @@ private fun StatedProgressBar(progress: Float?) {
         .fillMaxWidth()
         .height(8.dp)
     if (stated == null) {
-        LinearProgressIndicator(modifier = bar, color = AccentCrimson)
+        LinearProgressIndicator(modifier = bar, color = AccentCrimson, trackColor = NeutralInkSurface)
     } else {
-        LinearProgressIndicator(progress = { stated }, modifier = bar, color = AccentCrimson)
+        LinearProgressIndicator(
+            progress = { stated },
+            modifier = bar,
+            color = AccentCrimson,
+            trackColor = NeutralInkSurface
+        )
     }
 }
