@@ -292,7 +292,10 @@ fun ItineraryScreen(
                         }
                         DropdownMenu(
                             expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false }
+                            onDismissRequest = { showMoreMenu = false },
+                            // A menu is a card over the page: Panel with Ink on it, decided once in
+                            // trippinMenuItemColors, rather than the Material plate and ink.
+                            containerColor = Panel
                         ) {
                             // Today is a sub-view of this screen now, so there is no menu entry
                             // that leads to a second copy of it.
@@ -301,19 +304,22 @@ fun ItineraryScreen(
                                 leadingIcon = {
                                     Icon(
                                         if (isLocked) Icons.Default.LockOpen else Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = Ink
+                                        contentDescription = null
                                     )
                                 },
+                                colors = trippinMenuItemColors(),
                                 onClick = {
                                     showMoreMenu = false
                                     handleToggleLock()
                                 }
                             )
-                            HorizontalDivider()
+                            // The rule between the two items names our own ink rather than the
+                            // library's outlineVariant, which is a Material grey with no token here.
+                            HorizontalDivider(color = Ink)
                             DropdownMenuItem(
                                 text = { Text("Delete trip", color = DangerCrimson, style = TrippinType.Label) },
                                 leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DangerCrimson) },
+                                colors = trippinMenuItemColors(),
                                 onClick = {
                                     showMoreMenu = false
                                     showDeleteDialog = true

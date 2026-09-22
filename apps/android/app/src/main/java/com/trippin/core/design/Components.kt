@@ -554,4 +554,28 @@ fun trippinTopBarColors(): TopAppBarColors =
         actionIconContentColor = Ink
     )
 
+/**
+ * The ink inside a popup menu, named once.
+ *
+ * A Material menu takes its plate from the scheme's surfaceContainer and each item's text and icons
+ * from onSurface and onSurfaceVariant, with onSurface at 38 percent behind a disabled item
+ * (material3's MenuTokens.ContainerColor, ListTokens.ListItemLabelTextColor and
+ * ListItemLeadingIconColor, and the three disabled rows of ListTokens). Theme.kt maps five rows of the
+ * scheme and leaves the rest at Material's own defaults, so the app's one menu drew Material's
+ * lavender grey plate #F3EDF7 with #1D1B20 text and #49454F icons on a parchment page, and on a phone
+ * in dark mode it drew #211F26 with #E6E0E9. A menu is a card that floats over the page, so it is
+ * Panel with Ink on it, which is the pair every dialog in the app already declares. Disabled ink is
+ * InkMuted, matching trippinFieldInk below.
+ */
+@Composable
+fun trippinMenuItemColors(): MenuItemColors =
+    MenuDefaults.itemColors(
+        textColor = Ink,
+        leadingIconColor = Ink,
+        trailingIconColor = Ink,
+        disabledTextColor = InkMuted,
+        disabledLeadingIconColor = InkMuted,
+        disabledTrailingIconColor = InkMuted
+    )
+
 
