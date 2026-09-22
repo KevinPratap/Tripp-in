@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -680,5 +682,43 @@ fun trippinOutlinedButtonColors(contentColor: Color = Ink): ButtonColors =
  * button beside it in the same row.
  */
 fun trippinOutlinedButtonBorder(width: Dp = 1.5.dp): BorderStroke = BorderStroke(width, Ink)
+
+/**
+ * The plate and the arc of the pull to refresh control this app draws.
+ *
+ * A PullToRefreshBox draws material3's own indicator when the caller passes none, and that indicator
+ * takes its plate from PullToRefreshDefaults.containerColor, which the sources this app builds
+ * against define as the scheme's surfaceContainerHigh, and its arc from
+ * PullToRefreshDefaults.indicatorColor, which they define as onSurfaceVariant (PullToRefresh.kt, the
+ * two getters at :419 and :423, and the Indicator at :434). Theme.kt maps five rows of the scheme and
+ * leaves both of those rows at Material's own values, so pulling down on a parchment page dragged a
+ * lavender grey plate #ECE6F0 with a #49454F grey arc on it, which is wrong on a phone in light mode
+ * as well as in dark mode and is the last control in the app that drew a colour no screen named.
+ *
+ * The plate is Panel, the card surface the app's one menu and every dialog already float on. The arc
+ * is AccentCrimson, which is the colour of every other progress indicator in the app: the load
+ * spinners on Plan, Today, Trips and Sign in all pass it, and both indicators on the generating
+ * readout do too. The indicator's own elevation stays the library's Level 2, which is the same
+ * question as the menu's shadow and is Kevin's call rather than this helper's.
+ *
+ * The state is the caller's and it has to be the same object the caller hands to PullToRefreshBox,
+ * because the indicator follows the finger through it while PullToRefreshBox creates its own when
+ * none is passed. So each screen that pulls to refresh hoists rememberPullToRefreshState() once and
+ * passes it twice.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BoxScope.TrippinRefreshIndicator(
+    state: PullToRefreshState,
+    isRefreshing: Boolean
+) {
+    PullToRefreshDefaults.Indicator(
+        state = state,
+        isRefreshing = isRefreshing,
+        modifier = Modifier.align(Alignment.TopCenter),
+        containerColor = Panel,
+        color = AccentCrimson
+    )
+}
 
 

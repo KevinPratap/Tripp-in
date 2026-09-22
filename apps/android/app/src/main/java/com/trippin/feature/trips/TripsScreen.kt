@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +46,7 @@ import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinChoiceChip
+import com.trippin.core.design.TrippinRefreshIndicator
 import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
@@ -121,6 +123,10 @@ fun TripsScreen(
     val commitHaptic = rememberCommitHaptic()
     val context = LocalContext.current
     val today = LocalDate.now()
+    // The pull to refresh indicator follows the finger through this state and PullToRefreshBox makes
+    // its own when none is passed, so the state is hoisted here and handed to the box and to the
+    // indicator it draws.
+    val refreshState = rememberPullToRefreshState()
 
     val loadTrips: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
         scope.launch {
@@ -287,6 +293,8 @@ fun TripsScreen(
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { loadTrips(true) },
+            state = refreshState,
+            indicator = { TrippinRefreshIndicator(state = refreshState, isRefreshing = isRefreshing) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

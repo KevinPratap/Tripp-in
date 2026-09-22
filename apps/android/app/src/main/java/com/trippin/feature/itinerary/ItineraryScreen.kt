@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +81,10 @@ fun ItineraryScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val commitHaptic = rememberCommitHaptic()
+    // The pull to refresh indicator follows the finger through this state and PullToRefreshBox makes
+    // its own when none is passed, so the state is hoisted here and handed to the box and to the
+    // indicator it draws.
+    val refreshState = rememberPullToRefreshState()
 
     val loadTripData: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
         scope.launch {
@@ -389,6 +394,8 @@ fun ItineraryScreen(
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = { loadTripData(true) },
+                state = refreshState,
+                indicator = { TrippinRefreshIndicator(state = refreshState, isRefreshing = isRefreshing) },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
