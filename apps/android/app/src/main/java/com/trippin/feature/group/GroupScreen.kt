@@ -411,14 +411,18 @@ fun GroupScreen(tripId: String) {
                             style = TrippinType.Body,
                             color = Ink
                         )
+                        /* The plan's version and whether the trip is locked, and nothing else. The
+                         * server's own status word used to be appended here, which printed "Ready"
+                         * on every trip whose generation job had finished, and READY is a label on
+                         * the plan's delete list because it is not derived from anything the app
+                         * can see. The Trips card already derives its own state from the trip
+                         * (Draft, Deciding, Locked, Finished) instead of printing this word, so the
+                         * two screens said different things about the same trip. The lock state is
+                         * a real value off the wire and stays; the build state is drawn where it
+                         * belongs, on Plan. */
                         Text(
-                            text = buildString {
-                                append("Plan version ${trip.currentVersion}")
-                                append(" · ")
-                                append(if (trip.isLocked) "Locked" else "Not locked")
-                                append(" · ")
-                                append(trip.status.lowercase().replaceFirstChar { it.uppercase() })
-                            },
+                            text = "Plan version ${trip.currentVersion} · " +
+                                if (trip.isLocked) "Locked" else "Not locked",
                             style = TrippinType.Caption,
                             color = InkMuted,
                             modifier = Modifier.padding(top = 6.dp)
