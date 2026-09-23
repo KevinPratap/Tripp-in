@@ -1013,7 +1013,9 @@ fun ActivityComicCard(
                             ) {
                                 Text(
                                     text = String.format("%02d", index),
-                                    color = Paper,
+                                    // The ink on this filled crimson chip is OnCrimson, the token for
+                                    // whatever sits on a crimson control, not the page's Paper.
+                                    color = OnCrimson,
                                     style = TrippinType.Caption,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 )

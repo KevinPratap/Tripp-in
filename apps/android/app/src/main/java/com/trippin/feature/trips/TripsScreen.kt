@@ -41,6 +41,7 @@ import com.trippin.core.design.Ink
 import com.trippin.core.design.InkMuted
 import com.trippin.core.design.NeutralInk
 import com.trippin.core.design.NeutralInkSurface
+import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.Panel
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
@@ -427,16 +428,19 @@ fun TripsScreen(
                                                 contentAlignment = Alignment.CenterEnd
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    // The reveal is a filled crimson control, so the icon and the
+                                                    // word on it take OnCrimson, the token for ink on a crimson
+                                                    // fill, rather than the page's Paper.
                                                     Icon(
                                                         Icons.Default.DeleteOutline,
                                                         contentDescription = null,
-                                                        tint = Paper,
+                                                        tint = OnCrimson,
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
                                                         "Delete",
-                                                        color = Paper,
+                                                        color = OnCrimson,
                                                         style = TrippinType.Label,
                                                     )
                                                 }

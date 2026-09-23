@@ -412,7 +412,10 @@ fun TodayScreen(
                                                 ) {
                                                     Text(
                                                         text = stopTimeLabel,
-                                                        color = if (isRunningNow) Paper else NeutralInk,
+                                                        // A filled crimson chip takes OnCrimson, not a card
+                                                        // surface: the same white reads 4.70 on the accent
+                                                        // where the parchment page's Paper reads 4.43.
+                                                        color = if (isRunningNow) OnCrimson else NeutralInk,
                                                         style = TrippinType.Caption,
                                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                                     )
