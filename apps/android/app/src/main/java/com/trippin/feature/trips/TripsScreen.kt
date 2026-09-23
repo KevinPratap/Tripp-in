@@ -61,9 +61,7 @@ import com.trippin.feature.group.TRAVELLER_PACE_CHOICES
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import kotlin.math.roundToLong
 
 /** The home feed returns at most this many trips, so the header never claims to count them all. */
@@ -1118,19 +1116,6 @@ private fun countdownLine(trip: TripSummaryDto, today: LocalDate): String? {
             val days = ChronoUnit.DAYS.between(today, start)
             if (days == 1L) "Starts tomorrow" else "In $days days"
         }
-    }
-}
-
-/** "12 to 16 Oct", or the raw dates when this build cannot read them. */
-private fun dateRangeLine(trip: TripSummaryDto): String {
-    val start = parseDate(trip.startDate)
-    val end = parseDate(trip.endDate)
-    if (start == null || end == null) return "${trip.startDate} to ${trip.endDate}"
-    val dayMonth = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
-    return if (start.year == end.year && start.month == end.month) {
-        "${start.dayOfMonth} to ${end.format(dayMonth)}"
-    } else {
-        "${start.format(dayMonth)} to ${end.format(dayMonth)}"
     }
 }
 
