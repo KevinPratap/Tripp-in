@@ -168,35 +168,16 @@ fun TrippinSegmentedTabs(
     }
 }
 
-/**
- * High-contrast status badge reflecting deterministic verification reality.
- *
- * The colour is the meaning from design system section 1 and not a decoration: a confirmed state is
- * the ink green that says confirmed, and anything else is neutral, which says neither good nor bad.
- * Crimson is never used here, because crimson is what you tap and it never signals success.
+/*
+ * A TrippinStatusBadge was declared here. It took a server status string and printed it uppercased,
+ * with VERIFIED and READY as its good branch, and it had no caller anywhere in the app: Home was its
+ * only one and Home is deleted. Plan section 8 item 9 deletes any READY or VERIFIED label that is not
+ * derived from real state, and a component whose whole job is to print whichever status string it is
+ * handed is exactly that, so it is deleted rather than left for a screen to pick up later. If a shared
+ * status chip is wanted, it has to take a derived state and not a wire string, the way the Trips card's
+ * own state chip does (Draft, Deciding, Locked, Finished, computed from the trip), and it has to name
+ * its colour from the section 1 table this one already used.
  */
-@Composable
-fun TrippinStatusBadge(
-    status: String,
-    modifier: Modifier = Modifier
-) {
-    val isVerified = status.equals("VERIFIED", ignoreCase = true) || status.equals("READY", ignoreCase = true)
-    val badgeColor = if (isVerified) GoodInkSurface else NeutralInkSurface
-    val textColor = if (isVerified) GoodInk else NeutralInk
-
-    Box(
-        modifier = modifier
-            .background(badgeColor, RoundedCornerShape(4.dp))
-            .border(1.5.dp, Ink, RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = status.uppercase(),
-            color = textColor,
-            style = TrippinType.Caption
-        )
-    }
-}
 
 /*
  * Motion. One easing for everything that settles, so the app reads as one thing instead of a set of
