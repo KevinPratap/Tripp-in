@@ -1,9 +1,9 @@
 # Tripp'in AI: Agent Status Board
 
-**Last Updated**: 2026-09-21T21:25:00Z
-**Mainline Commit**: `eda05d4`
-**Active Head**: `main`. Local `HEAD` and `origin/main` are both `eda05d4`, checked with
-`git ls-remote origin refs/heads/main` at 21:20 UTC.
+**Last Updated**: 2026-09-23T15:55:00Z
+**Mainline Commit**: `553dec0`
+**Active Head**: `main`. Local `HEAD` and `origin/main` are both `553dec0`, checked with
+`git ls-remote origin refs/heads/main` at 15:52 UTC.
 
 **Read this before you commit.** agy's `eefd056` ("populate checks array on every activity") also
 contains part of a HERMES change set that was uncommitted in the tree at the time: the deletion of
@@ -12,8 +12,26 @@ contains part of a HERMES change set that was uncommitted in the tree at the tim
 `git show eefd056 --stat` is worth reading before either of us reasons about it. Stage explicit file
 paths, never a directory.
 
-**What changed in this rewrite (HERMES, 21:25 UTC).** The board named `696dc94`, which is about forty
-commits behind `main`. Specific corrections, each provable from this clone:
+**What changed in this rewrite (HERMES, 2026-09-23 15:55 UTC).** The board named `eda05d4`, which is
+twenty three commits behind `main` (`git rev-list --count eda05d4..HEAD` is 23, 22 of them Android and
+one of them this file). Specific corrections, each provable from this clone:
+
+- The two lines above name `553dec0`, and the HERMES row in section 1 names the work that landed after
+  `eda05d4` instead of stopping at it.
+- Section 3 gains a row for that work, so the task list matches `git log --oneline eda05d4..HEAD`.
+- Section 4's checks carry today's date rather than 2026-09-21: the demo user is still served with no
+  credentials, `activity.support` is still absent from the wire, and one number in section 4 was wrong
+  and is corrected here (the home feed returns five rows in `recentTrips`, not six). Re-checked at
+  15:52 UTC.
+- The device gap is re-measured rather than restated: `adb devices` lists nothing at 15:55 UTC and the
+  install step exits 1 with `device 'emulator-5554' not found`, while the wrapper still reports
+  `BUILD SUCCESSFUL` with `GRADLE_EXIT_CODE=0`.
+- Nothing in this file was corrected from memory. `git log`, `git ls-remote`, four greps over
+  `apps/android/app/src/main/java` and three live endpoint reads are the whole basis for it.
+
+**What changed in the previous rewrite (HERMES, 2026-09-21 21:25 UTC).** The board named `696dc94`,
+which was about forty commits behind `main` at that time. Specific corrections, each provable from this
+clone:
 
 - The open HERMES item about a demo shortcut on the sign-in screen is deleted. There is no such
   affordance: `git grep -in demo -- apps/android/app/src/main/java` returns nothing, and
@@ -25,10 +43,11 @@ commits behind `main`. Specific corrections, each provable from this clone:
 - The HERMES lane now names `core/navigation/**` explicitly, because `Screen.kt`, `TrippinAppShell.kt`
   and the only bottom bar live there.
 - One honest caveat belongs at the top rather than at the bottom: every Android commit below is
-  verified by build and by grep, and the last twenty five of them have not been seen rendered on a
-  device. `emulator-5554` has been absent since 2026-09-21 02:30 UTC, `adb devices` lists nothing, and
-  the install step exits 1 with device not found. The android-main-install.ps1 wrapper still reports
-  BUILD SUCCESSFUL, so the gap is in the install and the visual read only.
+  verified by build and by grep, and the device half of every commit after `03fc15b` (2026-09-21
+  02:54 UTC) is outstanding, which is 46 commits by `git rev-list --count 03fc15b..HEAD`. `adb devices`
+  lists nothing at 2026-09-23 15:55 UTC and the install step exits 1 with
+  `device 'emulator-5554' not found`. The android-main-install.ps1 wrapper still reports BUILD
+  SUCCESSFUL, so the gap is in the install and the visual read only.
 
 ---
 
@@ -36,7 +55,7 @@ commits behind `main`. Specific corrections, each provable from this clone:
 
 | Component | Owner | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `apps/android` (UI files) | **HERMES** | **BUILD AND GREP VERIFIED, NOT SEEN ON A DEVICE** | `MainActivity.kt`, `feature/**`, `core/design/**`, `core/navigation/**`. Flat surfaces with no offset shadow anywhere, semantic colour tokens with no raw hex and no palette hue name outside `Color.kt`, seven-role type scale with zero bare `fontSize` and zero `MaterialTheme.typography` outside `Type.kt`. Recent work: Trips list (`19804c8`), Plan shell with Days and Today (`d24f608`), Group write path (`f327c62`, `129cc11`, `c64274d`, `349cc8c`), the build state drawn inside Plan (`eda05d4`). |
+| `apps/android` (UI files) | **HERMES** | **BUILD AND GREP VERIFIED, NOT SEEN ON A DEVICE** | `MainActivity.kt`, `feature/**`, `core/design/**`, `core/navigation/**`. Flat surfaces with no offset shadow anywhere, semantic colour tokens with no raw hex and no palette hue name in a screen (the only hue references left outside `Color.kt` are the Material scheme mapping in `Theme.kt` and three comments, re-measured 2026-09-23 15:55 UTC), seven-role type scale with zero bare `fontSize`, zero `MaterialTheme.typography` and zero `colorScheme` reference outside `core/design` (re-measured the same minute). Recent work, newest first: the zero-caller status badge deleted and that sweep closed (`553dec0`), sixteen dead imports deleted (`9136243`), the dead private helper `dateRangeLine` deleted with its class swept clean at 0 of 53 (`77c1777`), a refused write no longer printed as a status code (`2dcfe8c`), the ink on a crimson fill named `OnCrimson` (`09a89a1`, `b8ff144`), the 44dp touch floor declared on every control under it (`fdd7093`), every Material surface, plate, arc, rule and ink named by the app rather than the phone's theme (`e8deabd`, `eb7d87e`, `e39a817`, `09e597e`, `8fd7281`, `845b2f2`, `f32820e`, `3e49087`, `e06f654`, `9199ebf`), one name per colour with the dead palette rows gone (`36728f4`), two smaller honesty fixes (`8bc62a9`, `404d6e4`), the plan wait reading the server's own progress or none (`d1ba017`), the plan failure naming no cause (`f58f47f`), Trips list (`19804c8`), Plan shell with Days and Today (`d24f608`), Group write path (`f327c62`, `129cc11`, `c64274d`, `349cc8c`), the build state drawn inside Plan (`eda05d4`). |
 | `apps/android` (Network) | **AGY** | **SHIPPED** | `core/network/**`. Guest identity removed; `SessionStore` holds the session token and the client sends `Authorization: Bearer`. Auth, share and my-trips calls added (`56ead62`, by HERMES while the lane was temporarily shared; the lane is agy's again and that is the last HERMES edit to it). |
 | `apps/backend` | **AGY** | **DEPLOYED & VERIFIED** | Price Provenance Guard (`4fd2965`), photo honesty (`cdf14bb`), reason normalisation (`6a65224`), checks backfill (`eefd056`), venue photo backfill on read (`0959974`, `231f0c8`). |
 | `packages/shared-types` | **AGY** | **READY & SHIPPED** | `TravellerDto`, `TripOptionDto`, `StopSupportDto`, `TripSummary.currency`, `TripSummary.shareToken`, `HomeFeedResponse.totalTripsCount`. |
@@ -118,7 +137,9 @@ commits behind `main`. Specific corrections, each provable from this clone:
 8. **`travelersCount` is no longer the client's notion of travellers** (`a3c7ac2`, section 8 item 10 of
    the production plan). The Trips card counts `trip.travellers` and states the set-up size as a plan
    only while nobody has joined ("Set up for 2 travellers"), so the card and the Group tab agree. On
-   the live list payload every trip is `travelersCount: 2` with `travellers: []`.
+   the live list payload every trip is `travelersCount: 2` with `travellers: []` and
+   `perTravellerCost: []`, re-checked at 15:52 UTC on 2026-09-23 across five trips whose `currency` is
+   USD, EUR, EUR, JPY and EUR.
 
 ---
 
@@ -163,10 +184,18 @@ commits behind `main`. Specific corrections, each provable from this clone:
 - [x] **HERMES**: The Trips card counts `trip.travellers` and states the set-up size as a plan only while nobody has joined, so it agrees with the Group tab (`a3c7ac2`).
 - [x] **HERMES**: The venue plate, the honest fallback for a venue with no genuine photograph: the venue's own initials and its own category, wired at the Plan stop card, the Today hero and the Today day row (`8e152f4`).
 - [x] **HERMES**: The Plan tab's no-trip body no longer names Options, Changes and Money, which was the last place in the app promising a sub-view that does not exist (`6336125`).
-- [ ] **AGY**: Remove the guest identity and the demo-user read fallback from `firebase-auth.guard.ts`, as Kevin asked. The client half is already done, so the backend is now the only place a device-scoped identity can still be minted. Still live and verified from outside at 21:25 UTC on 2026-09-21, see section 4.
+- [ ] **AGY**: Remove the guest identity and the demo-user read fallback from `firebase-auth.guard.ts`, as Kevin asked. The client half is already done, so the backend is now the only place a device-scoped identity can still be minted. Still live and verified from outside at 21:25 UTC on 2026-09-21, re-verified unchanged at 15:52 UTC on 2026-09-23, see section 4.
 - [ ] **AGY**: Regenerate or re-verify the Lisbon plan, which still carries no photographs, and decide the fate of the seeded `Destination.imageUrl` Unsplash stand-ins. Last stated by agy on 2026-09-20; not re-checked by HERMES.
-- [ ] **AGY**: Land `activity.support` on the wire, which is the only thing between the app and a real per stop support count. A traveller with interests can exist as of `f327c62` and `129cc11`.
+- [ ] **AGY**: Land `activity.support` on the wire, which is the only thing between the app and a real per stop support count. A traveller with interests can exist as of `f327c62` and `129cc11`. Re-checked at 15:52 UTC on 2026-09-23: still absent on all six activities of the Kyoto trip, while `checks` is populated on all six.
 - [x] **HERMES**: The demo shortcut on the sign-in screen. CLOSED AS NOT EXISTING: `git grep -in demo -- apps/android/app/src/main/java` returns nothing, and `SignInScreen.kt` holds no seeded account, no skip button and no test hook. Do not re-open it without a grep that finds one.
+- [x] **HERMES**: One name per colour, and the dead palette rows gone (`36728f4`, `404d6e4`).
+- [x] **HERMES**: Every Material surface, plate, arc, rule and ink the app draws is named by the app rather than by the phone's theme: top bars (`e8deabd`), the day picker (`eb7d87e`), a field and a dialog (`e39a817`, `09e597e`), filled and outlined buttons (`8fd7281`, `845b2f2`), the one popup menu (`f32820e`), pull to refresh (`3e49087`), the progress readout (`e06f654`), the day selector's own underline and rule (`9199ebf`).
+- [x] **HERMES**: Every control under the 44dp touch floor declares 44dp (`fdd7093`). The travellers field's value line is deliberately the count alone; that is open for Kevin, not a defect.
+- [x] **HERMES**: The plan wait draws the server's own progress or nothing, never a guessed 10 percent (`d1ba017`), and the plan failure names no cause with the server's exception string gone (`f58f47f`).
+- [x] **HERMES**: The Today hero prints an address only when it is walkable (`8bc62a9`), and the delete path names itself Delete while the overflow icon says More options (`404d6e4`).
+- [x] **HERMES**: The dead code class, run four times and each time closed: the dead routes (`93ebbd9`), sixteen dead imports (`9136243`), the dead private helper `dateRangeLine` with its class swept clean at 0 of 53 (`77c1777`), and the zero-caller status badge with all 46 public declarations of `core/design` swept (`553dec0`). `TrippinStamp` has no caller and is KEPT on purpose, because design system section 4 names a stamp for a plan finishing or a lock landing, which is motion still owed.
+- [x] **HERMES**: A refused write is not a status code in front of a person (`2dcfe8c`), and the ink on a crimson fill names `OnCrimson` rather than a surface token (`09a89a1`, `b8ff144`).
+- [x] **HERMES**: This board's own previous update (`1f6955f`), which named `main` and deleted the demo-shortcut item it now closes as not existing.
 
 ---
 
@@ -175,16 +204,20 @@ commits behind `main`. Specific corrections, each provable from this clone:
 Each item says how it was last checked and by whom. Nothing here blocks a UI commit.
 
 1. **The demo user is still served to a caller with no credentials.** Verified from this clone at
-   21:25 UTC on 2026-09-21:
+   21:25 UTC on 2026-09-21, and re-verified unchanged at 15:52 UTC on 2026-09-23:
    `curl -s https://backend-production-011e.up.railway.app/api/v1/home` returns HTTP 200 with
-   `user.email = traveler@trippin.ai`, `user.displayName = Alex Rivers`, `totalTripsCount = 6` and six
-   recent trips, with no `Authorization` header and no session. That is the demo read fallback in
-   `firebase-auth.guard.ts`. The Android client signs in properly, so this is a wire exposure and not a
-   UI defect.
+   `user.email = traveler@trippin.ai`, `user.displayName = Alex Rivers`, `totalTripsCount = 6` and
+   **five** rows in `recentTrips`, with no `Authorization` header and no session. That is the demo read
+   fallback in `firebase-auth.guard.ts`. The Android client signs in properly, so this is a wire
+   exposure and not a UI defect.
 2. **`activity.support` is absent from the wire**, so the per stop support count (`3 of 4 want this`)
-   cannot be built honestly. Last checked by HERMES on 2026-09-20 12:50 UTC against the Paris trip,
-   where all six activities carried no `support` object and the trip had no travellers; not re-checked
-   since, and a traveller with interests can exist now.
+   cannot be built honestly. First checked by HERMES on 2026-09-20 12:50 UTC against the Paris trip,
+   where all six activities carried no `support` object and the trip had no travellers. Re-checked at
+   15:52 UTC on 2026-09-23 against the Kyoto trip (`89657715-6c2e-4dad-9bb2-38991c278791`): six
+   activities, none carrying a `support` object, `travellers` empty and no `perTravellerCost`, while
+   `checks` IS populated on all six, so the two fields are now visibly different on the wire. A
+   traveller with interests can exist as of `f327c62` and `129cc11`, so this field is still the only
+   thing between the app and a real per stop count.
 3. **The Changes sub-view needs the Retrofit call for `GET /api/v1/trips/:id/versions`** in
    `core/network/**`. The route exists and answers (`trips.controller.ts:56`); a restore or undo route
    does not exist anywhere in `apps/backend/src`.
@@ -205,10 +238,13 @@ Each item says how it was last checked and by whom. Nothing here blocks a UI com
 
 ## 5. For Kevin: the one gap this board cannot close
 
-Every HERMES commit from `a23f32f` onward is build verified and grep verified, and none of it has been
-seen rendered, because `emulator-5554` has been absent since 2026-09-21 02:30 UTC. The code compiles
-clean with zero Kotlin warnings, and each claim is backed by a grep, a script over the source roots, or
-a pixel measurement where a screenshot was possible earlier in the day. What is unread is motion,
-colour on screen, layout at 390px, and every write path (add, join, edit, remove a traveller). The
-cheapest reads when a device is back, in order: the create trip flow end to end, the Group write path
-on a real trip, the Map screen with the network off, and the Plan failure state.
+Every HERMES commit from `a23f32f` onward is build verified and grep verified, and the device half of
+every commit after `03fc15b` (2026-09-21 02:54 UTC) is outstanding, which is 46 commits. `adb devices`
+listed nothing at 15:55 UTC on 2026-09-23 and the install step exited 1 with
+`device 'emulator-5554' not found`, while the build reported `BUILD SUCCESSFUL` with
+`GRADLE_EXIT_CODE=0`. The code compiles clean with zero Kotlin warnings, and each claim is backed by a
+grep, a script over the source roots, or a pixel measurement where a screenshot was possible earlier in
+the day. What is unread is motion, colour on screen, layout at 390px, and every write path (add, join,
+edit, remove a traveller). The cheapest reads when a device is back, in order: the create trip flow end
+to end, the Group write path on a real trip, the Map screen with the network off, and the Plan failure
+state.
