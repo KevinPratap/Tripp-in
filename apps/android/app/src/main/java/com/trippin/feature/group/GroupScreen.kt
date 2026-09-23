@@ -300,8 +300,14 @@ fun GroupScreen(tripId: String) {
                     )
                     if (plannedFor != null && plannedFor > joined) {
                         Text(
-                            text = "The trip was set up for $plannedFor people, so " +
-                                "${plannedFor - joined} more can still add theirs.",
+                            // plannedFor is above joined here, so a set up size of one means
+                            // nobody has joined yet. The word is singular in that case only.
+                            text = if (plannedFor == 1) {
+                                "The trip was set up for 1 person, so 1 more can still add theirs."
+                            } else {
+                                "The trip was set up for $plannedFor people, so " +
+                                    "${plannedFor - joined} more can still add theirs."
+                            },
                             style = TrippinType.Body,
                             color = InkMuted,
                             modifier = Modifier.padding(top = 6.dp)
