@@ -40,7 +40,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.trippin.core.cache.TripCacheManager
-import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
 import com.trippin.core.design.formatStatedAmount

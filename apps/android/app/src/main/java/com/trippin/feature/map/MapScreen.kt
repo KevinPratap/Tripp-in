@@ -22,7 +22,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
 import com.trippin.core.network.NetworkModule
-import com.trippin.core.network.TripDetailsDto
 import kotlinx.coroutines.launch
 
 @SuppressLint("SetJavaScriptEnabled")

@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
-import com.trippin.core.network.ActivityDto
 import com.trippin.core.network.NetworkModule
-import com.trippin.core.network.TripDetailsDto
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*

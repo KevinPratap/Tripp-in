@@ -5,7 +5,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -35,15 +33,12 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.trippin.core.cache.SavedSpotsManager
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
 import com.trippin.core.network.ActivityDto
 import com.trippin.core.network.ModifyItineraryRequestDto
 import com.trippin.core.network.NetworkModule
-import com.trippin.core.network.PlaceSearchResultDto
 import com.trippin.core.network.ReplanRequestDto
-import com.trippin.core.network.TripDetailsDto
 import com.trippin.feature.generating.GeneratingScreen
 import com.trippin.feature.today.TodayScreen
 import kotlinx.coroutines.launch

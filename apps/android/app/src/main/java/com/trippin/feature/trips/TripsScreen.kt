@@ -23,7 +23,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,7 +47,6 @@ import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.Paper
 import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinRefreshIndicator
-import com.trippin.core.design.TrippinSegmentedTabs
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.rememberCommitHaptic
 import com.trippin.core.design.trippinButtonColors
