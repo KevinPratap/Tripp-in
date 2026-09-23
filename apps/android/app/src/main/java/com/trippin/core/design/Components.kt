@@ -447,6 +447,34 @@ fun formatStatedAmount(value: Double, currency: String?): String {
     return "$prefix$grouped"
 }
 
+/** The whole number a grouped amount is made of: 1 to 3 digits, then comma groups whose last one is
+ *  three digits. The groups before the last may be two digits, which is how a rupee amount is
+ *  grouped (10,00,000), or three, which is how [formatStatedAmount] prints every currency
+ *  (1,000,000). */
+private val GROUPED_WHOLE = Regex("""\d{1,3}(,\d{2,3})*,\d{3}""")
+
+/**
+ * The read half of [formatStatedAmount]: the amount somebody typed into a money field, or null when
+ * the field does not hold a number this app can read.
+ *
+ * It reads the grouping this app itself prints, so 1,500 and 10,00,000 are both numbers, which is
+ * why the fields that call it are allowed to let a comma through. What it will not do is choose a
+ * reading of an ambiguous figure: a comma group of two digits counts as a separator only when
+ * another comma group follows it, and the last group has to be three digits, so 1500,50 is refused
+ * rather than read as 150050, which would be a hundred times what was typed.
+ */
+internal fun parseStatedAmount(text: String): Double? {
+    val trimmed = text.trim()
+    if (trimmed.isEmpty()) return null
+    trimmed.toDoubleOrNull()?.let { return it }
+    if (trimmed.count { it == '.' } > 1) return null
+    val wholePart = trimmed.substringBefore('.')
+    val fraction = trimmed.substringAfter('.', missingDelimiterValue = "")
+    if (fraction.contains(',') || !GROUPED_WHOLE.matches(wholePart)) return null
+    val digits = wholePart.replace(",", "")
+    return (if (fraction.isEmpty()) digits else "$digits.$fraction").toDoubleOrNull()
+}
+
 /**
  * Whether an address names a street, which is the only thing that makes it usable on foot.
  *

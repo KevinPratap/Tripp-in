@@ -42,6 +42,7 @@ import com.trippin.core.design.NeutralInk
 import com.trippin.core.design.NeutralInkSurface
 import com.trippin.core.design.OnCrimson
 import com.trippin.core.design.Panel
+import com.trippin.core.design.parseStatedAmount
 import com.trippin.core.design.WarnAmber
 import com.trippin.core.design.WarnAmberSurface
 import com.trippin.core.design.Paper
@@ -712,7 +713,7 @@ private fun JoinTripDialog(
     var pace by remember { mutableStateOf<String?>(null) }
     var interests by remember { mutableStateOf(emptyList<String>()) }
 
-    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val cap = parseStatedAmount(capText)
     val capProblem = when {
         capText.isBlank() -> null
         cap == null || cap <= 0.0 -> "Enter your cap as a number, or leave the field blank."

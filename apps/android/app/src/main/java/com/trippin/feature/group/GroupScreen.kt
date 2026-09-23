@@ -43,6 +43,7 @@ import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
 import com.trippin.core.design.formatStatedAmount
+import com.trippin.core.design.parseStatedAmount
 import com.trippin.core.design.TrippinButton
 import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinType
@@ -517,7 +518,7 @@ private fun AddPersonDialog(
     var pace by remember { mutableStateOf<String?>(null) }
     var interests by remember { mutableStateOf(emptyList<String>()) }
 
-    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val cap = parseStatedAmount(capText)
     val capProblem = when {
         capText.isBlank() -> null
         cap == null || cap <= 0.0 -> "Enter their cap as a number, or leave the field blank."
@@ -669,7 +670,7 @@ private fun EditPersonDialog(
     var pace by remember { mutableStateOf(traveller.pace?.takeIf { it.isNotBlank() }) }
     var interests by remember { mutableStateOf(traveller.interests) }
 
-    val cap = capText.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val cap = parseStatedAmount(capText)
     val capProblem = when {
         capText.isBlank() && traveller.budgetCap != null ->
             "A cap can be changed here but not removed yet, so enter the cap they should have."
