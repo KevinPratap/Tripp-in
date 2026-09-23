@@ -521,7 +521,8 @@ private fun AddPersonDialog(
     val cap = parseStatedAmount(capText)
     val capProblem = when {
         capText.isBlank() -> null
-        cap == null || cap <= 0.0 -> "Enter their cap as a number, or leave the field blank."
+        cap == null -> "Enter their cap as a number, or leave the field blank."
+        cap <= 0.0 -> "A cap has to be more than zero."
         else -> null
     }
     val canAdd = name.isNotBlank() && capProblem == null
@@ -675,7 +676,8 @@ private fun EditPersonDialog(
         capText.isBlank() && traveller.budgetCap != null ->
             "A cap can be changed here but not removed yet, so enter the cap they should have."
         capText.isBlank() -> null
-        cap == null || cap <= 0.0 -> "Enter their cap as a number, or leave the field blank."
+        cap == null -> "Enter their cap as a number, or leave the field blank."
+        cap <= 0.0 -> "A cap has to be more than zero."
         else -> null
     }
     val paceProblem = if (pace == null && traveller.pace != null) {

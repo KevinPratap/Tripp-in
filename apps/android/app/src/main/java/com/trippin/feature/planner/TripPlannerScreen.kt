@@ -74,7 +74,8 @@ fun TripPlannerScreen(
     val budgetValue = parseStatedAmount(budget)
     val budgetProblem = when {
         budget.isBlank() -> null
-        budgetValue == null || budgetValue <= 0.0 -> "Enter your budget as a number, or leave the field blank."
+        budgetValue == null -> "Enter your budget as a number, or leave the field blank."
+        budgetValue <= 0.0 -> "A budget has to be more than zero."
         else -> null
     }
     val dateProblem: String? = if (chosenStart == null || chosenEnd == null) {

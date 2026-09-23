@@ -716,7 +716,8 @@ private fun JoinTripDialog(
     val cap = parseStatedAmount(capText)
     val capProblem = when {
         capText.isBlank() -> null
-        cap == null || cap <= 0.0 -> "Enter your cap as a number, or leave the field blank."
+        cap == null -> "Enter your cap as a number, or leave the field blank."
+        cap <= 0.0 -> "A cap has to be more than zero."
         else -> null
     }
     val canJoin = code.isNotBlank() && name.isNotBlank() && capProblem == null
