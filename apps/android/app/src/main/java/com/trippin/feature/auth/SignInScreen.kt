@@ -97,7 +97,7 @@ fun SignInScreen(onSignedIn: () -> Unit) {
                 error = when (e.code()) {
                     429 -> "Too many attempts from this device. Wait a minute and try again."
                     400 -> "That email address was not accepted. Check it and try again."
-                    else -> "The server answered ${e.code()}. Try again in a moment."
+                    else -> "The server did not accept that, so no sign-in link was sent."
                 }
             } catch (e: Exception) {
                 step = ""

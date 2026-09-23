@@ -187,7 +187,7 @@ fun TripsScreen(
                 inviteError = when (e.code()) {
                     403 -> "Only the person who created this trip can invite people to it."
                     401 -> "Sign in again to invite people."
-                    else -> "The server answered ${e.code()} and no code was created."
+                    else -> "The server did not accept that, so no invite code was created."
                 }
             } catch (_: Exception) {
                 inviteError = "Could not reach the server, so no invite code was created."
@@ -223,7 +223,7 @@ fun TripsScreen(
                 joinError = when (e.code()) {
                     404 -> "That invite code is not valid, or the trip's owner revoked it."
                     401 -> "Sign in again, then enter the code."
-                    else -> "The server answered ${e.code()}. Try again."
+                    else -> "The server did not accept that, so you have not joined the trip."
                 }
             } catch (_: Exception) {
                 joinError = "Could not reach the server. Check the connection and try again."
