@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.net.URI
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToLong
@@ -445,6 +446,27 @@ fun formatStatedAmount(value: Double, currency: String?): String {
         else -> "$code "
     }
     return "$prefix$grouped"
+}
+
+/**
+ * The credit line for a photograph, or null when the app cannot name where the picture came from.
+ *
+ * The only thing this app reads about a photograph is the host its URL points at, so it names a
+ * source for a host it recognises and prints no credit at all for anything else. The tag it
+ * replaces read `if (url.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map
+ * data"`, which labelled every other host as OpenStreetMap map data, a source the app had read
+ * nothing about; all of them read that way until 2026-09-23, when the two copies of the line were
+ * found. Every photograph on the live backend is Wikimedia, so that branch had never been seen on
+ * a device and was a guess waiting to be printed. A scheme-less or malformed URL yields no credit
+ * too, because the host cannot be read off it either.
+ */
+fun photoCredit(photoUrl: String?): String? {
+    val host = photoUrl?.let { runCatching { URI(it).host }.getOrNull() }?.lowercase() ?: return null
+    return if (host == "wikimedia.org" || host.endsWith(".wikimedia.org")) {
+        "Photo: Wikimedia Commons"
+    } else {
+        null
+    }
 }
 
 /** The whole number a grouped amount is made of: 1 to 3 digits, then comma groups whose last one is

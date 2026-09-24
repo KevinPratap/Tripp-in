@@ -363,19 +363,25 @@ fun TodayScreen(
                                                     .fillMaxSize()
                                                     .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                                             )
-                                            Surface(
-                                                color = Ink.copy(alpha = 0.75f),
-                                                shape = RoundedCornerShape(4.dp),
-                                                modifier = Modifier
-                                                    .align(Alignment.BottomEnd)
-                                                    .padding(8.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (photoUrl.contains("wikimedia.org")) "Photo: Wikimedia Commons" else "Photo: map data",
-                                                    color = Paper,
-                                                    style = TrippinType.Caption,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
+                                            // Photo Source Tag. The source is named only when the
+                                            // app can read it off the URL's host; a host it does
+                                            // not recognise gets no tag rather than a claim.
+                                            val credit = photoCredit(photoUrl)
+                                            if (credit != null) {
+                                                Surface(
+                                                    color = Ink.copy(alpha = 0.75f),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomEnd)
+                                                        .padding(8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = credit,
+                                                        color = Paper,
+                                                        style = TrippinType.Caption,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                         HorizontalDivider(thickness = 2.dp, color = Ink)
