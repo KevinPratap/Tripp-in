@@ -35,6 +35,9 @@ import kotlinx.coroutines.delay
  * so what arrives is whatever threw: a Prisma message, a fetch failure, or the engine's own
  * developer wording. None of those was written for a person to read, so the failure draws the same
  * recipe Plan, Map and Today draw, a DangerCrimson title and a way past it, and prints no body.
+ *
+ * The poll also has a budget, and the readout says so when it runs out rather than going on
+ * spinning: see [pollSpent] below.
  */
 @Composable
 fun GeneratingScreen(
@@ -48,8 +51,24 @@ fun GeneratingScreen(
     // wire never reported, so the ring and the bar claim none until there is one to draw.
     var progress by remember { mutableStateOf<Float?>(null) }
     var buildFailed by remember { mutableStateOf(false) }
+    // The poll below has a budget of 60 attempts, about a second and a half apart, so roughly 90
+    // seconds. Until this flag existed the screen stopped asking at the end of that budget and went
+    // on drawing the ring and the last sentence it held, which read as work continuing on a plan
+    // nothing was asking about any more. The flag is what lets the readout say the budget is spent.
+    var pollSpent by remember { mutableStateOf(false) }
+    // Whether the LAST attempt got an answer, which is the only thing that decides what may be said
+    // once the budget is spent: a server that answered is still building, and an attempt that threw
+    // means no plan arrived. It is set on every attempt and not only on a failure.
+    var lastAttemptAnswered by remember { mutableStateOf(false) }
+    // Incremented by Retry, which is the only thing that starts the poll again.
+    var attemptTick by remember { mutableStateOf(0) }
 
-    LaunchedEffect(tripId) {
+    LaunchedEffect(tripId, attemptTick) {
+        statusMessage = "Getting the plan started..."
+        progress = null
+        buildFailed = false
+        pollSpent = false
+        lastAttemptAnswered = false
         var attempts = 0
         while (attempts < 60) {
             try {
@@ -58,6 +77,7 @@ fun GeneratingScreen(
                 // The server's own number, held inside the range the control accepts. It is capped
                 // and never raised, so a run the server reports as 0 percent draws as 0 percent.
                 progress = (statusRes.progressPercentage / 100f).coerceIn(0f, 1f)
+                lastAttemptAnswered = true
 
                 if (statusRes.status == "READY" || statusRes.status == "COMPLETED") {
                     delay(400)
@@ -68,12 +88,19 @@ fun GeneratingScreen(
                     buildFailed = true
                     break
                 }
-            } catch (e: Exception) {
-                statusMessage = "Trying to reach the server..."
+            } catch (_: Exception) {
+                // No cause is named here, which is this file's own rule stated in the docblock: the
+                // one catch covers a dead network, a rejected session and a trip that is not there
+                // alike, so the line says only what the app is doing, which is waiting.
+                lastAttemptAnswered = false
+                statusMessage = "Waiting for the server to answer..."
             }
             delay(1500)
             attempts++
         }
+        // Only the budget running out reaches this line: every break above leaves attempts below 60,
+        // so a run that finishes or fails never shows the spent readout.
+        if (attempts >= 60) pollSpent = true
     }
 
     Surface(
@@ -102,6 +129,24 @@ fun GeneratingScreen(
                     colors = trippinButtonColors()
                 ) {
                     Text("Continue anyway", style = TrippinType.Label)
+                }
+            } else if (pollSpent) {
+                /* The budget is spent, so this screen is no longer asking the server anything. What
+                 * it may say depends on the last attempt and on nothing else: a server that
+                 * answered is still building, and an attempt that threw means the plan never
+                 * arrived. Retry is the only way back into the poll, and the ink follows the same
+                 * flag, because crimson marks a failed action and not a plan still being written. */
+                Text(
+                    text = if (lastAttemptAnswered) "Still building the plan" else "Could not load the plan",
+                    style = TrippinType.Title,
+                    color = if (lastAttemptAnswered) Ink else DangerCrimson
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { attemptTick++ },
+                    colors = trippinButtonColors()
+                ) {
+                    Text("Retry", style = TrippinType.Label)
                 }
             } else {
                 StatedProgressRing(progress)
