@@ -566,7 +566,11 @@ fun TodayScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = "That is every stop for today.",
+                                    // A day the wire sent no date for is not today either, so the
+                                    // fallback is the same word the top bar already uses for a day
+                                    // that is not today: "this day". Claiming today would put the
+                                    // clock's own word on a day the clock has not reached.
+                                    text = if (dayIsToday) "That is every stop for today." else "That is every stop for this day.",
                                     style = TrippinType.Body,
                                     color = InkMuted,
                                     modifier = Modifier.padding(16.dp)
