@@ -1,0 +1,247 @@
+package com.trippin.ai.ui.screens.today
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.trippin.ai.AppContainer
+import com.trippin.ai.data.local.StopEntity
+import com.trippin.ai.data.local.TripWithStops
+import com.trippin.ai.ui.components.FuzzyChart
+import com.trippin.ai.ui.components.Kicker
+import com.trippin.ai.ui.theme.Trip
+import com.trippin.intelligence.fuzzy.FatigueController
+import com.trippin.intelligence.model.Category
+import com.trippin.intelligence.model.Geo
+import com.trippin.intelligence.model.asClock
+import com.trippin.intelligence.rl.QLearningRecommender
+import com.trippin.intelligence.rl.QLearningRecommender.Feedback
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+
+class TodayViewModel(private val container: AppContainer, tripId: Long) : ViewModel() {
+    val trip: StateFlow<TripWithStops?> = container.tripRepository.trip(tripId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Live inputs. The step sensor drives [walkedKm] when present; the demo sliders override everything. */
+    val walkedKm = MutableStateFlow(0.0)
+    val minute = MutableStateFlow(LocalTime.now().let { it.hour * 60 + it.minute })
+    val temperature = MutableStateFlow<Double?>(null)
+    val suggestions = MutableStateFlow<List<Pair<Category, Double>>>(emptyList())
+    /** Straight-line km from your last known position to the next stop (null without location permission). */
+    val kmToNext = MutableStateFlow<Double?>(null)
+    val sensorAvailable = container.stepSensor.available
+
+    init {
+        viewModelScope.launch { container.stepSensor.kilometres().collect { walkedKm.value = it } }
+    }
+
+    fun refreshDistance(lat: Double, lng: Double) = viewModelScope.launch {
+        val here = container.location.lastLocation() ?: return@launch
+        kmToNext.value = Geo.haversineKm(here.latitude, here.longitude, lat, lng)
+    }
+
+    fun refreshSuggestions(state: QLearningRecommender.State) = viewModelScope.launch {
+        suggestions.value = container.learningRepository.suggest(state)
+    }
+
+    fun feedback(state: QLearningRecommender.State, category: Category, f: Feedback) = viewModelScope.launch {
+        val next = QLearningRecommender.stateFor(minute.value + 90, 0.0).copy(energy = state.energy)
+        container.learningRepository.feedback(state, category, f, next)
+        suggestions.value = container.learningRepository.suggest(state)
+    }
+}
+
+@Composable
+fun TodayScreen(container: AppContainer, tripId: Long, onClose: () -> Unit) {
+    val vm: TodayViewModel = viewModel(key = "today-$tripId") { TodayViewModel(container, tripId) }
+    val data by vm.trip.collectAsStateWithLifecycle()
+    val walked by vm.walkedKm.collectAsStateWithLifecycle()
+    val minute by vm.minute.collectAsStateWithLifecycle()
+    val tempOverride by vm.temperature.collectAsStateWithLifecycle()
+    val suggestions by vm.suggestions.collectAsStateWithLifecycle()
+    val kmToNext by vm.kmToNext.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showDemo by remember { mutableStateOf(false) }
+
+    val t = data ?: run { Box(Modifier.fillMaxSize().background(Trip.Ink)); return }
+
+    // Which day is it? Outside the trip dates, Today mode previews day 1.
+    val offset = ChronoUnit.DAYS.between(LocalDate.parse(t.trip.startDate), LocalDate.now()).toInt()
+    val preview = offset !in 0 until t.trip.days
+    val dayIndex = if (preview) 0 else offset
+    val stops = t.stops.filter { it.dayIndex == dayIndex }.sortedBy { it.orderInDay }
+    val current: StopEntity? = stops.lastOrNull { it.start <= minute } ?: stops.firstOrNull()
+    val next: StopEntity? = current?.let { c -> stops.firstOrNull { it.orderInDay == c.orderInDay + 1 } }
+
+    val temp = tempOverride ?: t.trip.temperatureC
+    val activeHours = ((minute - (stops.firstOrNull()?.start ?: minute)) / 60.0).coerceAtLeast(0.0)
+    val advice = FatigueController.advise(walked, activeHours, temp)
+    val rlState = QLearningRecommender.stateFor(minute, advice.score)
+    LaunchedEffect(rlState) { vm.refreshSuggestions(rlState) }
+
+    Column(
+        Modifier.fillMaxSize().background(Trip.Ink).statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Kicker("${t.trip.destination} · day ${dayIndex + 1}${if (preview) " · preview" else ""}", color = Trip.OnInkMuted, modifier = Modifier.weight(1f))
+            IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = "Close today mode", tint = Trip.Paper) }
+        }
+
+        if (current != null) {
+            Kicker(if (minute in current.start until current.leave) "Now · until ${current.leave.asClock()}" else "First up · ${current.start.asClock()}", color = Trip.Signal)
+            Text(current.name.uppercase(), style = MaterialTheme.typography.displayMedium, color = Trip.Paper)
+            val progress = ((minute - current.start).toFloat() / (current.leave - current.start).coerceAtLeast(1)).coerceIn(0f, 1f)
+            LinearProgressIndicator(
+                progress = { progress }, color = Trip.Signal, trackColor = Color(0xFF2A2B25),
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            )
+        }
+
+        next?.let { n ->
+            LaunchedEffect(n.id) { vm.refreshDistance(n.lat, n.lng) }
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Trip.Signal).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Kicker("Next · ${n.start.asClock()} · ${n.travelMinutes} min away", color = Trip.Ink)
+                Text(n.name.uppercase(), style = MaterialTheme.typography.displaySmall, color = Trip.Ink)
+                kmToNext?.let { Text("You're ${"%.1f".format(it)} km away (GPS)", style = MaterialTheme.typography.titleMedium, color = Trip.Ink) }
+                Button(
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${n.lat},${n.lng}?q=${n.lat},${n.lng}(${Uri.encode(n.name)})"))) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Trip.Ink, contentColor = Trip.Paper),
+                    shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().height(56.dp),
+                ) { Text("TAKE ME THERE", style = MaterialTheme.typography.labelLarge) }
+            }
+        }
+
+        // Fuzzy fatigue controller
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Trip.Paper).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Kicker("Fuzzy logic · how you're holding up", color = Trip.Ink)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("${advice.score.toInt()}", style = MaterialTheme.typography.displayLarge, color = Trip.Ink)
+                Text(advice.label.uppercase(), style = MaterialTheme.typography.headlineMedium, color = Trip.Signal, modifier = Modifier.padding(bottom = 12.dp))
+            }
+            Text(advice.suggestion, style = MaterialTheme.typography.titleMedium)
+            FuzzyChart(
+                terms = FatigueController.fatigue.terms.values.map { mf -> (0..100 step 2).map { x -> x.toDouble() to mf.degree(x.toDouble()) } },
+                aggregated = advice.detail.aggregated,
+                centroid = advice.score,
+                range = 0.0..100.0,
+            )
+            Text(
+                "Inputs: ${"%.1f".format(walked)} km walked${if (vm.sensorAvailable) " (step sensor)" else ""} · ${"%.1f".format(activeHours)} h out · ${temp.toInt()}°C",
+                style = MaterialTheme.typography.bodyMedium, color = Trip.Muted,
+            )
+        }
+
+        // Q-learning recommender
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Trip.Cobalt).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Kicker("Reinforcement learning · learns from you", color = Color.White)
+            val top = suggestions.firstOrNull()
+            Text(
+                (top?.first?.name ?: "—").uppercase(),
+                style = MaterialTheme.typography.displaySmall, color = Color.White,
+            )
+            Text(
+                "Best next kind of stop for ${rlState.time.name.lowercase()}, ${rlState.energy.name.lowercase()} energy. Tell it how that sounds — it updates its Q-table.",
+                style = MaterialTheme.typography.bodyMedium, color = Color.White,
+            )
+            if (top != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FeedbackButton("Love it", Modifier.weight(1f)) { vm.feedback(rlState, top.first, Feedback.LIKED) }
+                    FeedbackButton("Fine", Modifier.weight(1f)) { vm.feedback(rlState, top.first, Feedback.KEPT) }
+                    FeedbackButton("Skip", Modifier.weight(1f)) { vm.feedback(rlState, top.first, Feedback.SKIPPED) }
+                }
+            }
+        }
+
+        // Demo controls: lets you show the models reacting without walking 10 km in the viva.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Demo controls", style = MaterialTheme.typography.titleMedium, color = Trip.Paper, modifier = Modifier.weight(1f))
+            Switch(
+                checked = showDemo, onCheckedChange = { showDemo = it },
+                colors = SwitchDefaults.colors(checkedTrackColor = Trip.Signal, checkedThumbColor = Trip.Ink),
+            )
+        }
+        if (showDemo) {
+            DemoSlider("Clock ${minute.asClock()}", minute.toFloat(), 360f..1320f) { vm.minute.value = it.toInt() }
+            DemoSlider("Walked ${"%.1f".format(walked)} km", walked.toFloat(), 0f..15f) { vm.walkedKm.value = it.toDouble() }
+            DemoSlider("Temperature ${temp.toInt()}°C", temp.toFloat(), 10f..45f) { vm.temperature.value = it.toDouble() }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(12.dp))
+    }
+}
+
+@Composable
+private fun FeedbackButton(label: String, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick, modifier = modifier.height(52.dp), shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Trip.Ink),
+    ) { Text(label, style = MaterialTheme.typography.titleMedium) }
+}
+
+@Composable
+private fun DemoSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Trip.Paper)
+        Slider(
+            value = value.coerceIn(range), onValueChange = onChange, valueRange = range,
+            colors = SliderDefaults.colors(thumbColor = Trip.Signal, activeTrackColor = Trip.Signal, inactiveTrackColor = Color(0xFF3A3B34)),
+        )
+    }
+}
