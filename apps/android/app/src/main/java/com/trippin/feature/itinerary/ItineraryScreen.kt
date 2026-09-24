@@ -579,6 +579,28 @@ fun ItineraryScreen(
                             val dayTotal = remember(pricedStops, dayCurrency) {
                                 if (dayCurrency == null) null else pricedStops.sumOf { it.value }
                             }
+                            // The two reasons a day's stops cannot be totalled, each read off the
+                            // stops themselves rather than assumed: their amounts are stated in
+                            // currencies that disagree, or an amount carries no currency at all.
+                            // The note that explains a missing total used to name the second reason
+                            // for both, which is a cause the screen had not checked.
+                            val stopCurrenciesDiffer = remember(pricedStops) {
+                                pricedStops.map { it.currency }.distinct().size > 1
+                            }
+                            val amountWithoutCurrency = remember(activities) {
+                                activities.any { act ->
+                                    val amount = act.estimatedCost
+                                    amount != null && amount > 0.0 && act.currency.isNullOrBlank()
+                                }
+                            }
+                            val untotalledReason = when {
+                                dayTotal != null -> null
+                                stopCurrenciesDiffer ->
+                                    "No day total: these stops state their amounts in different currencies."
+                                amountWithoutCurrency ->
+                                    "No day total: some stops here do not say which currency their amount is in."
+                                else -> null
+                            }
 
                             LazyColumn(
                                 // The plan's action now sits in a reserved band below this list, so
@@ -645,23 +667,26 @@ fun ItineraryScreen(
                                                     style = TrippinType.Caption,
                                                     color = InkMuted
                                                 )
-                                                Text(
-                                                    text = "Swipe for other days",
-                                                    style = TrippinType.Caption,
-                                                    color = InkMuted
-                                                )
+                                                // Only when there is another day to swipe to. A one
+                                                // day plan has none, and the sentence would invite
+                                                // a gesture that does nothing.
+                                                if (days.size > 1) {
+                                                    Text(
+                                                        text = "Swipe for other days",
+                                                        style = TrippinType.Caption,
+                                                        color = InkMuted
+                                                    )
+                                                }
                                             }
 
                                             // Shown when stops below do carry an amount but it
                                             // cannot be totalled, so the missing total is
-                                            // explained instead of silently skipped.
-                                            if (dayTotal == null &&
-                                                activities.any { it.estimatedCost != null }
-                                            ) {
+                                            // explained instead of silently skipped, and it names
+                                            // the one reason that is true of this day.
+                                            untotalledReason?.let { reason ->
                                                 Spacer(modifier = Modifier.height(6.dp))
                                                 Text(
-                                                    text = "No day total: some stops here do not " +
-                                                        "say which currency their amount is in.",
+                                                    text = reason,
                                                     style = TrippinType.Body,
                                                     color = InkMuted
                                                 )
