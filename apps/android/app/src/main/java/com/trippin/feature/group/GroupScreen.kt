@@ -528,8 +528,9 @@ fun GroupScreen(tripId: String) {
  * is dropped rather than stored, and the value that is drawn capitalised is sent exactly as it is
  * written here. The chips offer the whole list rather than a guess at what a person might want.
  *
- * This is the app's one home for the traveller vocabulary, so the join sheet on the Trips tab reads
- * it from here rather than carrying a second copy that could drift from this one.
+ * This is the app's one home for the traveller vocabulary, so the join sheet on the Trips tab and
+ * the create form on the Plan a trip screen read it from here rather than carrying a second copy
+ * that could drift from this one.
  */
 internal val TRAVELLER_INTEREST_WORDS = listOf(
     "culture", "food", "nightlife", "nature", "adventure", "shopping",

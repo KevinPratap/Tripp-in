@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import com.trippin.core.design.*
+import com.trippin.feature.group.TRAVELLER_INTEREST_WORDS
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -64,7 +65,6 @@ fun TripPlannerScreen(
     var pickingStart by remember { mutableStateOf(false) }
     var pickingEnd by remember { mutableStateOf(false) }
     var selectedPace by remember { mutableStateOf("MODERATE") }
-    val availableInterests = listOf("Art", "Food", "History", "Architecture", "Nightlife", "Nature", "Shopping")
     val selectedInterests = remember { mutableStateListOf<String>() }
 
     val chosenStart = startDate
@@ -269,11 +269,18 @@ fun TripPlannerScreen(
                     title = "Your interests",
                     subtitle = "Pick what you want out of the trip. Nothing is picked for you."
                 ) {
+                    // The app's one interest vocabulary, read from where it is declared rather than
+                    // written out again here. This card used to carry its own seven word list, and
+                    // two of those words, Art and Architecture, are in no vocabulary in the repo:
+                    // the contract fixes twelve words (INTERFACE.md, "Interest / dislike vocabulary")
+                    // and the engine matches a stop against those twelve only, so a pick the form
+                    // offered could never be a pick the plan knew about. Five of the twelve were
+                    // missing from that list as well.
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        availableInterests.forEach { interest ->
+                        TRAVELLER_INTEREST_WORDS.forEach { interest ->
                             TrippinChoiceChip(
                                 text = interest,
                                 selected = selectedInterests.contains(interest),
