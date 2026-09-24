@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.trippin.core.cache.TripCacheManager
+import com.trippin.core.design.AccentCrimson
 import com.trippin.core.design.ArriveOnEnter
 import com.trippin.core.design.DangerCrimson
 import com.trippin.core.design.formatStatedAmount
@@ -249,6 +250,48 @@ fun GroupScreen(tripId: String) {
             .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
+        /*
+         * The trip is not on this device, which is either the first read still running or a read
+         * that failed with nothing cached. Both are drawn as the app's one shape for this state,
+         * the same one the Map, Today and Plan screens draw, and nothing below it is drawn at all:
+         * every card on this screen states something about a real trip, so the people count, the
+         * empty interests card, the group's decisions and the cost footnote would each be a claim
+         * about a trip that is not here. The failure names no cause, because the catch above covers
+         * being offline and a trip that is not there alike, and it offers the one thing the person
+         * can act on, which is to try the read again.
+         */
+        if (trip == null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = AccentCrimson)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Loading this trip", style = TrippinType.Body, color = InkMuted)
+                } else {
+                    Text(
+                        text = "Could not load this trip",
+                        style = TrippinType.Title,
+                        color = DangerCrimson
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        colors = trippinButtonColors(),
+                        onClick = {
+                            isLoading = true
+                            refreshTick++
+                        }
+                    ) {
+                        Text("Retry", style = TrippinType.Label)
+                    }
+                }
+            }
+            return@Column
+        }
+
         ArriveOnEnter {
             Column {
                 Text(
@@ -257,27 +300,20 @@ fun GroupScreen(tripId: String) {
                     color = Ink
                 )
                 Text(
-                    /* A fetch that failed with nothing cached, which is the only way trip is null
-                     * here. No cause is named, because the one catch above covers being offline and
-                     * a trip that is not there alike. Same wording the Map, Today and Plan screens
-                     * use for the same state. */
-                    text = when {
-                        trip == null && isLoading -> "Loading this trip"
-                        trip == null -> "Could not load this trip"
-                        else -> trip.destination
-                    },
+                    /* Only ever the destination the server sent. There is no stand-in, because a
+                     * bar that names a place the trip does not have is worse than one that names
+                     * none, which is the rule the Map and Today bars already follow. */
+                    text = trip.destination,
                     style = TrippinType.Label,
                     color = Ink.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
-                if (trip != null) {
-                    Text(
-                        text = "${trip.startDate} to ${trip.endDate}",
-                        style = TrippinType.Label,
-                        color = InkMuted,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
+                Text(
+                    text = "${trip.startDate} to ${trip.endDate}",
+                    style = TrippinType.Label,
+                    color = InkMuted,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
 
@@ -292,11 +328,7 @@ fun GroupScreen(tripId: String) {
                         color = Ink
                     )
                     Text(
-                        // The People count is not known while the trip is not loaded, and the
-                        // screen cannot tell a dead network from a trip that is not there, so it
-                        // says what it failed to load instead of guessing which one it is.
                         text = when {
-                            trip == null -> "Could not load who is on this trip"
                             joined == 0 -> "Nobody has added their details yet"
                             joined == 1 -> "1 person has added their details"
                             else -> "$joined people have added their details"
@@ -327,13 +359,11 @@ fun GroupScreen(tripId: String) {
                         color = InkMuted,
                         modifier = Modifier.padding(top = 8.dp)
                     )
-                    if (trip != null) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        TrippinButton(
-                            text = "Add someone",
-                            onClick = { showAddPerson = true }
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    TrippinButton(
+                        text = "Add someone",
+                        onClick = { showAddPerson = true }
+                    )
                 }
             }
         }
@@ -414,33 +444,31 @@ fun GroupScreen(tripId: String) {
             )
         }
 
-        if (trip != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            ArriveOnEnter(delayMillis = 280) {
-                TrippinCard {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "This trip",
-                            style = TrippinType.Body,
-                            color = Ink
-                        )
-                        /* The plan's version and whether the trip is locked, and nothing else. The
-                         * server's own status word used to be appended here, which printed "Ready"
-                         * on every trip whose generation job had finished, and READY is a label on
-                         * the plan's delete list because it is not derived from anything the app
-                         * can see. The Trips card already derives its own state from the trip
-                         * (Draft, Deciding, Locked, Finished) instead of printing this word, so the
-                         * two screens said different things about the same trip. The lock state is
-                         * a real value off the wire and stays; the build state is drawn where it
-                         * belongs, on Plan. */
-                        Text(
-                            text = "Plan version ${trip.currentVersion} · " +
-                                if (trip.isLocked) "Locked" else "Not locked",
-                            style = TrippinType.Caption,
-                            color = InkMuted,
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
-                    }
+        Spacer(modifier = Modifier.height(12.dp))
+        ArriveOnEnter(delayMillis = 280) {
+            TrippinCard {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "This trip",
+                        style = TrippinType.Body,
+                        color = Ink
+                    )
+                    /* The plan's version and whether the trip is locked, and nothing else. The
+                     * server's own status word used to be appended here, which printed "Ready"
+                     * on every trip whose generation job had finished, and READY is a label on
+                     * the plan's delete list because it is not derived from anything the app
+                     * can see. The Trips card already derives its own state from the trip
+                     * (Draft, Deciding, Locked, Finished) instead of printing this word, so the
+                     * two screens said different things about the same trip. The lock state is
+                     * a real value off the wire and stays; the build state is drawn where it
+                     * belongs, on Plan. */
+                    Text(
+                        text = "Plan version ${trip.currentVersion} · " +
+                            if (trip.isLocked) "Locked" else "Not locked",
+                        style = TrippinType.Caption,
+                        color = InkMuted,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
                 }
             }
         }
