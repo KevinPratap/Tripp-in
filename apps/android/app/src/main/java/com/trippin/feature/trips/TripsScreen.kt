@@ -107,6 +107,10 @@ fun TripsScreen(
     }
     var isLoading by remember { mutableStateOf(trips.isEmpty()) }
     var isRefreshing by remember { mutableStateOf(false) }
+    // A read of the feed that did not complete is not an account with nothing in it. This flag is
+    // what keeps the screen from printing the empty state, which is a claim about somebody's trips,
+    // over a request that failed, the same shape MapScreen and TodayScreen already draw.
+    var loadFailed by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(0) }
     var tripToDelete by remember { mutableStateOf<TripSummaryDto?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
@@ -139,8 +143,11 @@ fun TripsScreen(
                 trips = feed.recentTrips
                 suggestions = (feed.popularDestinations + feed.recommendedDestinations)
                     .distinctBy { it.id }
+                loadFailed = false
             } catch (_: Exception) {
-                // Keep whatever was cached. The screen never invents a trip.
+                // Keep whatever was cached. The screen never invents a trip. It does not claim the
+                // account is empty either: that is what loadFailed is for.
+                loadFailed = true
             } finally {
                 isLoading = false
                 isRefreshing = false
@@ -341,6 +348,31 @@ fun TripsScreen(
                                 CircularProgressIndicator(color = AccentCrimson)
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text("Loading your trips", style = TrippinType.Label)
+                            }
+                        }
+                    }
+
+                    trips.isEmpty() && loadFailed -> {
+                        // The app's one error recipe, the same one Today and Map draw: the headline
+                        // says only what happened and the button offers the way past it. No cause is
+                        // named, because a read this screen cannot complete is not necessarily a
+                        // network problem, and an expired session answers the same way a dead
+                        // connection does. Drawn only when there is nothing to show, so a refresh
+                        // that fails over cached trips still leaves those trips on screen.
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "Could not load your trips",
+                                    color = DangerCrimson,
+                                    style = TrippinType.Title
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    colors = trippinButtonColors(),
+                                    onClick = { loadTrips(false) }
+                                ) {
+                                    Text("Retry", style = TrippinType.Label)
+                                }
                             }
                         }
                     }
