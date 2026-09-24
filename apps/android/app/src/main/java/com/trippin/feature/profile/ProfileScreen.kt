@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.trippin.core.cache.SavedSpotsManager
 import com.trippin.core.cache.TripCacheManager
 import com.trippin.core.design.*
 import com.trippin.core.network.SessionStore
@@ -50,7 +49,12 @@ fun ProfileScreen(
     // capped, so the fallback is only ever a lower bound.
     val tripCount = feed?.totalTripsCount ?: trips.size
     val tripWord = if (tripCount == 1) "trip" else "trips"
-    val placeWord = if (SavedSpotsManager.savedSpots.size == 1) "saved place" else "saved places"
+    /*
+     * This line used to read "$tripCount $tripWord. ${SavedSpotsManager.savedSpots.size} saved
+     * places". Nothing in the app can save a place: toggleSave and isSaved in core/cache have no
+     * callers, so that count was a constant 0 no person could ever raise, and the line promised an
+     * action the app cannot take. The trip count is the only figure here, and it is the server's.
+     */
 
     Scaffold(
         topBar = {
@@ -119,7 +123,7 @@ fun ProfileScreen(
                                             color = Ink
                                         )
                                         Text(
-                                            text = "$tripCount $tripWord · ${SavedSpotsManager.savedSpots.size} $placeWord",
+                                            text = "$tripCount $tripWord",
                                             style = TrippinType.Caption,
                                             color = InkMuted
                                         )
