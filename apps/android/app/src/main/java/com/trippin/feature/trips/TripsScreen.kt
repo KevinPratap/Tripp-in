@@ -971,21 +971,27 @@ private fun TripRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // The date, because that is the fact a traveller scans a list for, in tabular figures so
-            // a column of trips lines up instead of wobbling.
-            Column(modifier = Modifier.width(52.dp)) {
-                Text(
-                    text = start?.dayOfMonth?.toString() ?: "--",
-                    style = TrippinType.Numeric,
-                    color = Ink
-                )
-                Text(
-                    text = start?.month?.name?.take(3)?.uppercase() ?: "",
-                    style = TrippinType.Caption,
-                    color = InkMuted
-                )
-            }
+            // a column of trips lines up instead of wobbling. A trip whose start date this build
+            // cannot read draws no figure and reserves no column at all, for the same reason the Map
+            // card states no day when there is no day (57c94b1) and a row with no photograph falls
+            // back to the city's own letters: a dash in the biggest slot on the card is a value read
+            // off a literal, and it tells nobody anything.
+            if (start != null) {
+                Column(modifier = Modifier.width(52.dp)) {
+                    Text(
+                        text = start.dayOfMonth.toString(),
+                        style = TrippinType.Numeric,
+                        color = Ink
+                    )
+                    Text(
+                        text = start.month.name.take(3).uppercase(),
+                        style = TrippinType.Caption,
+                        color = InkMuted
+                    )
+                }
 
-            Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(14.dp))
+            }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = trip.destination, style = TrippinType.Heading, color = Ink)
