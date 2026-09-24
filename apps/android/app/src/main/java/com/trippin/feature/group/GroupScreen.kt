@@ -257,9 +257,13 @@ fun GroupScreen(tripId: String) {
                     color = Ink
                 )
                 Text(
+                    /* A fetch that failed with nothing cached, which is the only way trip is null
+                     * here. No cause is named, because the one catch above covers being offline and
+                     * a trip that is not there alike. Same wording the Map, Today and Plan screens
+                     * use for the same state. */
                     text = when {
                         trip == null && isLoading -> "Loading this trip"
-                        trip == null -> "This trip is not available offline yet"
+                        trip == null -> "Could not load this trip"
                         else -> trip.destination
                     },
                     style = TrippinType.Label,
@@ -288,8 +292,11 @@ fun GroupScreen(tripId: String) {
                         color = Ink
                     )
                     Text(
+                        // The People count is not known while the trip is not loaded, and the
+                        // screen cannot tell a dead network from a trip that is not there, so it
+                        // says what it failed to load instead of guessing which one it is.
                         text = when {
-                            trip == null -> "Not known offline"
+                            trip == null -> "Could not load who is on this trip"
                             joined == 0 -> "Nobody has added their details yet"
                             joined == 1 -> "1 person has added their details"
                             else -> "$joined people have added their details"
