@@ -83,6 +83,9 @@ fun ItineraryScreen(
     // its own when none is passed, so the state is hoisted here and handed to the box and to the
     // indicator it draws.
     val refreshState = rememberPullToRefreshState()
+    // Whether the phone itself reports no way of reaching the network. It is asked of the system and
+    // never inferred from a request that failed, which is why this screen can say offline at all.
+    val isOffline = rememberIsOffline()
 
     val loadTripData: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
         scope.launch {
@@ -400,6 +403,19 @@ fun ItineraryScreen(
                     .background(Paper)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    // Flow E's offline line, drawn only when the phone reports no network and never
+                    // because a request failed. It says where what is on screen came from, which is
+                    // the plan this phone already holds, and it stops short of claiming that copy
+                    // will survive the app being closed, because the cache behind it is in memory.
+                    if (isOffline) {
+                        Text(
+                            text = "You are offline. Showing the plan your phone already has, so it may be out of date.",
+                            style = TrippinType.Body,
+                            color = InkMuted,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
+
                     // Locked Plan Banner
                     if (isLocked) {
                         Surface(
