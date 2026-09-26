@@ -35,7 +35,7 @@ interface WeatherApi {
         @Query("latitude") lat: Double,
         @Query("longitude") lng: Double,
         @Query("hourly") hourly: String = "precipitation_probability,temperature_2m",
-        @Query("forecast_days") days: Int = 14,
+        @Query("forecast_days") days: Int = 16,
         @Query("timezone") timezone: String = "auto",
     ): ForecastResponse
 }
@@ -48,6 +48,40 @@ data class Hourly(
     val time: List<String> = emptyList(),
     @SerialName("precipitation_probability") val rain: List<Int?> = emptyList(),
     @SerialName("temperature_2m") val temperature: List<Double?> = emptyList(),
+)
+
+/** Photon (komoot, OpenStreetMap data): free-text search for cities and places, no API key. */
+interface PhotonApi {
+    @GET("api/")
+    suspend fun search(
+        @Query("q") q: String,
+        @Query("limit") limit: Int = 8,
+        @Query("lang") lang: String = "en",
+        @Query("lat") lat: Double? = null,
+        @Query("lon") lon: Double? = null,
+        @Query("osm_tag") osmTag: String? = null,
+    ): PhotonResponse
+}
+
+@Serializable
+data class PhotonResponse(val features: List<PhotonFeature> = emptyList())
+
+@Serializable
+data class PhotonFeature(val geometry: PhotonGeometry, val properties: PhotonProperties)
+
+@Serializable
+data class PhotonGeometry(val coordinates: List<Double> = emptyList())
+
+@Serializable
+data class PhotonProperties(
+    val name: String? = null,
+    val country: String? = null,
+    val state: String? = null,
+    val city: String? = null,
+    val street: String? = null,
+    val type: String? = null,
+    @SerialName("osm_key") val osmKey: String? = null,
+    @SerialName("osm_value") val osmValue: String? = null,
 )
 
 /** Overpass (OpenStreetMap): real places, with opening hours when venues publish them. */
@@ -73,7 +107,7 @@ data class OsmCenter(val lat: Double, val lon: Double)
 
 object OverpassQuery {
     /** Museums, sights, food, parks, markets and bars within [radiusM] of a point. */
-    fun around(lat: Double, lng: Double, radiusM: Int = 3000): String {
+    fun around(lat: Double, lng: Double, radiusM: Int = 4000): String {
         val a = "around:$radiusM,$lat,$lng"
         return """
             [out:json][timeout:25];
@@ -83,7 +117,7 @@ object OverpassQuery {
               nwr($a)["leisure"~"park|garden"]["name"];
               nwr($a)["historic"]["name"];
             );
-            out center 120;
+            out center 250;
         """.trimIndent()
     }
 }

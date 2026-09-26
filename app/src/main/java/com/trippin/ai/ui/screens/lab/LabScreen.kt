@@ -90,16 +90,17 @@ private enum class LabTab(val title: String, val unit: String) {
 }
 
 @Composable
-fun LabScreen(container: AppContainer) {
+fun LabScreen(container: AppContainer, onBack: () -> Unit) {
     val vm: LabViewModel = viewModel { LabViewModel(container) }
     var tab by rememberSaveable { mutableStateOf(LabTab.BAYES) }
 
-    Column(
-        Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    Column(Modifier.fillMaxSize()) {
+        com.trippin.ai.ui.components.TopBar("AI Lab", onBack = onBack)
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
         Kicker("Intelligent Systems II · live")
-        Headline("AI Lab")
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             LabTab.entries.forEach { t ->
                 val on = t == tab
@@ -122,6 +123,7 @@ fun LabScreen(container: AppContainer) {
             LabTab.FUZZY -> FuzzyLab()
             LabTab.GA -> GeneticLab(vm)
             LabTab.RL -> RlLab(vm)
+        }
         }
     }
 }

@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Trippin\' AI</string>
-    <string name="channel_trip_name">Trip briefings</string>
-    <string name="channel_trip_description">Daily risk briefing for your next trip</string>
+    <string name="channel_trip_name">Trip updates</string>
+    <string name="channel_trip_description">Group activity and weather briefings for your upcoming trips</string>
 </resources>

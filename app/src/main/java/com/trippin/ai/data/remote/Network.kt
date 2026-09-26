@@ -16,9 +16,9 @@ object Network {
         .readTimeout(40, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             // Overpass asks clients to identify themselves.
-            chain.proceed(chain.request().newBuilder().header("User-Agent", "TrippinAI-student-project/1.0").build())
+            chain.proceed(chain.request().newBuilder().header("User-Agent", "TrippinAI/2.0 (Android)").build())
         }
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+        .addInterceptor(HttpLoggingInterceptor().apply { level = if (com.trippin.ai.BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE })
         .build()
 
     private fun retrofit(baseUrl: String): Retrofit = Retrofit.Builder()
@@ -30,4 +30,7 @@ object Network {
     val geocoding: GeocodingApi by lazy { retrofit("https://geocoding-api.open-meteo.com/").create(GeocodingApi::class.java) }
     val weather: WeatherApi by lazy { retrofit("https://api.open-meteo.com/").create(WeatherApi::class.java) }
     val overpass: OverpassApi by lazy { retrofit("https://overpass-api.de/").create(OverpassApi::class.java) }
+    /** Second Overpass server, tried when the main one is busy (it rate-limits heavily). */
+    val overpassMirror: OverpassApi by lazy { retrofit("https://overpass.kumi.systems/").create(OverpassApi::class.java) }
+    val photon: PhotonApi by lazy { retrofit("https://photon.komoot.io/").create(PhotonApi::class.java) }
 }

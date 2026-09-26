@@ -1,49 +1,32 @@
 package com.trippin.ai
 
-import android.Manifest
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import com.trippin.ai.ui.navigation.TrippinNavHost
 import com.trippin.ai.ui.theme.TrippinTheme
 
 /**
  * Single-activity app: every screen is a Compose destination in [TrippinNavHost].
- * Lifecycle callbacks are logged (filter Logcat by "Lifecycle") to demonstrate the activity
- * lifecycle during the viva.
+ * Permissions are asked in context (location and steps in Today mode, notifications when you
+ * turn briefings on or join a group), never all at once on first launch.
+ * Lifecycle callbacks are logged (filter Logcat by "Lifecycle") to demonstrate the lifecycle.
  */
 class MainActivity : ComponentActivity() {
-
-    private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        Log.d(TAG, "Permissions: $result")
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate (restored=${savedInstanceState != null})")
         enableEdgeToEdge()
-        requestRuntimePermissions()
         val container = (application as TrippinApp).container
         setContent {
             TrippinTheme {
                 TrippinNavHost(container)
             }
         }
-    }
-
-    private fun requestRuntimePermissions() {
-        val wanted = buildList {
-            add(Manifest.permission.ACCESS_COARSE_LOCATION)
-            add(Manifest.permission.ACCESS_FINE_LOCATION)
-            if (Build.VERSION.SDK_INT >= 29) add(Manifest.permission.ACTIVITY_RECOGNITION)
-            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        permissions.launch(wanted.toTypedArray())
     }
 
     override fun onNewIntent(intent: Intent) {

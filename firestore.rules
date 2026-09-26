@@ -1,0 +1,197 @@
+rules_version = '2';
+
+// Trippin' AI — Firestore security rules.
+// The app hides buttons by role, but these rules are what actually enforce it.
+//
+// Roles: OWNER > ADMIN > MEMBER > VIEWER.
+//   OWNER/ADMIN: manage people, invites, votes, the plan.   MEMBER: suggest, vote, comment, propose.
+//   VIEWER: read only.   Non-members: can only read a single invite by its code.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function tripPath(tripId) { return /databases/$(database)/documents/trips/$(tripId); }
+    function memberPath(tripId, uid) { return /databases/$(database)/documents/trips/$(tripId)/members/$(uid); }
+    function invitePath(code) { return /databases/$(database)/documents/invites/$(code); }
+
+    // Membership as it is now (for reads) …
+    function isMember(tripId) { return signedIn() && exists(memberPath(tripId, me())); }
+    function roleOf(tripId) { return get(memberPath(tripId, me())).data.role; }
+    function canManage(tripId) { return isMember(tripId) && roleOf(tripId) in ['OWNER', 'ADMIN']; }
+    function isOwner(tripId) { return signedIn() && get(tripPath(tripId)).data.ownerId == me(); }
+
+    // … and as it will be after this write/batch (so "create trip + membership" and
+    // "join + first activity entry" can be one atomic batch).
+    function isMemberAfter(tripId) { return signedIn() && existsAfter(memberPath(tripId, me())); }
+    function roleAfter(tripId) { return getAfter(memberPath(tripId, me())).data.role; }
+    function canContributeAfter(tripId) { return isMemberAfter(tripId) && roleAfter(tripId) != 'VIEWER'; }
+    function canManageAfter(tripId) { return isMemberAfter(tripId) && roleAfter(tripId) in ['OWNER', 'ADMIN']; }
+
+    function changedOnly(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function text(s, max) { return s is string && s.size() > 0 && s.size() <= max; }
+    function validInvite(tripId, code) {
+      return code is string
+        && exists(invitePath(code))
+        && get(invitePath(code)).data.tripId == tripId
+        && get(invitePath(code)).data.revoked == false
+        && get(invitePath(code)).data.expiresAt > request.time;
+    }
+
+    // ---------------- Invites ----------------
+    // Readable one at a time by anyone signed in who has the code; never listable.
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && canManageAfter(request.resource.data.tripId)
+        && request.resource.data.createdBy == me()
+        && request.resource.data.revoked == false
+        && request.resource.data.role in ['MEMBER', 'VIEWER']
+        && code.size() == 8;
+      allow update: if canManage(resource.data.tripId) && changedOnly(['revoked']);
+      allow delete: if canManage(resource.data.tripId) || isOwner(resource.data.tripId);
+    }
+
+    // ---------------- Trips ----------------
+    match /trips/{tripId} {
+      allow read: if signedIn() && me() in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == me()
+        && request.resource.data.memberIds == [me()]
+        && text(request.resource.data.title, 80)
+        && request.resource.data.days is int && request.resource.data.days >= 1 && request.resource.data.days <= 14;
+
+      allow update: if signedIn() && request.resource.data.ownerId == resource.data.ownerId && (
+        // Owners/admins edit the trip; they may remove members but never add them directly.
+        (canManage(tripId)
+          && resource.data.memberIds.toSet().hasAll(request.resource.data.memberIds)
+          && text(request.resource.data.title, 80)
+          && request.resource.data.days >= 1 && request.resource.data.days <= 14)
+        // Joining: add only yourself, with a valid invite recorded on your new membership.
+        || (changedOnly(['memberIds'])
+          && request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()) == [me()].toSet()
+          && resource.data.memberIds.toSet().difference(request.resource.data.memberIds.toSet()).size() == 0
+          && existsAfter(memberPath(tripId, me()))
+          && validInvite(tripId, getAfter(memberPath(tripId, me())).data.inviteCode))
+        // Leaving: remove only yourself (the owner can't leave; they delete the trip).
+        || (changedOnly(['memberIds'])
+          && me() != resource.data.ownerId
+          && resource.data.memberIds.toSet().difference(request.resource.data.memberIds.toSet()) == [me()].toSet()
+          && request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()).size() == 0)
+      );
+
+      allow delete: if signedIn() && resource.data.ownerId == me();
+
+      // -------- Members --------
+      match /members/{uid} {
+        allow read: if isMember(tripId);
+        allow create: if signedIn() && uid == me() && text(request.resource.data.name, 60) && (
+          // The owner's own membership, created with the trip.
+          (request.resource.data.role == 'OWNER' && getAfter(tripPath(tripId)).data.ownerId == me())
+          // Joining through an invite.
+          || (request.resource.data.role in ['MEMBER', 'VIEWER'] && validInvite(tripId, request.resource.data.inviteCode))
+        );
+        allow update: if
+          // Owner/admin changes someone's role (never to or from OWNER).
+          (canManage(tripId) && changedOnly(['role'])
+            && resource.data.role != 'OWNER' && request.resource.data.role in ['ADMIN', 'MEMBER', 'VIEWER'])
+          // You rename yourself.
+          || (uid == me() && isMember(tripId) && changedOnly(['name']) && text(request.resource.data.name, 60));
+        allow delete: if (uid == me() && resource.data.role != 'OWNER')
+          || (canManage(tripId) && resource.data.role != 'OWNER')
+          || isOwner(tripId);
+      }
+
+      // -------- Individual preferences / constraints --------
+      match /prefs/{uid} {
+        allow read: if isMember(tripId);
+        allow create, update: if uid == me() && isMemberAfter(tripId);
+        allow delete: if uid == me() || canManage(tripId) || isOwner(tripId);
+      }
+
+      // -------- Ideas (suggestions) and votes --------
+      match /ideas/{ideaId} {
+        allow read: if isMember(tripId);
+        allow create: if canContributeAfter(tripId)
+          && request.resource.data.createdBy == me()
+          && text(request.resource.data.title, 120)
+          && request.resource.data.type in ['DESTINATION', 'PLACE']
+          && request.resource.data.status == 'OPEN'
+          && request.resource.data.votes.keys().hasOnly([me()]);
+        allow update: if
+          // Your own vote, and nothing else.
+          (canContributeAfter(tripId) && changedOnly(['votes'])
+            && request.resource.data.votes.diff(resource.data.votes).affectedKeys().hasOnly([me()])
+            && (!(me() in request.resource.data.votes) || request.resource.data.votes[me()] in ['MUST', 'UP', 'DOWN']))
+          // Comment counter moves by exactly one.
+          || (isMemberAfter(tripId) && changedOnly(['commentCount'])
+            && (request.resource.data.commentCount - resource.data.commentCount) in [1, -1])
+          // Selecting / dismissing: managers, or the person who suggested it.
+          || ((canManageAfter(tripId) || resource.data.createdBy == me()) && changedOnly(['status'])
+            && request.resource.data.status in ['OPEN', 'SELECTED', 'DISMISSED']);
+        allow delete: if canManage(tripId) || isOwner(tripId);
+      }
+
+      // -------- Comments (one level; soft delete for moderation) --------
+      match /comments/{commentId} {
+        allow read: if isMember(tripId);
+        allow create: if canContributeAfter(tripId)
+          && request.resource.data.uid == me()
+          && text(request.resource.data.text, 500)
+          && request.resource.data.deleted == false;
+        allow update: if (resource.data.uid == me() || canManage(tripId))
+          && changedOnly(['deleted', 'text'])
+          && request.resource.data.deleted == true && request.resource.data.text == '';
+        allow delete: if isOwner(tripId);
+      }
+
+      // -------- Activity feed: append-only --------
+      match /events/{eventId} {
+        allow read: if isMember(tripId);
+        allow create: if (isMember(tripId) || isMemberAfter(tripId))
+          && request.resource.data.actorId == me()
+          && text(request.resource.data.text, 300);
+        allow update: if false;
+        allow delete: if isOwner(tripId);
+      }
+
+      // -------- Decisions: the record of what the group decided --------
+      match /decisions/{decisionId} {
+        allow read: if isMember(tripId);
+        allow create: if canManageAfter(tripId) && request.resource.data.decidedById == me();
+        allow update: if false;
+        allow delete: if isOwner(tripId);
+      }
+
+      // -------- The plan (one document, versioned) --------
+      match /itinerary/{docId} {
+        allow read: if isMember(tripId);
+        allow create, update: if canManageAfter(tripId);
+        allow delete: if isOwner(tripId);
+      }
+
+      // -------- 👍/👎 on plan stops: one document per member --------
+      match /reactions/{uid} {
+        allow read: if isMember(tripId);
+        allow create, update: if uid == me() && canContributeAfter(tripId);
+        allow delete: if uid == me() || isOwner(tripId);
+      }
+
+      // -------- Change proposals --------
+      match /proposals/{proposalId} {
+        allow read: if isMember(tripId);
+        allow create: if canContributeAfter(tripId)
+          && request.resource.data.createdBy == me()
+          && request.resource.data.status == 'PENDING'
+          && request.resource.data.type in ['REMOVE_STOP', 'MOVE_STOP'];
+        allow update: if canManage(tripId)
+          && changedOnly(['status', 'resolvedByName', 'resolvedAt'])
+          && resource.data.status == 'PENDING'
+          && request.resource.data.status in ['APPROVED', 'REJECTED'];
+        allow delete: if resource.data.createdBy == me() || isOwner(tripId);
+      }
+    }
+  }
+}

@@ -26,7 +26,30 @@ data class Place(
     val opensAt: Int = 0,
     val closesAt: Int = 24 * 60,
     val hoursEstimated: Boolean = false,
-)
+    /** Days of the week the place is shut (1 = Monday … 7 = Sunday), from OSM `opening_hours`. */
+    val closedDays: Set<Int> = emptySet(),
+    /** Per-weekday hours when they differ from [opensAt]/[closesAt] (1 = Monday … 7 = Sunday). */
+    val weeklyHours: Map<Int, Pair<Int, Int>> = emptyMap(),
+    /** Facts the group planner can match against member constraints, e.g. "vegetarian", "wheelchair". */
+    val tags: Set<String> = emptySet(),
+) {
+    /** False when the place is closed all day on [dayOfWeek] (1 = Monday … 7 = Sunday). */
+    fun isOpenOn(dayOfWeek: Int): Boolean = dayOfWeek !in closedDays
+
+    /** This place with its opening window set for [dayOfWeek], or null when it is closed that day. */
+    fun forDay(dayOfWeek: Int): Place? {
+        if (!isOpenOn(dayOfWeek)) return null
+        val w = weeklyHours[dayOfWeek] ?: return this
+        return copy(opensAt = w.first, closesAt = w.second)
+    }
+
+    companion object {
+        const val TAG_VEGETARIAN = "vegetarian"
+        const val TAG_VEGAN = "vegan"
+        const val TAG_WHEELCHAIR = "wheelchair"
+        const val TAG_ALCOHOL = "alcohol"
+    }
+}
 
 object Geo {
     private const val EARTH_RADIUS_KM = 6371.0

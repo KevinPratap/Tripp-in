@@ -25,6 +25,9 @@ object Trip {
     val Amber = Color(0xFFB45309)
     val Muted = Color(0xFF5E594F)
     val OnInkMuted = Color(0xFFBDB6A8)
+    val Danger = Color(0xFFB3261E)
+    /** Avatar colours, chosen per user id so a friend keeps the same colour everywhere. */
+    val AvatarColors = listOf(Color(0xFFFF4F1F), Color(0xFF2A36F0), Color(0xFF1E7A4F), Color(0xFFB45309), Color(0xFF7A2BD9), Color(0xFF0F766E))
 }
 
 val Display = FontFamily(
@@ -39,10 +42,11 @@ val Body = FontFamily(
 val Mono = FontFamily(Font(R.font.mono_medium, FontWeight.Medium))
 
 private val TrippinTypography = Typography(
-    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Black, fontSize = 104.sp, lineHeight = 88.sp, letterSpacing = (-0.01).em),
-    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Black, fontSize = 72.sp, lineHeight = 64.sp),
-    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 48.sp, lineHeight = 44.sp),
-    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 34.sp),
+    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Black, fontSize = 56.sp, lineHeight = 54.sp, letterSpacing = (-0.01).em),
+    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Black, fontSize = 44.sp, lineHeight = 42.sp),
+    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 34.sp),
+    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp),
+    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 24.sp),
     titleLarge = TextStyle(fontFamily = Body, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 26.sp),
     titleMedium = TextStyle(fontFamily = Body, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 22.sp),
     bodyLarge = TextStyle(fontFamily = Body, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp),

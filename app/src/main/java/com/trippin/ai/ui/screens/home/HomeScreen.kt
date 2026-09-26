@@ -3,8 +3,8 @@ package com.trippin.ai.ui.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,19 +15,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,95 +30,115 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trippin.ai.AppContainer
-import com.trippin.ai.data.local.TripEntity
-import com.trippin.ai.data.repository.TripRepository
+import com.trippin.ai.data.model.Trip
+import com.trippin.ai.data.model.TripStatus
+import com.trippin.ai.ui.components.EmptyState
 import com.trippin.ai.ui.components.Headline
 import com.trippin.ai.ui.components.Kicker
 import com.trippin.ai.ui.components.Pill
 import com.trippin.ai.ui.components.SignalButton
-import com.trippin.ai.ui.theme.Trip
+import com.trippin.ai.ui.components.SmallButton
+import com.trippin.ai.ui.components.dateRange
+import com.trippin.ai.ui.navigation.LocalSession
+import com.trippin.ai.ui.theme.Trip as TripTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
-class HomeViewModel(private val repo: TripRepository) : ViewModel() {
-    val trips: StateFlow<List<TripEntity>?> = repo.trips().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-    fun delete(id: Long) = viewModelScope.launch { repo.delete(id) }
+class HomeViewModel(container: AppContainer, uid: String) : ViewModel() {
+    val trips: StateFlow<List<Trip>?> = container.tripRepository.myTrips(uid).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 
+/** Landing screen: what's happening now, what's coming up, and the two ways to start a trip. */
 @Composable
-fun HomeScreen(container: AppContainer, onPlan: () -> Unit, onOpen: (Long) -> Unit) {
-    val vm: HomeViewModel = viewModel { HomeViewModel(container.tripRepository) }
+fun HomeScreen(container: AppContainer, onCreate: () -> Unit, onJoin: () -> Unit, onOpen: (String, String?) -> Unit, onToday: (String) -> Unit) {
+    val me = LocalSession.current
+    val vm: HomeViewModel = viewModel(key = "home-${me.uid}") { HomeViewModel(container, me.uid) }
     val trips by vm.trips.collectAsStateWithLifecycle()
-    var confirmDelete by remember { mutableStateOf<TripEntity?>(null) }
+    val ongoing = trips?.firstOrNull { it.isOngoing() }
+    val upcoming = trips?.filterNot { it.isPast() || it == ongoing }.orEmpty()
+    val past = trips?.filter { it.isPast() }.orEmpty()
 
     LazyColumn(
         Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { Kicker("Trippin' AI") }
+        item { Kicker("Hey ${me.name.substringBefore(' ')}") }
         item { Headline("Where next?", accentLastChar = true) }
-        item { SignalButton("Plan a trip", onClick = onPlan, container = Trip.Signal, content = Trip.Ink) }
         item {
-            Spacer(Modifier.height(6.dp))
-            Kicker("Your trips · ${trips?.size ?: 0}", color = Trip.Ink)
-        }
-        val list = trips
-        if (list != null && list.isEmpty()) {
-            item {
-                Text(
-                    "No trips yet. Plan one — the genetic algorithm will order the stops and the Bayesian network will flag the risky ones.",
-                    style = MaterialTheme.typography.bodyLarge, color = Trip.Muted,
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SignalButton("Plan a trip", onClick = onCreate, container = TripTheme.Signal, content = TripTheme.Ink, modifier = Modifier.weight(1f))
             }
         }
-        items(list.orEmpty(), key = { it.id }) { trip ->
-            TripCard(trip, index = list.orEmpty().indexOf(trip), onClick = { onOpen(trip.id) }, onDelete = { confirmDelete = trip })
-        }
-    }
+        item { SmallButton("Have an invite code?", onClick = onJoin) }
 
-    confirmDelete?.let { t ->
-        AlertDialog(
-            onDismissRequest = { confirmDelete = null },
-            title = { Text("Delete ${t.destination}?") },
-            text = { Text("This removes the plan and its stops from this phone.") },
-            confirmButton = { TextButton(onClick = { vm.delete(t.id); confirmDelete = null }) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Keep") } },
-        )
+        ongoing?.let { t ->
+            item {
+                Spacer(Modifier.height(4.dp))
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(TripTheme.Ink).clickable { onToday(t.id) }.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Kicker("Happening now", color = TripTheme.Signal)
+                    Text(t.title, style = MaterialTheme.typography.displaySmall, color = TripTheme.Paper)
+                    Text("Tap to open today", style = MaterialTheme.typography.titleMedium, color = TripTheme.OnInkMuted)
+                }
+            }
+        }
+
+        if (trips != null) {
+            item {
+                Spacer(Modifier.height(6.dp))
+                Kicker("Your trips · ${upcoming.size}", color = TripTheme.Ink)
+            }
+            if (upcoming.isEmpty()) {
+                item { EmptyState("No trips planned", "Start one solo, or with friends — vote together, and the AI plans around everyone.") }
+            }
+        }
+        items(upcoming, key = { it.id }) { trip ->
+            TripCard(trip, index = upcoming.indexOf(trip), onClick = { onOpen(trip.id, null) })
+        }
+
+        if (past.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(6.dp))
+                Kicker("Past trips · ${past.size}", color = TripTheme.Muted)
+            }
+            items(past.take(5), key = { "past-" + it.id }) { trip ->
+                TripCard(trip, index = trip.hashCode(), onClick = { onOpen(trip.id, null) }, muted = true)
+            }
+        }
     }
 }
 
-private val dateFmt = DateTimeFormatter.ofPattern("d MMM")
-
 @Composable
-private fun TripCard(trip: TripEntity, index: Int, onClick: () -> Unit, onDelete: () -> Unit) {
-    // Alternate loud colour blocks: orange with ink text, cobalt with white text.
-    val (bg, fg) = if (index % 2 == 0) Trip.Signal to Trip.Ink else Trip.Cobalt to Color.White
-    val start = LocalDate.parse(trip.startDate)
-    val end = start.plusDays((trip.days - 1).toLong())
+private fun TripCard(trip: Trip, index: Int, onClick: () -> Unit, muted: Boolean = false) {
+    val (bg, fg) = when {
+        muted -> TripTheme.PaperDeep to TripTheme.Muted
+        index % 2 == 0 -> TripTheme.Signal to TripTheme.Ink
+        else -> TripTheme.Cobalt to Color.White
+    }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(bg).clickable(onClick = onClick).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Kicker("${start.format(dateFmt)} – ${end.format(dateFmt)} · ${trip.days} days", color = fg, modifier = Modifier.weight(1f))
-            if (trip.verified) Pill("VERIFIED", Trip.Ink, Trip.Paper) else Pill("DRAFT", Color.White, Trip.Ink)
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete ${trip.destination}", tint = fg) }
+            Kicker(dateRange(trip.startDate, trip.days), color = fg, modifier = Modifier.weight(1f))
+            if (trip.isGroup) Pill("GROUP", if (muted) TripTheme.Muted else TripTheme.Ink, if (muted) TripTheme.Paper else TripTheme.Paper)
+            statusPillText(trip.status)?.let { Pill(it, if (muted) TripTheme.Muted else TripTheme.Ink, TripTheme.Paper) }
         }
         Text(
-            trip.destination.uppercase(), style = MaterialTheme.typography.displayLarge, color = fg,
+            (trip.destination?.label ?: trip.title).uppercase(), style = MaterialTheme.typography.displaySmall, color = fg,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
-        Box {
-            Text(
-                "${trip.travellers} travellers · ${trip.pace.lowercase()} pace · GA saved ${trip.gaImprovementPercent.toInt()}% vs. input order" +
-                    if (trip.usedDemoData) " · offline demo data" else "",
-                style = MaterialTheme.typography.titleMedium, color = fg,
-            )
-        }
+        Text(trip.title, style = MaterialTheme.typography.titleMedium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
+
+private fun statusPillText(s: TripStatus): String? = when (s) {
+    TripStatus.DECIDING_DESTINATION -> "VOTING"
+    TripStatus.COLLECTING_IDEAS -> "PLANNING"
+    TripStatus.PLAN_READY -> "REVIEW"
+    TripStatus.CONFIRMED -> null
 }
