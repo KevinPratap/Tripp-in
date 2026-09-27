@@ -128,6 +128,19 @@ fun PlannerScreen(
 
             item {
                 PlannerCard("When", "The plan runs from the first day to the last day you pick. Nothing is assumed.") {
+                    // The dates most trips actually use, in one tap instead of four and a lot of scrolling.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DatePreset.entries.forEach { preset ->
+                            TrippinChoiceChip(
+                                text = preset.label,
+                                selected = state.matchesPreset(preset)
+                            ) { viewModel.applyDatePreset(preset) }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         DateField("First day", state.startDate, Modifier.weight(1f)) { pickingStart = true }
                         DateField("Last day", state.endDate, Modifier.weight(1f)) { pickingEnd = true }

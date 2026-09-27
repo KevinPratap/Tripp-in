@@ -155,6 +155,18 @@ data class PlannerUiState(
 
     /** The traveller chose a currency, which from now on outranks the destination's own. */
     fun withCurrencyChosen(code: String): PlannerUiState = copy(currency = code, currencyTouched = true)
+
+    /**
+     * True when the dates already are this shortcut's, so its chip can show as the current choice.
+     *
+     * [today] is a parameter with a default rather than a call to the clock inside, so this stays
+     * testable on a fixed day.
+     */
+    fun matchesPreset(preset: DatePreset, today: LocalDate = LocalDate.now()): Boolean {
+        if (startDate == null || endDate == null) return false
+        val (start, end) = datesFor(preset, today)
+        return startDate == start && endDate == end
+    }
 }
 
 @HiltViewModel
@@ -233,6 +245,12 @@ class PlannerViewModel @Inject constructor(
         it.copy(startDate = date, endDate = if (it.endDate?.isBefore(date) == true) null else it.endDate)
     }
     fun setEndDate(date: LocalDate) = _uiState.update { it.copy(endDate = date) }
+
+    /** Set both ends of the trip from one of the shortcuts. */
+    fun applyDatePreset(preset: DatePreset) {
+        val (start, end) = datesFor(preset, LocalDate.now())
+        _uiState.update { it.copy(startDate = start, endDate = end) }
+    }
     fun incTravelers() = _uiState.update { it.copy(travelers = it.travelers + 1) }
     fun decTravelers() = _uiState.update { it.copy(travelers = (it.travelers - 1).coerceAtLeast(1)) }
     fun setCurrency(code: String) = _uiState.update { it.withCurrencyChosen(code) }
