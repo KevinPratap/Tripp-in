@@ -1,6 +1,11 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+  UnauthorizedException
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { hashToken } from '../common/auth/token-hash';
+import { Mailer, MailMessage } from '../common/mail/mailer';
 
 /**
  * The rules that matter for accounts: a raw token is never stored, a magic link is
@@ -33,6 +38,23 @@ function buildPrismaMock() {
   };
 }
 
+/**
+ * A mailer whose delivery can be turned on and off, so the two paths that matter can both be tested:
+ * a real provider sending the link, and the console fallback that must not claim it did.
+ */
+class FakeMailer extends Mailer {
+  readonly name = 'console' as const;
+  sent: MailMessage[] = [];
+  failWith: Error | null = null;
+  constructor(public readonly canDeliver: boolean) {
+    super();
+  }
+  async send(message: MailMessage): Promise<void> {
+    if (this.failWith) throw this.failWith;
+    this.sent.push(message);
+  }
+}
+
 function validTokenRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'token-1',
@@ -48,10 +70,18 @@ function validTokenRow(overrides: Record<string, unknown> = {}) {
 describe('AuthService', () => {
   let prisma: ReturnType<typeof buildPrismaMock>;
   let service: AuthService;
+  let mailer: FakeMailer;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
     prisma = buildPrismaMock();
-    service = new AuthService(prisma as any);
+    // Most tests describe the development setup: no provider, so the link is logged.
+    mailer = new FakeMailer(false);
+    service = new AuthService(prisma as any, mailer);
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   describe('requestMagicLink', () => {
@@ -70,6 +100,64 @@ describe('AuthService', () => {
       expect(result.delivery).toBe('console');
       expect(result.loginUrl).toContain('/login?token=');
       expect(result.expiresAt).toBeTruthy();
+      expect(mailer.sent).toHaveLength(0);
+    });
+
+    it('sends the link and reports email delivery when a provider is configured', async () => {
+      mailer = new FakeMailer(true);
+      service = new AuthService(prisma as any, mailer);
+
+      const result = await service.requestMagicLink({ email: 'kevin@example.com' });
+
+      expect(result.delivery).toBe('email');
+      expect(mailer.sent).toHaveLength(1);
+      expect(mailer.sent[0].to).toBe('kevin@example.com');
+      expect(mailer.sent[0].text).toContain('/login?token=');
+    });
+
+    it('never returns the token once the link is being emailed', async () => {
+      // This route needs no identity, so a token in the response body would let anyone name an
+      // address and receive a working session for it.
+      mailer = new FakeMailer(true);
+      service = new AuthService(prisma as any, mailer);
+
+      const result = await service.requestMagicLink({ email: 'kevin@example.com' });
+
+      expect(result.loginUrl).toBeUndefined();
+      expect(JSON.stringify(result)).not.toContain('token=');
+    });
+
+    it('withholds the token in production even when no provider is configured', async () => {
+      // A misconfigured production must fail closed: the link goes to the log only.
+      process.env.NODE_ENV = 'production';
+      const result = await service.requestMagicLink({ email: 'kevin@example.com' });
+
+      expect(result.delivery).toBe('console');
+      expect(result.loginUrl).toBeUndefined();
+      expect(JSON.stringify(result)).not.toContain('token=');
+    });
+
+    it('reports a send failure instead of telling the traveller to check their inbox', async () => {
+      mailer = new FakeMailer(true);
+      mailer.failWith = new Error('provider refused');
+      service = new AuthService(prisma as any, mailer);
+
+      await expect(service.requestMagicLink({ email: 'kevin@example.com' })).rejects.toBeInstanceOf(
+        ServiceUnavailableException
+      );
+    });
+
+    it('keeps the provider failure reason out of what the traveller is told', async () => {
+      mailer = new FakeMailer(true);
+      mailer.failWith = new Error('Resend key re_abc123 rejected for domain example.com');
+      service = new AuthService(prisma as any, mailer);
+
+      await expect(service.requestMagicLink({ email: 'kevin@example.com' })).rejects.toThrow(
+        /could not send the sign in email/i
+      );
+      await expect(service.requestMagicLink({ email: 'kevin@example.com' })).rejects.not.toThrow(
+        /re_abc123/
+      );
     });
   });
 

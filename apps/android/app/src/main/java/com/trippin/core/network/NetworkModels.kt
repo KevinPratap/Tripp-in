@@ -298,16 +298,21 @@ data class RequestMagicLinkDto(
 /**
  * What POST /api/v1/auth/request-link answers with.
  *
- * `delivery` says how the link was delivered and this build renders it as it is: no mail provider is
- * configured on the server, so the answer is "console" and the link is in the log. The app states
- * that plainly instead of claiming an email was sent.
+ * `delivery` is "email" when the server handed the link to a mail provider, and "console" when no
+ * provider is configured and it only reached the server log. The app renders whichever it is, rather
+ * than claiming an email is on its way.
+ *
+ * `loginUrl` is absent whenever the link was emailed, and absent in production either way: the route
+ * needs no identity, so returning the raw token there would let anyone name an address and receive a
+ * working session for it. It therefore has to be nullable, or deserialising a production response
+ * fails on the missing field.
  */
 @Serializable
 data class RequestedMagicLinkDto(
     val email: String,
     val expiresAt: String,
     val delivery: String,
-    val loginUrl: String
+    val loginUrl: String? = null
 )
 
 @Serializable

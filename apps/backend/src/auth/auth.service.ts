@@ -2,12 +2,14 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException
 } from '@nestjs/common';
 import { hashToken, newToken } from '../common/auth/token-hash';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RequestMagicLinkDto } from './dto/request-link.dto';
 import { VerifyMagicLinkDto } from './dto/verify-link.dto';
+import { Mailer } from '../common/mail/mailer';
 
 /** Magic links are short lived on purpose. */
 export const MAGIC_LINK_TTL_MINUTES = 15;
@@ -17,9 +19,16 @@ export const SESSION_TTL_DAYS = 30;
 export interface RequestedMagicLink {
   email: string;
   expiresAt: string;
-  delivery: 'console';
-  /** The link is logged rather than emailed, because no mail provider is wired up. */
-  loginUrl: string;
+  /** How the link actually left the server. 'console' means it was logged, not sent. */
+  delivery: 'email' | 'console';
+  /**
+   * The signed in link, including the raw token.
+   *
+   * Present only outside production, as a developer convenience when no mail provider is configured.
+   * It is never returned in production: this route takes an email address and needs no identity, so
+   * returning the token here would hand anyone a working session for any address they can name.
+   */
+  loginUrl?: string;
 }
 
 export interface VerifiedSession {
@@ -47,15 +56,21 @@ export interface SavedTripSummary {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailer: Mailer
+  ) {}
 
   /**
-   * Creates a single use magic link.
+   * Creates a single use magic link and sends it.
    *
-   * Only the SHA-256 hash of the token is stored, so the database never holds
-   * something that can be replayed. No mail provider is configured in this project,
-   * so the link is written to the log and the response says so instead of claiming an
-   * email was delivered.
+   * Only the SHA-256 hash of the token is stored, so the database never holds something that can be
+   * replayed.
+   *
+   * The raw token is returned to the caller only outside production. This route is deliberately
+   * unguarded, because it is how a caller gets an identity in the first place, so in production the
+   * response body must not carry the token: it would let anyone name an address and receive a working
+   * session for it. The link goes to the inbox or nowhere.
    */
   async requestMagicLink(dto: RequestMagicLinkDto): Promise<RequestedMagicLink> {
     const email = this.normalizeEmail(dto.email);
@@ -72,13 +87,50 @@ export class AuthService {
 
     const siteUrl = process.env.PUBLIC_WEB_URL || 'https://web-production-a9ec6.up.railway.app';
     const loginUrl = `${siteUrl}/login?token=${rawToken}&email=${encodeURIComponent(email)}`;
-    this.logger.log(`Magic link for ${email} (valid ${MAGIC_LINK_TTL_MINUTES} minutes): ${loginUrl}`);
 
+    if (this.mailer.canDeliver) {
+      try {
+        await this.mailer.send(this.magicLinkMessage(email, loginUrl));
+      } catch (err) {
+        // Saying "check your email" when the send failed would be a lie the traveller acts on, so
+        // this surfaces as a retryable error instead. The reason stays in the mailer's own log.
+        this.logger.error(`Could not send the sign in link to ${email}: ${(err as Error).message}`);
+        throw new ServiceUnavailableException(
+          'We could not send the sign in email just now. Try again in a moment.'
+        );
+      }
+      return { email, expiresAt: expiresAt.toISOString(), delivery: 'email' };
+    }
+
+    // No provider configured. The link is logged so a developer can still sign in.
+    this.logger.log(`Magic link for ${email} (valid ${MAGIC_LINK_TTL_MINUTES} minutes): ${loginUrl}`);
     return {
       email,
       expiresAt: expiresAt.toISOString(),
       delivery: 'console',
-      loginUrl
+      ...(process.env.NODE_ENV === 'production' ? {} : { loginUrl })
+    };
+  }
+
+  /** The sign in email. Plain text carries the whole message; the HTML is the same words. */
+  private magicLinkMessage(email: string, loginUrl: string) {
+    return {
+      to: email,
+      subject: 'Your Tripp’in sign in link',
+      text: [
+        'Here is your sign in link for Tripp’in.',
+        '',
+        loginUrl,
+        '',
+        `It works once and expires in ${MAGIC_LINK_TTL_MINUTES} minutes.`,
+        'If you did not ask to sign in, you can ignore this email and nothing will happen.'
+      ].join('\n'),
+      html: [
+        '<p>Here is your sign in link for Tripp&rsquo;in.</p>',
+        `<p><a href="${loginUrl}">Sign in to Tripp&rsquo;in</a></p>`,
+        `<p>It works once and expires in ${MAGIC_LINK_TTL_MINUTES} minutes.</p>`,
+        '<p>If you did not ask to sign in, you can ignore this email and nothing will happen.</p>'
+      ].join('\n')
     };
   }
 

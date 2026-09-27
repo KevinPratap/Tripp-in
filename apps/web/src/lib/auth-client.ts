@@ -17,8 +17,13 @@ export interface SavedTripSummary {
 export interface RequestedMagicLink {
   email: string;
   expiresAt: string;
-  delivery: 'console';
-  loginUrl: string;
+  /** 'email' when a mail provider sent the link, 'console' when it only reached the server log. */
+  delivery: 'email' | 'console';
+  /**
+   * Absent whenever the link was emailed, and absent in production either way: this route needs no
+   * identity, so the raw token must not travel in its response.
+   */
+  loginUrl?: string;
 }
 
 export interface VerifiedSession {

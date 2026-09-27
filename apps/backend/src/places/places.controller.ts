@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 import { PlaceService } from './places.service';
 import { PhotonProvider, DestinationSuggestion } from './photon.provider';
 import { AutocompleteQueryDto } from './dto/autocomplete-query.dto';
@@ -31,6 +32,7 @@ export class PlacesController {
    * list means nothing matched; it is not an error, and the planner still accepts typed text.
    */
   @Get('autocomplete')
+  @RateLimit({ limit: 100, windowMs: 60000 })
   @ApiOperation({ summary: 'Destination suggestions with coordinates and local currency' })
   async autocomplete(
     @Query() query: AutocompleteQueryDto

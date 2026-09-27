@@ -49,12 +49,16 @@ class SignInViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = authRepository.requestLink(state.email)) {
                 is DataResult.Ok -> {
-                    // The server returns the link (and how it was delivered). No mail provider is set,
-                    // so it says "console": the app states that plainly and reads the token from the
-                    // URL it was handed, rather than claiming an email is on its way.
-                    val note = when (result.value.delivery.lowercase()) {
-                        "console" -> "This build prints the sign-in code to the server log instead of emailing it. Paste the code from the link to continue."
-                        else -> "We sent a sign-in link to ${state.email}. Paste the code from it below."
+                    // The server says how the link left it. "email" means it is in the traveller's
+                    // inbox and the response carries no token, so there is nothing to prefill and the
+                    // note says where to look. "console" means no provider is configured and the link
+                    // only reached the server log; outside production the response still carries it,
+                    // so the code is prefilled rather than asking a developer to dig it out.
+                    val emailed = result.value.delivery.lowercase() == "email"
+                    val note = if (emailed) {
+                        "We sent a sign-in link to ${state.email}. Open it on this device, or paste the code from it below."
+                    } else {
+                        "No mail provider is configured on the server, so the sign-in code went to its log instead of your inbox."
                     }
                     val tokenFromUrl = extractToken(result.value.loginUrl)
                     _uiState.update {
@@ -87,8 +91,14 @@ class SignInViewModel @Inject constructor(
         }
     }
 
-    /** Pull the `token` query parameter out of a magic-link URL. */
-    private fun extractToken(loginUrl: String): String? {
+    /**
+     * Pull the `token` query parameter out of a magic-link URL.
+     *
+     * Null in, null out: the server withholds the URL whenever the link was emailed, and always in
+     * production, so there is usually nothing here to read.
+     */
+    private fun extractToken(loginUrl: String?): String? {
+        if (loginUrl.isNullOrBlank()) return null
         val query = loginUrl.substringAfter('?', "")
         if (query.isBlank()) return null
         return query.split("&")
