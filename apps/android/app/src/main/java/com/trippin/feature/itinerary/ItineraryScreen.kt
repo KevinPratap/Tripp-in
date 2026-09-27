@@ -295,10 +295,10 @@ private fun DaysPane(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val enabled = !state.isLocked && !state.busy
-            TrippinChoiceChip("Rain", false, { if (enabled) onReplan("rain") }, leadingIcon = Icons.Default.Thunderstorm)
-            TrippinChoiceChip("Running late", false, { if (enabled) onReplan("running-late") }, leadingIcon = Icons.Default.AccessTime)
-            TrippinChoiceChip("Tired", false, { if (enabled) onReplan("tired") }, leadingIcon = Icons.Default.Hotel)
-            TrippinChoiceChip("Trim the plan", false, { if (enabled) onReplan("budget-cut") }, leadingIcon = Icons.Default.ContentCut)
+            TrippinChoiceChip("Rain", false, leadingIcon = Icons.Default.Thunderstorm) { if (enabled) onReplan("rain") }
+            TrippinChoiceChip("Running late", false, leadingIcon = Icons.Default.AccessTime) { if (enabled) onReplan("running-late") }
+            TrippinChoiceChip("Tired", false, leadingIcon = Icons.Default.Hotel) { if (enabled) onReplan("tired") }
+            TrippinChoiceChip("Trim the plan", false, leadingIcon = Icons.Default.ContentCut) { if (enabled) onReplan("budget-cut") }
         }
 
         state.message?.let { msg ->

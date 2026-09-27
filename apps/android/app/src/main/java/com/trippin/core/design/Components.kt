@@ -2,6 +2,7 @@ package com.trippin.core.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -254,9 +255,9 @@ fun TrippinIconButton(
 fun TrippinChoiceChip(
     text: String,
     selected: Boolean,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    leadingIcon: ImageVector? = null
+    leadingIcon: ImageVector? = null,
+    onClick: () -> Unit
 ) {
     val colors = TrippinTheme.colors
     TrippinSurface(
@@ -533,11 +534,9 @@ fun PlacePlate(
 @Composable
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
     val interaction = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    return this.then(
-        androidx.compose.foundation.clickable(
-            interactionSource = interaction,
-            indication = null,
-            onClick = onClick
-        )
+    return this.clickable(
+        interactionSource = interaction,
+        indication = null,
+        onClick = onClick
     )
 }
