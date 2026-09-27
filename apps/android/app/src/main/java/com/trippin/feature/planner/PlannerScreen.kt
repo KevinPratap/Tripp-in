@@ -107,8 +107,8 @@ fun PlannerScreen(
                     DestinationField(
                         value = state.destination,
                         suggestions = state.suggestions,
+                        hint = state.suggestionHint,
                         loading = state.suggestionsLoading,
-                        expanded = state.suggestionsVisible,
                         resolvedLabel = state.resolved?.label,
                         onValueChange = viewModel::onDestinationChange,
                         onPick = viewModel::pickSuggestion,
@@ -247,8 +247,8 @@ fun PlannerScreen(
 private fun DestinationField(
     value: String,
     suggestions: List<DestinationSuggestionDto>,
+    hint: SuggestionHint,
     loading: Boolean,
-    expanded: Boolean,
     resolvedLabel: String?,
     onValueChange: (String) -> Unit,
     onPick: (DestinationSuggestionDto) -> Unit,
@@ -290,43 +290,48 @@ private fun DestinationField(
             }
         )
 
-        if (expanded && suggestions.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .border(2.dp, colors.line, TrippinTheme.shapes.field)
-                    .background(colors.panel, TrippinTheme.shapes.field)
-            ) {
-                suggestions.forEachIndexed { index, suggestion ->
-                    if (index > 0) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(colors.panelAlt)
-                        )
+        when (hint) {
+            SuggestionHint.NONE -> Unit
+
+            SuggestionHint.RESULTS -> {
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .border(2.dp, colors.line, TrippinTheme.shapes.field)
+                        .background(colors.panel, TrippinTheme.shapes.field)
+                ) {
+                    suggestions.forEachIndexed { index, suggestion ->
+                        if (index > 0) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(colors.panelAlt)
+                            )
+                        }
+                        SuggestionRow(suggestion) { onPick(suggestion) }
                     }
-                    SuggestionRow(suggestion) { onPick(suggestion) }
                 }
+                Spacer(Modifier.height(6.dp))
+                // Provenance, stated rather than implied.
+                Text("Places from OpenStreetMap", style = TrippinType.Caption, color = colors.inkMuted)
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Places from OpenStreetMap",
-                style = TrippinType.Caption,
-                color = colors.inkMuted
-            )
-        } else if (expanded && loading && value.trim().length >= 2) {
-            Spacer(Modifier.height(8.dp))
-            Text("Looking for places", style = TrippinType.Caption, color = colors.inkMuted)
-        } else if (expanded && !loading && value.trim().length >= 2 && resolvedLabel == null) {
-            Spacer(Modifier.height(8.dp))
-            // Honest: no match found is not the same as the place not existing, and typing still works.
-            Text(
-                "No matches yet. Keep typing, or use the name as it appears on a map.",
-                style = TrippinType.Caption,
-                color = colors.inkMuted
-            )
+
+            SuggestionHint.LOADING -> {
+                Spacer(Modifier.height(8.dp))
+                Text("Looking for places", style = TrippinType.Caption, color = colors.inkMuted)
+            }
+
+            SuggestionHint.NO_MATCHES -> {
+                Spacer(Modifier.height(8.dp))
+                // Nothing matched is not the same as the place not existing, and typing still works.
+                Text(
+                    "No matches yet. Keep typing, or use the name as it appears on a map.",
+                    style = TrippinType.Caption,
+                    color = colors.inkMuted
+                )
+            }
         }
     }
 }

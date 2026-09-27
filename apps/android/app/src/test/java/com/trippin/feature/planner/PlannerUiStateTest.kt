@@ -153,6 +153,62 @@ class PlannerUiStateTest {
         assertFalse(state.suggestionsLoading)
     }
 
+    // ---- What sits under the field ----
+
+    @Test
+    fun `says it is looking, not that it found nothing, while a lookup is pending`() {
+        // The regression this pins: loading used to be set after the debounce, so for 250ms the field
+        // held no suggestions and was not loading, and the form told the traveller there were no
+        // matches for a word it had not yet looked up.
+        val state = PlannerUiState(
+            destination = "Lisb",
+            suggestionsVisible = true,
+            suggestionsLoading = true,
+            suggestions = emptyList()
+        )
+        assertEquals(SuggestionHint.LOADING, state.suggestionHint)
+    }
+
+    @Test
+    fun `reports no matches only once a lookup has finished empty`() {
+        val state = PlannerUiState(
+            destination = "Lisb",
+            suggestionsVisible = true,
+            suggestionsLoading = false,
+            suggestions = emptyList()
+        )
+        assertEquals(SuggestionHint.NO_MATCHES, state.suggestionHint)
+    }
+
+    @Test
+    fun `shows the suggestions when there are some, even if another lookup is running`() {
+        val state = PlannerUiState(
+            destination = "Lisb",
+            suggestionsVisible = true,
+            suggestionsLoading = true,
+            suggestions = listOf(lisbon)
+        )
+        assertEquals(SuggestionHint.RESULTS, state.suggestionHint)
+    }
+
+    @Test
+    fun `shows nothing under a field the traveller has left`() {
+        val state = PlannerUiState(destination = "Lisb", suggestionsVisible = false, suggestions = listOf(lisbon))
+        assertEquals(SuggestionHint.NONE, state.suggestionHint)
+    }
+
+    @Test
+    fun `shows nothing under a field too short to look up`() {
+        val state = PlannerUiState(destination = "L", suggestionsVisible = true)
+        assertEquals(SuggestionHint.NONE, state.suggestionHint)
+    }
+
+    @Test
+    fun `says nothing about matches once a place is resolved`() {
+        val state = PlannerUiState().withSuggestionPicked(lisbon).copy(suggestionsVisible = true)
+        assertEquals(SuggestionHint.NONE, state.suggestionHint)
+    }
+
     // ---- Dates, budget, and the order things are asked in ----
 
     @Test

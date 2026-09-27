@@ -24,6 +24,9 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
+/** What sits under the destination field: the suggestions, a progress note, or nothing. */
+enum class SuggestionHint { NONE, RESULTS, LOADING, NO_MATCHES }
+
 data class PlannerUiState(
     val destination: String = "",
     /**
@@ -102,6 +105,23 @@ data class PlannerUiState(
     val destinationIsUnresolved: Boolean
         get() = resolved == null && destination.trim().length >= 2
 
+    /**
+     * What belongs under the destination field right now.
+     *
+     * One decision in one place, rather than a chain of booleans in the composable. The order matters:
+     * [SuggestionHint.LOADING] has to win over [SuggestionHint.NO_MATCHES], because during the debounce
+     * the field is holding no suggestions and has not yet looked, and saying "no matches" then would be
+     * the app reporting a result it does not have.
+     */
+    val suggestionHint: SuggestionHint get() = when {
+        !suggestionsVisible -> SuggestionHint.NONE
+        suggestions.isNotEmpty() -> SuggestionHint.RESULTS
+        destination.trim().length < 2 -> SuggestionHint.NONE
+        suggestionsLoading -> SuggestionHint.LOADING
+        resolved != null -> SuggestionHint.NONE
+        else -> SuggestionHint.NO_MATCHES
+    }
+
     // ---- State transitions ----
     //
     // Kept here as pure functions rather than inline in the view model, so the rules that decide the
@@ -178,9 +198,12 @@ class PlannerViewModel @Inject constructor(
             _uiState.update { it.copy(suggestions = emptyList(), suggestionsLoading = false) }
             return
         }
+        // Set before the debounce, not after it. Otherwise for those 250ms the field is not loading and
+        // holds no suggestions, which the form reads as "we looked and found nothing" and says so
+        // before any lookup has happened.
+        _uiState.update { it.copy(suggestionsLoading = true) }
         suggestJob = viewModelScope.launch {
             delay(SUGGEST_DEBOUNCE_MS)
-            _uiState.update { it.copy(suggestionsLoading = true) }
             val results = placesRepository.autocompleteDestinations(term)
             // The traveller may have typed on while this was in flight. Applying a stale list would
             // offer places for a word no longer in the field.
