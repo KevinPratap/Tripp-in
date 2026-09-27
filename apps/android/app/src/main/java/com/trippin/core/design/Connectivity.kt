@@ -12,79 +12,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 
-/*
- * The phone's own answer to "is there a network", which is the only honest source for that sentence.
- *
- * The app used to say "You are offline" from a catch block, and a catch cannot tell being offline
- * from a trip that is not there, so 1b609fa had to take that sentence off the Today screen rather
- * than print a cause it had not read. This file asks the system instead, which is a fact and not an
- * inference: it is true before a request is made, and it is never derived from a request that failed.
- *
- * It lives in core/design because that is the only shared UI package the Android UI lane owns, and
- * it is UI support rather than design: it reads a device state and hands it to a screen.
- *
- * android.permission.ACCESS_NETWORK_STATE is already declared in the manifest, so nothing new is
- * asked of the person installing the app.
- */
-
 /**
- * True only while the phone itself reports no way of reaching the network.
- *
- * False whenever the app cannot tell, which is the answer that asserts nothing: a phone with no
- * ConnectivityManager, and any device that still holds a usable network, both read as not offline
- * and draw no offline line. The value follows the device while the screen is composed, through the
- * default network callback, so a phone that loses its signal under a screen that is already open
- * updates without a reload.
+ * Whether the phone itself reports no usable network. This is asked of the system, never inferred
+ * from a request that happened to fail, which is the only reason a screen is allowed to say the word
+ * "offline": a failed request can mean a dead server or a missing trip just as easily as a dead
+ * connection, and the app does not claim a cause it did not check.
  */
 @Composable
 fun rememberIsOffline(): Boolean {
     val context = LocalContext.current
-    val manager = remember(context) {
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-    }
-    var isOffline by remember { mutableStateOf(false) }
+    var offline by remember { mutableStateOf(!context.hasValidatedInternet()) }
 
-    DisposableEffect(manager) {
-        if (manager == null) {
-            onDispose { }
-        } else {
-            isOffline = phoneReportsNoNetwork(manager)
-            val callback = object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    isOffline = phoneReportsNoNetwork(manager)
-                }
-
-                override fun onLost(network: Network) {
-                    isOffline = phoneReportsNoNetwork(manager)
-                }
-
-                override fun onCapabilitiesChanged(
-                    network: Network,
-                    networkCapabilities: NetworkCapabilities
-                ) {
-                    isOffline = phoneReportsNoNetwork(manager)
-                }
+    DisposableEffect(context) {
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) { offline = false }
+            override fun onLost(network: Network) { offline = !context.hasValidatedInternet() }
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                offline = !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             }
-            manager.registerDefaultNetworkCallback(callback)
-            onDispose { manager.unregisterNetworkCallback(callback) }
         }
+        manager?.registerDefaultNetworkCallback(callback)
+        onDispose { manager?.unregisterNetworkCallback(callback) }
     }
-
-    return isOffline
+    return offline
 }
 
-/**
- * The phone has no usable network when it holds no active network at all, or when the one it holds
- * does not report the capacity to reach the internet.
- *
- * NET_CAPABILITY_VALIDATED is deliberately NOT required, and this is the honesty decision in the
- * file: a network that has not validated may still be a working connection, and a phone behind a
- * sign-in page would then be called offline while the app has simply been refused a page. A wrong
- * "you are offline" is the same defect this app keeps closing, only from the other side, so the
- * read errs towards silence and a failed request is never dressed up as a dead phone.
- */
-private fun phoneReportsNoNetwork(manager: ConnectivityManager): Boolean {
-    val active = manager.activeNetwork ?: return true
-    val capabilities = manager.getNetworkCapabilities(active) ?: return true
-    return !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+private fun Context.hasValidatedInternet(): Boolean {
+    val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+    val network = manager.activeNetwork ?: return false
+    val caps = manager.getNetworkCapabilities(network) ?: return false
+    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }

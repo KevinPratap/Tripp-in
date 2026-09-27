@@ -1,1234 +1,461 @@
 package com.trippin.feature.itinerary
 
 import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-// The library's own underline geometry is a member extension of TabRowDefaults, so it needs the
-// explicit import to be called from here. Its colour is passed at the call site.
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.trippin.core.cache.TripCacheManager
-import com.trippin.core.design.*
-import com.trippin.core.network.ActivityDto
-import com.trippin.core.network.ModifyItineraryRequestDto
-import com.trippin.core.network.NetworkModule
-import com.trippin.core.network.ReplanRequestDto
-import com.trippin.feature.generating.GeneratingScreen
-import com.trippin.feature.today.TodayScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.MessageState
+import com.trippin.core.design.PillTone
+import com.trippin.core.design.StatusPill
+import com.trippin.core.design.TrippinButton
+import com.trippin.core.design.TrippinCard
+import com.trippin.core.design.TrippinChoiceChip
+import com.trippin.core.design.TrippinIconButton
+import com.trippin.core.design.TrippinScaffold
+import com.trippin.core.design.TrippinSegmentedTabs
+import com.trippin.core.design.TrippinTextField
+import com.trippin.core.design.TrippinTopBar
+import com.trippin.core.design.TrippinTheme
+import com.trippin.core.design.TrippinType
+import com.trippin.core.design.formatStatedAmount
+import com.trippin.core.design.rememberIsOffline
+import com.trippin.core.network.ItineraryDayDto
+import com.trippin.feature.today.TodayContent
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+
+private const val WEB_BASE = "https://web-production-a9ec6.up.railway.app"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryScreen(
     tripId: String,
-    onNavigateBack: () -> Unit,
-    onOpenMap: (String) -> Unit
+    onBack: () -> Unit,
+    onOpenMap: (String) -> Unit,
+    viewModel: ItineraryViewModel = hiltViewModel()
 ) {
-    val cachedTrip = remember(tripId) { TripCacheManager.getTrip(tripId) }
-    var tripDetails by remember { mutableStateOf(cachedTrip) }
-    var isLoading by remember { mutableStateOf(cachedTrip == null) }
-    var isRefreshing by remember { mutableStateOf(false) }
-    var loadFailed by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var editInstruction by remember { mutableStateOf("") }
-    var isModifying by remember { mutableStateOf(false) }
-    var modifyError by remember { mutableStateOf<String?>(null) }
-
-    // Lock, Replan and Delete states
-    var isLocking by remember { mutableStateOf(false) }
-    var isReplanning by remember { mutableStateOf(false) }
-    var replanStatusMsg by remember { mutableStateOf<String?>(null) }
-    // Beside the message, because the line carries three meanings and one colour cannot hold
-    // them: a run in progress, a run that worked, a run that failed.
-    var replanFailed by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var isDeleting by remember { mutableStateOf(false) }
-    var showMoreMenu by remember { mutableStateOf(false) }
-    // Set when the build state has said its piece, either because the plan landed or because the
-    // person moved past a failure. It is the one thing that stops a failed run from being redrawn
-    // after it has been read.
-    var buildStateDismissed by remember(tripId) { mutableStateOf(false) }
-
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val colors = TrippinTheme.colors
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val commitHaptic = rememberCommitHaptic()
-    // The pull to refresh indicator follows the finger through this state and PullToRefreshBox makes
-    // its own when none is passed, so the state is hoisted here and handed to the box and to the
-    // indicator it draws.
-    val refreshState = rememberPullToRefreshState()
-    // Whether the phone itself reports no way of reaching the network. It is asked of the system and
-    // never inferred from a request that failed, which is why this screen can say offline at all.
-    val isOffline = rememberIsOffline()
+    val offline = rememberIsOffline()
 
-    val loadTripData: (isManualRefresh: Boolean) -> Unit = { isManualRefresh ->
-        scope.launch {
-            try {
-                if (isManualRefresh) {
-                    isRefreshing = true
-                } else if (tripDetails == null) {
-                    isLoading = true
-                }
-                loadFailed = false
-                val fetched = NetworkModule.apiService.getTripDetails(tripId)
-                tripDetails = fetched
-                TripCacheManager.putTrip(tripId, fetched)
-            } catch (_: Exception) {
-                // No cause is named, because the one catch covers being offline and a trip that
-                // is not there alike, and the raw message reads HTTP 404 to a person. Same shape
-                // as the Map and Today screens.
-                if (tripDetails == null) {
-                    loadFailed = true
-                }
-            } finally {
-                isLoading = false
-                isRefreshing = false
-            }
-        }
-    }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var subView by remember(tripId) { mutableStateOf(0) }
 
-    LaunchedEffect(tripId) {
-        loadTripData(false)
-    }
+    LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
 
-    val isLocked = tripDetails?.trip?.isLocked == true
-    val days = tripDetails?.itinerary?.days ?: emptyList()
-    // The destination the server sent, or nothing at all. A bar titled TRIP for a trip that has
-    // not loaded names a place this trip does not have, which is the stand-in Map and Today
-    // dropped; the subtitle below already says which state the screen is in.
-    val destinationName = tripDetails?.trip?.destination?.takeIf { it.isNotBlank() }
-
-    // Money honesty. Every amount on this screen is printed in the currency its own stop declares,
-    // never in the trip's currency, because the two have already disagreed on the wire (a JPY trip
-    // whose stops were stored in USD). A stop that states an amount without a currency of its own
-    // is not printed at all, and a day total is printed only when every priced stop in that day
-    // states the same one. That is the same rule the backend now enforces when it serializes a
-    // stop price: no amount travels without a named source and a confirmed provenance check.
-
-    // Generation is a state of this screen rather than a destination of its own. The server says
-    // which state the trip is in, so the wait is drawn in place of a plan only while the server
-    // says a plan is being built for this trip or its last attempt failed. A trip that was never
-    // generated therefore still reads No plan yet, rather than a spinner for a run that is not
-    // happening and may never happen, and the wait is never drawn over a plan that already exists.
-    val isBuilding = tripDetails?.trip?.status == "GENERATING"
-    val buildFailed = tripDetails?.trip?.status == "FAILED"
-    val showBuildState = days.isEmpty() && !buildStateDismissed && (isBuilding || buildFailed)
-
-    // Plain state for the header. Nothing is asserted that the loaded data does not show:
-    // locked or not, how many days the plan has, or that there is no plan yet.
-    val planSubtitle = when {
-        isLocked -> "Locked by whoever set this up"
-        isLoading -> "Loading the plan"
-        showBuildState && isBuilding -> "Building your plan"
-        showBuildState && buildFailed -> "The plan could not be built"
+    val destinationName = state.details?.trip?.destination?.takeIf { it.isNotBlank() }
+    val days = state.days
+    val subtitle = when {
+        state.isLocked -> "Locked"
+        state.loading -> "Loading the plan"
+        state.showBuildState && state.isBuilding -> "Building your plan"
+        state.showBuildState && state.buildFailed -> "The plan could not be built"
         days.isEmpty() -> "No plan yet"
         days.size == 1 -> "1 day planned"
         else -> "${days.size} days planned"
     }
 
-    // The trip's own dates decide whether today is inside them. Nothing else is used, and when
-    // either date is missing or unparseable the answer is no rather than a guess.
-    val todayDate = remember { LocalDate.now() }
-    val tripIsLive = remember(tripDetails, todayDate) {
-        val start = tripDetails?.trip?.startDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        val end = tripDetails?.trip?.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        start != null && end != null && !todayDate.isBefore(start) && !todayDate.isAfter(end)
-    }
-
-    /*
-     * Plan has sub-views. Days is the day-by-day plan and Today is the stop happening now. A live
-     * trip opens on Today, because on the day itself the current stop is what you need and day one
-     * of the list is not. It lands once, when the trip's own dates say today is inside them, and it
-     * never fights the user afterwards.
-     */
-    var subView by remember(tripId) { mutableIntStateOf(0) }
-    var subViewChosen by remember(tripId) { mutableStateOf(false) }
-    LaunchedEffect(tripIsLive, subViewChosen) {
-        if (tripIsLive && !subViewChosen) subView = 1
-    }
-
-    // Horizontal Pager state for smooth day-swiping gestures
-    val pageCount = days.size.coerceAtLeast(1)
-    val pagerState = rememberPagerState(initialPage = 0) { pageCount }
-
-    // One haptic per day the user actually swiped to, and none on arrival: the first composition of
-    // this effect is the screen opening, which is not something the user committed.
-    var settledPage by remember { mutableIntStateOf(pagerState.currentPage) }
-    LaunchedEffect(pagerState.currentPage) {
-        if (days.isNotEmpty() && pagerState.currentPage != settledPage) {
-            settledPage = pagerState.currentPage
-            commitHaptic()
-        }
-    }
-
-    fun handleToggleLock() {
-        if (isLocking) return
-        scope.launch {
-            try {
-                isLocking = true
-                commitHaptic()
-                if (isLocked) {
-                    NetworkModule.apiService.unlockTrip(tripId)
-                } else {
-                    NetworkModule.apiService.lockTrip(tripId)
-                }
-                val updated = NetworkModule.apiService.getTripDetails(tripId)
-                tripDetails = updated
-                TripCacheManager.putTrip(tripId, updated)
-            } catch (_: Exception) {
-                modifyError = "Could not change the lock"
-            } finally {
-                isLocking = false
-            }
-        }
-    }
-
-    fun triggerQuickReplan(intentKey: String) {
-        if (isLocked || isReplanning) return
-        scope.launch {
-            try {
-                isReplanning = true
-                commitHaptic()
-                replanFailed = false
-                replanStatusMsg = "Replanning..."
-                NetworkModule.apiService.replanTrip(tripId, ReplanRequestDto(intent = intentKey))
-                val updated = NetworkModule.apiService.getTripDetails(tripId)
-                tripDetails = updated
-                TripCacheManager.putTrip(tripId, updated)
-                replanStatusMsg = "Plan updated."
-            } catch (_: Exception) {
-                replanFailed = true
-                replanStatusMsg = "Could not replan"
-            } finally {
-                isReplanning = false
-            }
-        }
-    }
-
-    fun handleDeleteTrip() {
-        if (isDeleting) return
-        scope.launch {
-            try {
-                isDeleting = true
-                commitHaptic()
-                NetworkModule.apiService.deleteTrip(tripId)
-                TripCacheManager.invalidateTrip(tripId)
-                showDeleteDialog = false
-                onNavigateBack()
-            } catch (_: Exception) {
-                modifyError = "Could not delete this trip"
-                isDeleting = false
-            }
-        }
-    }
-
-    Scaffold(
+    TrippinScaffold(
         topBar = {
-            TopAppBar(
-                colors = trippinTopBarColors(),
-                title = {
-                    Column {
-                        Text(
-                            text = destinationName?.uppercase() ?: "PLAN",
-                            style = TrippinType.Heading
-                        )
-                        Text(
-                            text = planSubtitle,
-                            style = TrippinType.Caption,
-                            color = if (isLocked) GoodInk else InkMuted
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            TrippinTopBar(
+                title = destinationName ?: "Plan",
+                subtitle = subtitle,
+                subtitleColor = if (state.isLocked) colors.good else colors.inkMuted,
+                onBack = onBack,
                 actions = {
-                    IconButton(onClick = { onOpenMap(tripId) }) {
-                        Icon(Icons.Default.Map, contentDescription = "Map")
-                    }
-                    IconButton(onClick = {
-                        // The destination is named only when the trip has one, so an invite never
-                        // asks somebody to join a group going to a place we do not know.
-                        val inviteLine = destinationName
-                            ?.let { "Join the group for $it on Tripp'in" }
-                            ?: "Join the group on Tripp'in"
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(
-                                Intent.EXTRA_TEXT,
-                                "$inviteLine: https://web-production-a9ec6.up.railway.app/trip/$tripId/collab"
-                            )
+                    TrippinIconButton(Icons.Default.Map, "Map", { onOpenMap(tripId) })
+                    TrippinIconButton(Icons.Default.Share, "Invite the group", tint = colors.accent, onClick = {
+                        val line = destinationName?.let { "Join the group for $it on Tripp'in" } ?: "Join the group on Tripp'in"
+                        val send = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "$line: $WEB_BASE/trip/$tripId/collab")
                         }
-                        context.startActivity(Intent.createChooser(sendIntent, "Invite the group to Tripp'in"))
-                    }) {
-                        Icon(Icons.Default.Share, contentDescription = "Invite the group", tint = AccentCrimson)
-                    }
+                        context.startActivity(Intent.createChooser(send, "Invite the group to Tripp'in"))
+                    })
                     Box {
-                        IconButton(onClick = { showMoreMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                        }
-                        DropdownMenu(
-                            expanded = showMoreMenu,
-                            onDismissRequest = { showMoreMenu = false },
-                            // A menu is a card over the page: Panel with Ink on it, decided once in
-                            // trippinMenuItemColors, rather than the Material plate and ink.
-                            containerColor = Panel
-                        ) {
-                            // Today is a sub-view of this screen now, so there is no menu entry
-                            // that leads to a second copy of it.
+                        TrippinIconButton(Icons.Default.MoreVert, "More", { showMenu = true })
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = colors.panel) {
                             DropdownMenuItem(
-                                text = { Text(if (isLocked) "Unlock the plan" else "Lock the plan", style = TrippinType.Label) },
-                                leadingIcon = {
-                                    Icon(
-                                        if (isLocked) Icons.Default.LockOpen else Icons.Default.Lock,
-                                        contentDescription = null
-                                    )
-                                },
-                                colors = trippinMenuItemColors(),
-                                onClick = {
-                                    showMoreMenu = false
-                                    handleToggleLock()
-                                }
+                                text = { Text(if (state.isLocked) "Unlock the plan" else "Lock the plan", style = TrippinType.Label, color = colors.ink) },
+                                leadingIcon = { Icon(if (state.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, null, tint = colors.ink) },
+                                onClick = { showMenu = false; viewModel.toggleLock() }
                             )
-                            // The rule between the two items names our own ink rather than the
-                            // library's outlineVariant, which is a Material grey with no token here.
-                            HorizontalDivider(color = Ink)
+                            HorizontalDivider(color = colors.line)
                             DropdownMenuItem(
-                                text = { Text("Delete trip", color = DangerCrimson, style = TrippinType.Label) },
-                                leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = DangerCrimson) },
-                                colors = trippinMenuItemColors(),
-                                onClick = {
-                                    showMoreMenu = false
-                                    showDeleteDialog = true
-                                }
+                                text = { Text("Delete trip", style = TrippinType.Label, color = colors.danger) },
+                                leadingIcon = { Icon(Icons.Default.DeleteOutline, null, tint = colors.danger) },
+                                onClick = { showMenu = false; showDeleteDialog = true }
                             )
                         }
                     }
                 }
-
             )
-        },
+        }
     ) { padding ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = AccentCrimson)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Loading the plan...", style = TrippinType.Body)
-                }
-            }
-        } else if (loadFailed && tripDetails == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Could not load the plan", color = DangerCrimson, style = TrippinType.Title)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { loadTripData(false) },
-                        colors = trippinButtonColors()
-                    ) {
-                        Text("Retry", style = TrippinType.Label)
-                    }
-                }
-            }
-        } else if (showBuildState) {
-            /*
-             * The wait, as a state of this screen. Section 3 of the plan asks for exactly this:
-             * the generation stops being a screen and becomes a state of Plan, and the stage
-             * sentence is the display element. This screen's own bar stays above it, so the trip
-             * you are waiting on is named, and nothing here is a second copy of the readout.
-             */
-            GeneratingScreen(
-                tripId = tripId,
-                embedded = true,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                onGenerationComplete = {
-                    // Ready, or given up on. Either way this screen stops drawing the wait and asks
-                    // the server for the plan again, so the plan appears on the screen that waited
-                    // for it rather than on one pushed over it.
-                    buildStateDismissed = true
-                    loadTripData(false)
-                }
-            )
-        } else {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { loadTripData(true) },
-                state = refreshState,
-                indicator = { TrippinRefreshIndicator(state = refreshState, isRefreshing = isRefreshing) },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .background(Paper)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Flow E's offline line, drawn only when the phone reports no network and never
-                    // because a request failed. It says where what is on screen came from, which is
-                    // the plan this phone already holds, and it stops short of claiming that copy
-                    // will survive the app being closed, because the cache behind it is in memory.
-                    if (isOffline) {
-                        Text(
-                            text = "You are offline. Showing the plan your phone already has, so it may be out of date.",
-                            style = TrippinType.Body,
-                            color = InkMuted,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    // Locked Plan Banner
-                    if (isLocked) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .border(2.dp, Ink, RoundedCornerShape(8.dp)),
-                            color = GoodInkSurface,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = GoodInk, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "Locked by whoever set this up",
-                                        style = TrippinType.Label,
-                                        color = GoodInk
-                                    )
-                                    Text(
-                                        text = "Unlock it from the menu at the top right to change anything.",
-                                        style = TrippinType.Body,
-                                        color = GoodInk
-                                    )
-                                }
-                            }
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.loading -> LoadingBlock("Loading the plan")
+                state.loadError != null && state.details == null -> MessageState(
+                    icon = Icons.Default.Map,
+                    title = "Could not load the plan",
+                    body = state.loadError ?: "",
+                    actionLabel = "Retry",
+                    onAction = { viewModel.refresh() },
+                    titleColor = colors.danger
+                )
+                state.showBuildState -> BuildStatePane(state, onDismiss = viewModel::dismissBuildState)
+                else -> PullToRefreshBox(
+                    isRefreshing = state.refreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        if (offline) {
+                            Text(
+                                "You are offline. Showing the plan your phone already has, so it may be out of date.",
+                                style = TrippinType.Caption,
+                                color = colors.inkMuted,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
                         }
-                    }
+                        if (state.isLocked) LockBanner()
 
-                    // Quick Replan Directives Bar
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        QuickReplanChip(
-                            label = "Rain",
-                            icon = Icons.Default.Thunderstorm,
-                            enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("rain") }
+                        TrippinSegmentedTabs(
+                            options = listOf("Days", "Today"),
+                            selectedIndex = subView,
+                            onOptionSelected = { subView = it },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
-                        QuickReplanChip(
-                            label = "Running late",
-                            icon = Icons.Default.AccessTime,
-                            enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("running-late") }
-                        )
-                        QuickReplanChip(
-                            label = "Tired",
-                            icon = Icons.Default.Hotel,
-                            enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("tired") }
-                        )
-                        QuickReplanChip(
-                            label = "Trim the plan",
-                            icon = Icons.Default.AttachMoney,
-                            enabled = !isLocked && !isReplanning,
-                            onClick = { triggerQuickReplan("budget-cut") }
-                        )
-                    }
 
-                    if (replanStatusMsg != null) {
-                        Text(
-                            text = replanStatusMsg ?: "",
-                            style = TrippinType.Body,
-                            color = when {
-                                replanFailed -> DangerCrimson
-                                isReplanning -> InkMuted
-                                else -> GoodInk
-                            },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    /*
-                     * The Plan sub-views. Only these two of the five the plan names can carry
-                     * honest content today: Options needs alternatives the engine does not produce
-                     * yet, and there is no change log and no recorded spend to put in Changes or
-                     * Money. A tab for any of those would promise something the app cannot do, so
-                     * they are not here.
-                     */
-                    TrippinSegmentedTabs(
-                        options = listOf("Days", "Today"),
-                        selectedIndex = subView,
-                        onOptionSelected = {
-                            subViewChosen = true
-                            subView = it
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-
-                    if (subView == 1) {
-                        // Today as a sub-view rather than a screen of its own: it keeps its own
-                        // load, pull to refresh and offline state, and brings no second top bar.
-                        TodayScreen(
-                            tripId = tripId,
-                            onNavigateBack = {},
-                            onOpenMap = onOpenMap,
-                            embedded = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-
-                    // Day selector tabs (synced with HorizontalPager)
-                    if (days.isNotEmpty()) {
-                        val selectedDay = pagerState.currentPage.coerceIn(0, days.size - 1)
-                        ScrollableTabRow(
-                            selectedTabIndex = selectedDay,
-                            edgePadding = 16.dp,
-                            containerColor = Paper,
-                            /*
-                             * The library draws both of the lines under this row itself when these
-                             * two arguments are left out, and neither one names our ink. The
-                             * underline comes from the scheme's primary, which this app maps to
-                             * OceanBlue in the light scheme and OceanBlueDark in the dark one, so a
-                             * phone in dark mode would draw the underline in a crimson the day label
-                             * beside it does not use. The rule under it comes from the scheme's
-                             * outlineVariant, which is Material's own lavender grey. Both take a
-                             * token here, the way every other divider in the app already does.
-                             */
-                            indicator = { tabPositions ->
-                                tabPositions.getOrNull(selectedDay)?.let { position ->
-                                    TabRowDefaults.SecondaryIndicator(
-                                        modifier = Modifier.tabIndicatorOffset(position),
-                                        color = AccentCrimson
-                                    )
-                                }
-                            },
-                            divider = { HorizontalDivider(thickness = 2.dp, color = Ink) }
-                        ) {
-                            days.forEachIndexed { index, day ->
-                                val isSelected = pagerState.currentPage == index
-                                Tab(
-                                    selected = isSelected,
-                                    onClick = {
-                                        scope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    },
-                                    text = {
-                                        Text(
-                                            text = "DAY ${day.dayIndex}",
-                                            style = TrippinType.Label,
-                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                            color = if (isSelected) AccentCrimson else Ink
-                                        )
-                                    }
+                        if (subView == 1) {
+                            TodayContent(
+                                details = state.details,
+                                visited = state.visited,
+                                onToggleVisited = viewModel::toggleVisited,
+                                onOpenMap = { onOpenMap(tripId) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            DaysPane(
+                                state = state,
+                                destinationName = destinationName,
+                                onToggleVisited = viewModel::toggleVisited,
+                                onReplan = viewModel::replan,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Box(Modifier.background(colors.paper).padding(horizontal = 16.dp, vertical = 12.dp)) {
+                                TrippinButton(
+                                    text = if (state.isLocked) "Plan is locked" else "Change the plan",
+                                    onClick = { showEditDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !state.isLocked && !state.busy
                                 )
                             }
                         }
                     }
-
-                    // Swipable Native Horizontal Pager for Days
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) { pageIdx ->
-                        val day = days.getOrNull(pageIdx)
-                        if (day != null) {
-                            val activities = day.activities
-                            val visitedCount = remember(activities) {
-                                TripCacheManager.getVisitedCountForDay(activities.map { it.id })
-                            }
-                            val pricedStops = remember(activities) {
-                                activities.mapNotNull { it.statedMoney() }
-                            }
-                            val dayCurrency = remember(pricedStops) {
-                                pricedStops.map { it.currency }.distinct().singleOrNull()
-                            }
-                            val dayTotal = remember(pricedStops, dayCurrency) {
-                                if (dayCurrency == null) null else pricedStops.sumOf { it.value }
-                            }
-                            // The two reasons a day's stops cannot be totalled, each read off the
-                            // stops themselves rather than assumed: their amounts are stated in
-                            // currencies that disagree, or an amount carries no currency at all.
-                            // The note that explains a missing total used to name the second reason
-                            // for both, which is a cause the screen had not checked.
-                            val stopCurrenciesDiffer = remember(pricedStops) {
-                                pricedStops.map { it.currency }.distinct().size > 1
-                            }
-                            val amountWithoutCurrency = remember(activities) {
-                                activities.any { act ->
-                                    val amount = act.estimatedCost
-                                    amount != null && amount > 0.0 && act.currency.isNullOrBlank()
-                                }
-                            }
-                            val untotalledReason = when {
-                                dayTotal != null -> null
-                                stopCurrenciesDiffer ->
-                                    "No day total: these stops state their amounts in different currencies."
-                                amountWithoutCurrency ->
-                                    "No day total: some stops here do not say which currency their amount is in."
-                                else -> null
-                            }
-
-                            LazyColumn(
-                                // The plan's action now sits in a reserved band below this list, so
-                                // the list only needs its own breathing room at the bottom. The old
-                                // 96dp existed to let the last card scroll out from under a floating
-                                // button, which never helped a card mid-list.
-                                contentPadding = PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 16.dp,
-                                    bottom = 16.dp
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                // Day Summary Card
-                                item {
-                                     Box(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                         Surface(
-                                             modifier = Modifier
-                                                 .fillMaxWidth()
-                                                 .border(2.dp, Ink, RoundedCornerShape(8.dp)),
-                                             color = Panel,
-                                             shape = RoundedCornerShape(8.dp)
-                                         ) {
-                                        Column(modifier = Modifier.padding(14.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "Day ${day.dayIndex} · ${day.date}",
-                                                    style = TrippinType.Label,
-                                                    color = Ink
-                                                )
-                                                if (dayTotal != null && dayTotal > 0) {
-                                                    Text(
-                                                        text = "Stops total " +
-                                                            formatStatedAmount(dayTotal, dayCurrency),
-                                                        style = TrippinType.Caption,
-                                                        color = Ink
-                                                    )
-                                                }
-                                            }
-
-                                            if (!day.summary.isNullOrBlank()) {
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = day.summary,
-                                                    style = TrippinType.Body,
-                                                    color = Ink
-                                                )
-                                            }
-
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "${activities.size} ${if (activities.size == 1) "stop" else "stops"} · $visitedCount visited",
-                                                    style = TrippinType.Caption,
-                                                    color = InkMuted
-                                                )
-                                                // Only when there is another day to swipe to. A one
-                                                // day plan has none, and the sentence would invite
-                                                // a gesture that does nothing.
-                                                if (days.size > 1) {
-                                                    Text(
-                                                        text = "Swipe for other days",
-                                                        style = TrippinType.Caption,
-                                                        color = InkMuted
-                                                    )
-                                                }
-                                            }
-
-                                            // Shown when stops below do carry an amount but it
-                                            // cannot be totalled, so the missing total is
-                                            // explained instead of silently skipped, and it names
-                                            // the one reason that is true of this day.
-                                            untotalledReason?.let { reason ->
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Text(
-                                                    text = reason,
-                                                    style = TrippinType.Body,
-                                                    color = InkMuted
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                                // Activity Cards
-                                itemsIndexed(activities) { actIdx, act ->
-                                    ActivityComicCard(
-                                        activity = act,
-                                        index = actIdx + 1,
-                                        onNavigateClick = {
-                                            // Exact coordinates when the venue has them, because that
-                                            // navigates to the place itself. A search for the title
-                                            // would be a guess dressed as a route. The title is only
-                                            // used when there are no coordinates at all.
-                                            val point = act.place?.location
-                                            val exact = point
-                                                ?.takeIf { it.latitude != 0.0 || it.longitude != 0.0 }
-                                                ?.let { String.format(java.util.Locale.US, "%f,%f", it.latitude, it.longitude) }
-                                            val query = Uri.encode(
-                                                exact ?: listOfNotNull(act.title, destinationName)
-                                                    .joinToString(" ")
-                                            )
-                                            val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    }
-
-                    // The plan's action is part of the layout rather than floating over it. The
-                    // audit's defect was this button covering stop 02's address mid-list, and a
-                    // bottom content padding could never fix that: content still scrolled under a
-                    // floating button. A reserved band means the list's viewport ends above the
-                    // button, so no stop card can render beneath it at any scroll position.
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        color = Paper
-                    ) {
-                        TrippinButton(
-                            text = if (isLocked) "Plan is locked" else "Change the plan",
-                            enabled = !isLocked,
-                            onClick = { showEditDialog = true }
-                        )
-                    }
                 }
             }
         }
+    }
 
-        // Conversational Edit Modal
-        if (showEditDialog) {
-            AlertDialog(
-                onDismissRequest = { showEditDialog = false },
-                containerColor = Panel,
-                titleContentColor = Ink,
-                textContentColor = Ink,
-                title = { Text("Change the plan", style = TrippinType.Heading) },
-                text = {
-                    Column {
-                        Text(
-                            "Say what you want different. For example: shift the museum to the afternoon, or add a coffee break at 3pm.",
-                            style = TrippinType.Body
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = editInstruction,
-                            onValueChange = { editInstruction = it },
-                            placeholder = { Text("e.g. Add a coffee break at 3pm", style = TrippinType.Body) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = trippinFieldInk(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        modifyError?.let { message ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                message,
-                                color = DangerCrimson,
-                                style = TrippinType.Body
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        colors = trippinButtonColors(),
-                        enabled = !isModifying && editInstruction.isNotBlank(),
-                        onClick = {
-                            val instruction = editInstruction.trim()
-                            val itineraryId = tripDetails?.itinerary?.id
-                            if (instruction.isBlank() || itineraryId == null) return@Button
-                            scope.launch {
-                                try {
-                                    isModifying = true
-                                    modifyError = null
-                                    NetworkModule.apiService.modifyItinerary(
-                                        itineraryId,
-                                        ModifyItineraryRequestDto(instruction = instruction)
-                                    )
-                                    val updated = NetworkModule.apiService.getTripDetails(tripId)
-                                    tripDetails = updated
-                                    TripCacheManager.putTrip(tripId, updated)
-                                    editInstruction = ""
-                                    showEditDialog = false
-                                } catch (_: Exception) {
-                                    modifyError = "Could not apply that change"
-                                } finally {
-                                    isModifying = false
-                                }
-                            }
-                        }
-                    ) {
-                        if (isModifying) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = LocalContentColor.current
-                            )
-                        } else {
-                            Text("Apply", style = TrippinType.Label)
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showEditDialog = false },
-                        colors = trippinTextButtonColors()
-                    ) {
-                        Text("Cancel", style = TrippinType.Label)
-                    }
-                }
-            )
-        }
-
-        // Delete trip confirmation dialog. The plan's section 7 table gives this control's wording as
-        // Delete trip, and the identifiers here used to say Scrap, which is the same table's costume
-        // language for it.
-        if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
-                containerColor = Panel,
-                titleContentColor = Ink,
-                textContentColor = Ink,
-                title = { Text("Delete this trip", style = TrippinType.Heading) },
-                text = {
-                    Text(
-                        "This deletes the trip and its plan. It cannot be undone.",
-                        style = TrippinType.Body
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        colors = trippinButtonColors(DangerCrimson),
-                        enabled = !isDeleting,
-                        onClick = { handleDeleteTrip() }
-                    ) {
-                        if (isDeleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = LocalContentColor.current
-                            )
-                        } else {
-                            Text("Delete", style = TrippinType.Label)
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        enabled = !isDeleting,
-                        onClick = { showDeleteDialog = false },
-                        colors = trippinTextButtonColors()
-                    ) {
-                        Text("Keep", style = TrippinType.Label)
-                    }
-                }
-            )
-        }
+    if (showEditDialog) {
+        ModifyDialog(
+            busy = state.busy,
+            onDismiss = { showEditDialog = false },
+            onApply = { instruction -> viewModel.modify(instruction) { ok -> if (ok) showEditDialog = false } }
+        )
+    }
+    if (showDeleteDialog) {
+        DeleteDialog(busy = state.busy, onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.delete() })
     }
 }
 
 @Composable
-fun QuickReplanChip(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.border(
-            width = 1.5.dp,
-            color = if (enabled) Ink else Ink.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(6.dp)
-        ),
-        color = if (enabled) Panel else Paper,
-        shape = RoundedCornerShape(6.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (enabled) AccentCrimson else InkMuted,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = TrippinType.Caption,
-                color = if (enabled) Ink else InkMuted
-            )
-        }
-    }
-}
-
-@Composable
-fun ActivityComicCard(
-    activity: ActivityDto,
-    index: Int,
-    onNavigateClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
-    val commitHaptic = rememberCommitHaptic()
-    var isVisited by remember {
-        mutableStateOf(TripCacheManager.isActivityVisited(activity.id))
-    }
-    // The tick counts committed marks rather than reading isVisited, so the motion runs when the
-    // user marks the stop and not when the card is composed already marked.
-    var visitedCommits by remember { mutableIntStateOf(0) }
-
-    val photoUrl = activity.effectivePhotoUrl
-    val place = activity.place
-    val rawAddress = place?.formattedAddress.orEmpty()
-
-    // An address is either navigable or it is not printed as one. A prefecture repeated twice, or a
-    // ward with no street, is not something a traveller standing on a pavement can walk to, and the
-    // audit found exactly that case sitting next to a button promising to take them there.
-    val address = rawAddress.takeIf { isStreetLevelAddress(it) }
-    val coordinates = place?.location?.let { point ->
-        if (point.latitude == 0.0 && point.longitude == 0.0) null
-        else String.format(java.util.Locale.US, "%.5f, %.5f", point.latitude, point.longitude)
-    }
-    // Coordinates navigate honestly, which is why the action survives an unusable street address.
-    val canNavigate = address != null || coordinates != null
-
-    Column {
-        if (activity.travelTimeFromPreviousMinutes > 0) {
-            Row(
-                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(Ink, RoundedCornerShape(2.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+private fun BuildStatePane(state: ItineraryUiState, onDismiss: () -> Unit) {
+    val colors = TrippinTheme.colors
+    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (state.buildFailed) {
+                Text("The plan could not be built", style = TrippinType.Title, color = colors.danger)
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "${activity.travelTimeFromPreviousMinutes} min travel from the stop before",
-                    style = TrippinType.Caption,
-                    color = InkMuted
+                    "Nothing was saved. You can try again, or change the trip and rebuild.",
+                    style = TrippinType.Body,
+                    color = colors.inkMuted,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(2.dp, Ink, RoundedCornerShape(10.dp)),
-                color = if (isVisited) GoodInkSurface else Paper,
-                shape = RoundedCornerShape(10.dp)
-            ) {
-            Column {
-                // Venue Image Header (Real Photography from Wikimedia / OSM)
-                if (!photoUrl.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                    ) {
-                        AsyncImage(
-                            model = photoUrl,
-                            contentDescription = activity.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                        )
-                        // Photo Source Tag. The source is named only when the app can read it off
-                        // the URL's host; a host it does not recognise gets no tag at all rather
-                        // than a claim that the picture is map data.
-                        val credit = photoCredit(photoUrl)
-                        if (credit != null) {
-                            Surface(
-                                color = Ink.copy(alpha = 0.75f),
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(8.dp)
-                            ) {
-                                Text(
-                                    text = credit,
-                                    color = Paper,
-                                    style = TrippinType.Caption,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                    HorizontalDivider(thickness = 2.dp, color = Ink)
-                } else {
-                    // No real photograph of this venue exists, so no photograph is shown. The plate
-                    // names the place in its own letters and its own category instead of using a
-                    // stand-in image, and the same 2dp rule closes the header as on a card that has
-                    // a photograph.
-                    PlacePlate(
-                        title = activity.title,
-                        category = activity.type,
-                        height = 150.dp
-                    )
-                    HorizontalDivider(thickness = 2.dp, color = Ink)
-                }
-
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = AccentCrimson,
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(4.dp))
-                            ) {
-                                Text(
-                                    text = String.format("%02d", index),
-                                    // The ink on this filled crimson chip is OnCrimson, the token for
-                                    // whatever sits on a crimson control, not the page's Paper.
-                                    color = OnCrimson,
-                                    style = TrippinType.Caption,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${activity.startTime} - ${activity.endTime}",
-                                style = TrippinType.NumericSmall,
-                                color = Ink
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            // Printed only in the currency this stop itself declares. A stop that
-                            // carries an amount but no currency of its own prints nothing here,
-                            // rather than borrowing the trip currency for a number it was not
-                            // sent in.
-                            val stopMoney = activity.statedMoney()
-                            if (stopMoney != null) {
-                                Text(
-                                    text = formatStatedAmount(stopMoney.value, stopMoney.currency),
-                                    style = TrippinType.NumericSmall,
-                                    color = Ink
-                                )
-                            }
-
-                            // Visited Check-Off Badge
-                            Surface(
-                                onClick = {
-                                    commitHaptic()
-                                    isVisited = TripCacheManager.toggleActivityVisited(activity.id)
-                                    visitedCommits++
-                                },
-                                shape = RoundedCornerShape(4.dp),
-                                color = if (isVisited) GoodInkSurface else Panel,
-                                modifier = Modifier
-                                    .tickOnCommit(visitedCommits)
-                                    .border(
-                                        1.dp,
-                                        if (isVisited) GoodInk else Ink,
-                                        RoundedCornerShape(4.dp)
-                                    )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (isVisited) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                        contentDescription = "Mark visited",
-                                        tint = if (isVisited) GoodInk else Ink,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = if (isVisited) "Visited" else "Mark visited",
-                                        style = TrippinType.Caption,
-                                        color = if (isVisited) GoodInk else Ink
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = activity.title,
-                        style = TrippinType.Heading,
-                        color = Ink
-                    )
-
-                    if (!activity.reason.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = activity.reason,
-                            style = TrippinType.Body,
-                            color = Ink.copy(alpha = 0.8f)
-                        )
-                    }
-
-                    if (address != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = address,
-                            style = TrippinType.Body,
-                            color = InkMuted
-                        )
-                    } else {
-                        // The map data has no street for this venue, so the screen says that and gives
-                        // the one thing that is navigable instead of printing an address that is not.
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (coordinates != null) {
-                                "No street address in the map data. It sits at $coordinates."
-                            } else {
-                                "No street address in the map data for this venue."
-                            },
-                            style = TrippinType.Body,
-                            color = InkMuted
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Action buttons: Copy Address & Navigate in Maps
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val copyable = address ?: coordinates
-                        if (copyable != null) {
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(copyable))
-                                    commitHaptic()
-                                    Toast.makeText(
-                                        context,
-                                        if (address != null) "Address copied" else "Coordinates copied",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .border(1.dp, Ink, RoundedCornerShape(6.dp))
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy Address", modifier = Modifier.size(16.dp))
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-
-                        // Offered only when the app can actually get there. Never a button that leads
-                        // nowhere, which is the same rule the Trips card now follows about invites.
-                        if (canNavigate) {
-                            OutlinedButton(
-                                onClick = onNavigateClick,
-                                shape = RoundedCornerShape(6.dp),
-                                colors = trippinOutlinedButtonColors(contentColor = AccentCrimson),
-                                border = trippinOutlinedButtonBorder(width = 1.dp),
-                                modifier = Modifier.height(44.dp)
-                            ) {
-                                Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Take me there", style = TrippinType.Label)
-                            }
-                        }
-                    }
+                Spacer(Modifier.height(20.dp))
+                TrippinButton("Back to the trip", onDismiss, Modifier.width(220.dp))
+            } else {
+                androidx.compose.material3.CircularProgressIndicator(color = colors.accent)
+                Spacer(Modifier.height(20.dp))
+                Text("Building your plan", style = TrippinType.Title, color = colors.ink)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    state.generationStage ?: "Checking opening hours and travel times between every stop.",
+                    style = TrippinType.Body,
+                    color = colors.inkMuted,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                state.generationProgress?.let { pct ->
+                    Spacer(Modifier.height(12.dp))
+                    Text("$pct%", style = TrippinType.Numeric, color = colors.accent)
                 }
             }
         }
     }
 }
+
+@Composable
+private fun LockBanner() {
+    val colors = TrippinTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .background(colors.goodSurface, TrippinTheme.shapes.badge)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Lock, null, tint = colors.good, modifier = Modifier.width(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Locked. Unlock from the menu to change anything.", style = TrippinType.Body, color = colors.good)
+    }
 }
 
-/** An amount together with the currency the stop that carries it declares. */
-private data class StatedMoney(val value: Double, val currency: String)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DaysPane(
+    state: ItineraryUiState,
+    destinationName: String?,
+    onToggleVisited: (String) -> Unit,
+    onReplan: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = TrippinTheme.colors
+    val days = state.days
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = { days.size.coerceAtLeast(1) })
 
-/**
- * The amount this stop may be printed with, or null when it may not be printed at all.
- *
- * A stop that states an amount but no currency of its own is not printable: there is no honest
- * symbol for it, and borrowing the trip currency would label the number as money it was not sent
- * in. The backend drops such an amount before it leaves the server, and this is the second half
- * of the same rule, on the screen.
- */
-private fun ActivityDto.statedMoney(): StatedMoney? {
-    val amount = estimatedCost ?: return null
-    if (amount <= 0.0) return null
-    val code = currency?.trim()?.uppercase()?.takeIf { it.isNotBlank() } ?: return null
-    return StatedMoney(amount, code)
+    Column(modifier) {
+        // Quick replan chips
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val enabled = !state.isLocked && !state.busy
+            TrippinChoiceChip("Rain", false, { if (enabled) onReplan("rain") }, leadingIcon = Icons.Default.Thunderstorm)
+            TrippinChoiceChip("Running late", false, { if (enabled) onReplan("running-late") }, leadingIcon = Icons.Default.AccessTime)
+            TrippinChoiceChip("Tired", false, { if (enabled) onReplan("tired") }, leadingIcon = Icons.Default.Hotel)
+            TrippinChoiceChip("Trim the plan", false, { if (enabled) onReplan("budget-cut") }, leadingIcon = Icons.Default.ContentCut)
+        }
+
+        state.message?.let { msg ->
+            Text(
+                msg.text,
+                style = TrippinType.Body,
+                color = when (msg.tone) {
+                    MessageTone.GOOD -> colors.good
+                    MessageTone.WORKING -> colors.inkMuted
+                    MessageTone.BAD -> colors.danger
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
+        if (days.isEmpty()) {
+            MessageState(
+                icon = Icons.Default.Map,
+                title = "No plan yet",
+                body = "This trip has no itinerary yet.",
+                modifier = Modifier.weight(1f)
+            )
+            return@Column
+        }
+
+        // Day tabs synced to the pager
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            days.forEachIndexed { index, day ->
+                TrippinChoiceChip(
+                    text = "Day ${day.dayIndex}",
+                    selected = pagerState.currentPage == index,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } }
+                )
+            }
+        }
+
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
+            days.getOrNull(page)?.let { day ->
+                DayList(day, state, destinationName, onToggleVisited, multiDay = days.size > 1)
+            }
+        }
+    }
 }
 
+@Composable
+private fun DayList(
+    day: ItineraryDayDto,
+    state: ItineraryUiState,
+    destinationName: String?,
+    onToggleVisited: (String) -> Unit,
+    multiDay: Boolean
+) {
+    val colors = TrippinTheme.colors
+    val activities = day.activities
+    val priced = activities.mapNotNull { it.statedMoney() }
+    val singleCurrency = priced.map { it.currency }.distinct().singleOrNull()
+    val dayTotal = if (singleCurrency == null) null else priced.sumOf { it.value }
+    val visitedCount = activities.count { it.id in state.visited }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            TrippinCard {
+                Column(Modifier.padding(14.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Day ${day.dayIndex} · ${day.date}", style = TrippinType.Label, color = colors.ink)
+                        if (dayTotal != null && dayTotal > 0) {
+                            Text("Stops total ${formatStatedAmount(dayTotal, singleCurrency)}", style = TrippinType.Caption, color = colors.ink)
+                        }
+                    }
+                    if (!day.summary.isNullOrBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(day.summary, style = TrippinType.Body, color = colors.ink)
+                    }
+                    if (!day.weatherSummary.isNullOrBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(day.weatherSummary, style = TrippinType.Caption, color = colors.inkMuted)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        val stopWord = if (activities.size == 1) "stop" else "stops"
+                        Text("${activities.size} $stopWord · $visitedCount visited", style = TrippinType.Caption, color = colors.inkMuted)
+                        if (multiDay) Text("Swipe for other days", style = TrippinType.Caption, color = colors.inkMuted)
+                    }
+                }
+            }
+        }
+        items(activities.size) { i ->
+            val act = activities[i]
+            ActivityCard(
+                activity = act,
+                index = i + 1,
+                visited = act.id in state.visited,
+                onToggleVisited = { onToggleVisited(act.id) },
+                destinationName = destinationName
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModifyDialog(busy: Boolean, onDismiss: () -> Unit, onApply: (String) -> Unit) {
+    val colors = TrippinTheme.colors
+    var instruction by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        containerColor = colors.panel,
+        titleContentColor = colors.ink,
+        textContentColor = colors.ink,
+        title = { Text("Change the plan", style = TrippinType.Heading) },
+        text = {
+            Column {
+                Text("Say what you want different. For example: shift the museum to the afternoon, or add a coffee break at 3pm.", style = TrippinType.Body, color = colors.inkMuted)
+                Spacer(Modifier.height(12.dp))
+                TrippinTextField(
+                    value = instruction,
+                    onValueChange = { instruction = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    placeholder = "e.g. Add a coffee break at 3pm"
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onApply(instruction) }, enabled = !busy && instruction.isNotBlank()) {
+                Text(if (busy) "Applying..." else "Apply", style = TrippinType.Label, color = colors.accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel", style = TrippinType.Label, color = colors.inkMuted) }
+        }
+    )
+}
+
+@Composable
+private fun DeleteDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val colors = TrippinTheme.colors
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        containerColor = colors.panel,
+        titleContentColor = colors.ink,
+        textContentColor = colors.ink,
+        title = { Text("Delete this trip", style = TrippinType.Heading) },
+        text = { Text("This deletes the trip and its plan. It cannot be undone.", style = TrippinType.Body, color = colors.inkMuted) },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !busy) {
+                Text(if (busy) "Deleting..." else "Delete", style = TrippinType.Label, color = colors.danger)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
+        }
+    )
+}
