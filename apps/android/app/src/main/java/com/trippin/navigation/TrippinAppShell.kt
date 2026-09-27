@@ -162,19 +162,21 @@ private fun SignedInShell(viewModel: ShellViewModel) {
             }
         }
 
+        val tabOptions: androidx.navigation.NavOptionsBuilder.() -> Unit = {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
         TrippinBottomBar(
             currentDestination = currentDestination,
             onSelect = { tab ->
-                val target: Destination = when (tab) {
-                    ShellTab.TRIPS -> Trips
-                    ShellTab.PLAN -> Plan(currentTripId.orEmpty())
-                    ShellTab.GROUP -> Group(currentTripId.orEmpty())
-                    ShellTab.YOU -> You
-                }
-                navController.navigate(target) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                // Navigate with the concrete route type at the call site: type-safe navigate resolves
+                // the serializer from the reified type, so upcasting to Destination first would fail.
+                when (tab) {
+                    ShellTab.TRIPS -> navController.navigate(Trips, tabOptions)
+                    ShellTab.PLAN -> navController.navigate(Plan(currentTripId.orEmpty()), tabOptions)
+                    ShellTab.GROUP -> navController.navigate(Group(currentTripId.orEmpty()), tabOptions)
+                    ShellTab.YOU -> navController.navigate(You, tabOptions)
                 }
             }
         )

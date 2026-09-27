@@ -125,7 +125,7 @@ fun ItineraryScreen(
                     })
                     Box {
                         TrippinIconButton(Icons.Default.MoreVert, "More", { showMenu = true })
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = colors.panel) {
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             DropdownMenuItem(
                                 text = { Text(if (state.isLocked) "Unlock the plan" else "Lock the plan", style = TrippinType.Label, color = colors.ink) },
                                 leadingIcon = { Icon(if (state.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, null, tint = colors.ink) },
