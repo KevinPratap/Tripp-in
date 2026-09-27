@@ -1,219 +1,175 @@
 package com.trippin.feature.map
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import com.trippin.core.cache.TripCacheManager
-import com.trippin.core.design.*
-import com.trippin.core.network.NetworkModule
-import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.MessageState
+import com.trippin.core.design.TrippinButton
+import com.trippin.core.design.TrippinCard
+import com.trippin.core.design.TrippinChoiceChip
+import com.trippin.core.design.TrippinScaffold
+import com.trippin.core.design.TrippinTopBar
+import com.trippin.core.design.TrippinTheme
+import com.trippin.core.design.TrippinType
+import com.trippin.core.network.ActivityDto
+import com.trippin.core.network.GeoPointDto
+import java.util.Locale
 
-@SuppressLint("SetJavaScriptEnabled")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     tripId: String,
-    onNavigateBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: MapViewModel = hiltViewModel()
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val colors = TrippinTheme.colors
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val days = state.details?.itinerary?.days.orEmpty()
+    var selectedDay by remember(days.size) { mutableIntStateOf(0) }
+    val destinationName = state.details?.trip?.destination
 
-    /* A trip that has already been opened is in the cache, so the bar and the preview card can be
-     * drawn from it while the refetch runs instead of leaving the screen blank. */
-    val cachedTrip = remember(tripId) { TripCacheManager.getTrip(tripId) }
-    var tripDetails by remember { mutableStateOf(cachedTrip) }
-    var isLoading by remember { mutableStateOf(cachedTrip == null) }
-    var loadFailed by remember { mutableStateOf(false) }
-
-    val loadTrip: () -> Unit = {
-        scope.launch {
-            if (tripDetails == null) isLoading = true
-            loadFailed = false
-            try {
-                val fetched = NetworkModule.apiService.getTripDetails(tripId)
-                tripDetails = fetched
-                TripCacheManager.putTrip(tripId, fetched)
-            } catch (_: Exception) {
-                /* A failed load is stated on the screen rather than swallowed. Nothing is drawn to
-                 * fill the gap: no title, no card, no place name. */
-                if (tripDetails == null) loadFailed = true
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(tripId) {
-        loadTrip()
-    }
-
-    /* Only ever the destination the server sent. There is no stand-in, because a screen that names
-     * a place the trip does not have is worse than one that names none. */
-    val destination = tripDetails?.trip?.destination
-    val firstDay = tripDetails?.itinerary?.days?.firstOrNull()
-    val activities = firstDay?.activities ?: emptyList()
-    val firstAct = activities.firstOrNull()
-    val secondAct = activities.getOrNull(1)?.takeIf { it.id != firstAct?.id }
-    /* The day this card shows is read off the day itself. "Day 1" was a literal, which is only
-     * ever true while the first day really is the first one. */
-    val dayLabel = firstDay?.let { "Day ${it.dayIndex}" }
-
-    Scaffold(
+    TrippinScaffold(
         topBar = {
-            TopAppBar(
-                colors = trippinTopBarColors(),
-                title = {
-                    Column {
-                        Text(
-                            text = destination?.uppercase() ?: "Map",
-                            style = TrippinType.Heading
-                        )
-                        Text(
-                            // The route line is only true once the trip is here. Before that the
-                            // bar says what the screen is doing, not what the trip contains.
-                            text = when {
-                                destination != null -> "OpenStreetMap route"
-                                isLoading -> "Loading the trip"
-                                else -> "Trip not loaded"
-                            },
-                            style = TrippinType.Caption,
-                            color = InkMuted
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        val webUrl = "https://web-production-a9ec6.up.railway.app/trip/$tripId"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
-                        context.startActivity(intent)
-                    }) {
-                        Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser", tint = AccentCrimson)
-                    }
-                }
+            TrippinTopBar(
+                title = destinationName?.let { "Route in $it" } ?: "Route",
+                subtitle = "Every stop in order, with real coordinates",
+                onBack = onBack
             )
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (loadFailed && tripDetails == null) {
-                /* The one place this screen says a load did not happen. The cause is not claimed,
-                 * because this catch covers both being offline and a trip that is not there. */
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Could not load this trip",
-                        style = TrippinType.Title,
-                        color = DangerCrimson
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        colors = trippinButtonColors(),
-                        onClick = { loadTrip() }
-                    ) {
-                        Text("Retry", style = TrippinType.Label)
-                    }
-                }
-            } else {
-                // Real OpenStreetMap Leaflet Map WebView
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx ->
-                        WebView(ctx).apply {
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            webViewClient = WebViewClient()
-                            loadUrl("https://web-production-a9ec6.up.railway.app/trip/$tripId")
-                        }
-                    }
-                )
-
-                // Bottom Floating Activity Preview Card
-                if (firstAct != null) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .border(2.5.dp, Ink, RoundedCornerShape(12.dp)),
-                        color = Paper,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    // The day's first two stops are joined with the word "to", so
-                                    // every character this screen draws is plain English.
-                                    text = if (secondAct != null) {
-                                        "${firstAct.title} to ${secondAct.title}"
-                                    } else {
-                                        firstAct.title
-                                    },
-                                    style = TrippinType.Heading,
-                                    color = Ink
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    // The day's own day index, then the stop's own times. No day
-                                    // claim at all if the day states none.
-                                    text = listOfNotNull(
-                                        dayLabel,
-                                        "${firstAct.startTime} to ${firstAct.endTime}"
-                                    ).joinToString(", "),
-                                    style = TrippinType.Caption,
-                                    color = InkMuted
-                                )
-                            }
-                            Button(
-                                colors = trippinButtonColors(),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.border(1.5.dp, Ink, RoundedCornerShape(8.dp)),
-                                onClick = {
-                                    val query = Uri.encode("${firstAct.title}, $destination")
-                                    val gmmIntentUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                    context.startActivity(mapIntent)
-                                }
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.loading -> LoadingBlock("Loading the route")
+                days.isEmpty() -> MessageState(Icons.Default.Map, "No route yet", state.error ?: "This trip has no stops to map yet.")
+                else -> {
+                    val day = days.getOrNull(selectedDay) ?: days.first()
+                    val stops = day.activities
+                    val mappable = stops.filter { it.hasCoordinates() }
+                    Column(Modifier.fillMaxSize()) {
+                        if (days.size > 1) {
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Directions, contentDescription = null)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Take me there", style = TrippinType.Label)
+                                days.forEachIndexed { i, d ->
+                                    TrippinChoiceChip("Day ${d.dayIndex}", i == selectedDay) { selectedDay = i }
+                                }
                             }
+                        }
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            items(stops.size) { i -> RouteRow(i + 1, stops[i], last = i == stops.lastIndex) }
+                        }
+                        Box(Modifier.background(colors.paper).padding(16.dp)) {
+                            TrippinButton(
+                                text = if (mappable.size >= 2) "Open this day's route in Maps" else "Open in Maps",
+                                onClick = { openRoute(context, mappable) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = mappable.isNotEmpty(),
+                                leadingIcon = Icons.Default.Directions
+                            )
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RouteRow(index: Int, activity: ActivityDto, last: Boolean) {
+    val colors = TrippinTheme.colors
+    Row(Modifier.fillMaxWidth()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
+            Box(
+                Modifier.size(28.dp).background(colors.accent, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(String.format(Locale.US, "%02d", index), style = TrippinType.Caption, color = colors.onAccent)
+            }
+            if (!last) {
+                Box(Modifier.width(2.dp).height(40.dp).background(colors.line))
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        TrippinCard(modifier = Modifier.padding(bottom = 8.dp)) {
+            Column(Modifier.padding(12.dp)) {
+                Text(activity.title, style = TrippinType.Label, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${activity.startTime} - ${activity.endTime}", style = TrippinType.Caption, color = colors.inkMuted)
+                val loc = activity.place?.location
+                if (loc.hasCoordinates()) {
+                    Text(
+                        String.format(Locale.US, "%.5f, %.5f", loc!!.latitude, loc.longitude),
+                        style = TrippinType.Caption,
+                        color = colors.inkMuted
+                    )
+                } else {
+                    Text("No coordinates in the map data", style = TrippinType.Caption, color = colors.inkMuted)
+                }
+            }
+        }
+    }
+}
+
+private fun GeoPointDto?.hasCoordinates(): Boolean =
+    this != null && (latitude != 0.0 || longitude != 0.0)
+
+private fun ActivityDto.hasCoordinates(): Boolean = place?.location.hasCoordinates()
+
+private fun openRoute(context: android.content.Context, stops: List<ActivityDto>) {
+    val points = stops.mapNotNull { it.place?.location }.filter { it.latitude != 0.0 || it.longitude != 0.0 }
+    if (points.isEmpty()) return
+    val uri = if (points.size == 1) {
+        val p = points.first()
+        Uri.parse("https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}")
+    } else {
+        val destination = points.last()
+        val origin = points.first()
+        val waypoints = points.drop(1).dropLast(1).joinToString("|") { "${it.latitude},${it.longitude}" }
+        val base = StringBuilder("https://www.google.com/maps/dir/?api=1")
+        base.append("&origin=${origin.latitude},${origin.longitude}")
+        base.append("&destination=${destination.latitude},${destination.longitude}")
+        if (waypoints.isNotEmpty()) base.append("&waypoints=").append(Uri.encode(waypoints))
+        base.append("&travelmode=walking")
+        Uri.parse(base.toString())
+    }
+    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
 }

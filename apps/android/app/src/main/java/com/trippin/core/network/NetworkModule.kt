@@ -16,29 +16,16 @@ import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
+/**
+ * The API client, wired entirely through Hilt. There is no static accessor and no init() call any
+ * more: every screen reaches the API through an injected repository, and the interceptor that signs
+ * requests is itself injected with the session store, so nothing captures a token at construction.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     const val BASE_URL = "https://backend-production-011e.up.railway.app/"
-
-    /**
-     * Application context captured once from TrippinApp, so the static `apiService`
-     * accessor the screens use can build the client without Hilt injection.
-     */
-    private var appContext: Context? = null
-
-    fun init(context: Context) {
-        appContext = context.applicationContext
-        SessionStore.init(context.applicationContext)
-    }
-
-    val apiService: ApiService by lazy {
-        val context = requireNotNull(appContext) {
-            "NetworkModule.init(context) must be called from TrippinApp.onCreate()"
-        }
-        provideApiService(provideRetrofit(provideOkHttpClient(context), provideJson()))
-    }
 
     @Provides
     @Singleton
@@ -50,31 +37,16 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        val debuggable =
-            (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-
+    fun provideOkHttpClient(
+        @ApplicationContext context: Context,
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient {
+        val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val builder = chain
-                    .request()
-                    .newBuilder()
-                    .header("Accept", "application/json")
-
-                // The session token is read from the store on every request rather than captured
-                // once, so signing in or out takes effect on the very next call. An install with no
-                // session sends no identity at all, which is what makes the API answer 401 and the
-                // app show the sign-in screen instead of quietly acting as a device.
-                SessionStore.token?.let { token ->
-                    builder.header("Authorization", "Bearer $token")
-                }
-
-                chain.proceed(builder.build())
-            }
+            .addInterceptor(authInterceptor)
             .apply {
-                // Bodies are only dumped on debug builds, never on a release install.
                 if (debuggable) {
                     addInterceptor(HttpLoggingInterceptor().apply {
                         level = HttpLoggingInterceptor.Level.BODY
@@ -97,7 +69,5 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService {
-        return retrofit.create(ApiService::class.java)
-    }
+    fun provideApiService(retrofit: Retrofit): ApiService = retrofit.create(ApiService::class.java)
 }
