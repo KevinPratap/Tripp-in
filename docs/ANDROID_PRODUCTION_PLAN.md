@@ -259,15 +259,49 @@ ordered so loading outranks no-matches, with tests on the ordering.
 **CI actually covers this branch.** It ran only on `main` and `develop`, so a feature branch got no
 verification at all until a pull request existed. Compile is now its own step, and lint runs.
 
+### Phase 2 and 3, in progress
+
+**Surfaces have three tiers now.** `TrippinSurface` was documented as "the one raised surface in the
+app" and behaved like it: a 2.5dp edge of full ink and a hard 4dp offset shadow on cards, buttons,
+chips, fields and tab strips alike. FLAT (hairline, no shadow) is the default, RAISED adds a soft
+shadow or a lighter surface in dark mode, and ACTION keeps the hard offset shadow for the primary
+action alone. On Trips, the trip happening right now is the only card that lifts, which is what makes
+the lift mean anything. The quiet tiers also reserve no space, where the old surface padded its own
+end and bottom, so a column of cards no longer sits 4dp off its own gutter.
+
+**Tracking and case.** Label carried 0.8sp and Caption 1.0sp on nearly every string in the app, which
+reads as machine-set rather than typeset; both are now effectively none. Upper case moved to a new
+Eyebrow role so it is a deliberate choice for a few group labels. Status pills dropped their ink
+border and are carried by their tint.
+
+**Date shortcuts.** This weekend, next weekend, a week. Setting a weekend used to be four taps across
+two calendar dialogs. The week arithmetic takes today as an argument rather than reading the clock,
+which is what made the awkward days correct: on a Saturday this weekend starts today, and on a Sunday
+it is today alone rather than six days away.
+
+**Skeletons instead of spinners.** Trips, Plan, Today and Group load into the shape of the rows that
+are coming, rather than a centred spinner over the words "Loading your trips". They sit still when the
+device has animations off, read from `ANIMATOR_DURATION_SCALE`. The app shell's startup and the map
+keep spinners, having no content shape to stand in for.
+
 ### Counts
 
+
 - Backend: 135 tests across 14 suites, up from 86. Backend and web builds clean.
-- Android: 30 unit tests, up from zero. The app had no `test/` directory at all.
+- Android: 46 unit tests, up from zero. The app had no `test/` directory at all.
 
 ### Not started
 
-Phases 2 through 5: the design system re-tier, the rest of the convenience layer, the screen rebuilds,
-and release hardening. Plus the rate limiter's move to Redis.
+The screen rebuilds on the new tiers (phase 4) and release hardening (phase 5): R8 with verified keep
+rules, signing from environment variables, a baseline profile, crash reporting, and the accessibility
+pass. Still open in the convenience layer: a notification when a plan is ready, deep links, the share
+and calendar and maps hand-offs, haptics, undo on delete, recent destinations, and a search surface
+that makes saved places reachable. Plus the rate limiter's move to Redis.
+
+Phase 4 is where the design direction wants a decision from Kevin: the mock at
+https://claude.ai/artifact/QEPKAgKcWsZLBpgArc8H5h shows the current Trips screen beside the proposed
+one, and the two open questions on it are whether trip cards carry a destination photo and whether the
+primary button keeps its hard shadow.
 
 ### Still unverified
 
