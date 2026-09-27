@@ -65,8 +65,12 @@ are the only ways to get an identity." The only way in is a magic link, and the 
 (`auth.service.ts:20`). So a real user cannot get into the app at all. This is the single most
 important fix and it needs your Resend key.
 
-**Nothing rate-limits generation.** One run costs roughly two minutes of OSM, OSRM and Gemini calls.
-`POST /trips/:id/generate` is unthrottled, which is a free way to burn through your free tiers.
+**Correction to an earlier claim in this plan.** I first wrote that generation was unthrottled. That
+was wrong: `POST /trips/:id/generate` carries `@RateLimit({ limit: 5, windowMs: 60000 })`
+(`trips.controller.ts:34`), and every other write route is limited too. The real gap is narrower. The
+limiter keeps its buckets in a process-local `Map` (`rate-limit.guard.ts:43`), so on more than one
+Railway instance each instance counts separately and the effective limit multiplies by the instance
+count. Redis is already wired into the app and is where that state belongs.
 
 ### Verified baseline
 
@@ -88,7 +92,8 @@ important fix and it needs your Resend key.
    Returns a canonical name, region, country code, coordinates and a stable id.
 3. Currency inferred from the **resolved country code** that autocomplete returns, not from matching
    strings against a city name. Shared logic so Android and the backend agree.
-4. Rate limit on trip generation, per session and per IP.
+4. Move the rate limiter's buckets into Redis so the limit holds across instances, and bound the new
+   autocomplete route, which is called as the traveller types.
 5. Test infrastructure for Android: JUnit + Turbine + a Compose UI test harness, plus an Android job
    in CI (compile, unit tests, lint). CI has no Android job today.
 
@@ -211,3 +216,28 @@ with the code they cover.
 
 I will commit in reviewable pieces on `claude/pensive-allen-dm04zu` with explicit file paths, and
 report what passed and what did not at each step.
+
+---
+
+## 6. Progress
+
+**Done and verified (backend suite 135 passing across 14 suites, backend and web builds clean):**
+
+- `GET /api/v1/places/autocomplete`, backed by Photon, returning resolved coordinates and the
+  country's currency per suggestion. 23 tests. The fixtures follow Photon's documented shape; the
+  live service is unreachable from this environment, so that shape still wants one real check.
+- Currency from the ISO country code, replacing the web app's hand-written city table and the Android
+  app's hardcoded INR. 10 tests.
+- Real email delivery for magic links behind a `Mailer` seam, Resend or console. 12 tests.
+- An account takeover fixed: `POST /auth/request-link` returned the raw sign in token in its response
+  body, on a route that by design requires no identity. It is now withheld in production and whenever
+  a provider is delivering. 5 tests.
+- CI now runs on `claude/**` branches and compiles the Android sources as their own step, plus lint.
+  Previously no branch but `main` and `develop` was checked at all.
+
+**Not started:** phases 2 through 5, and the rate limiter's move to Redis.
+
+**Still blocked:** everything that needs the Android toolchain. `dl.google.com` remains denied here,
+so the two Kotlin files changed so far (the magic link DTO and the sign in view model, both forced by
+the wire contract change) are uncompiled locally. CI compiles them on push now, which is the
+substitute available.
