@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Lock
@@ -69,6 +70,7 @@ import com.trippin.core.design.TrippinType
 import com.trippin.core.design.formatStatedAmount
 import com.trippin.core.design.rememberIsOffline
 import com.trippin.core.network.ItineraryDayDto
+import com.trippin.core.network.TripSummaryDto
 import com.trippin.feature.today.TodayContent
 import kotlinx.coroutines.launch
 
@@ -131,6 +133,22 @@ fun ItineraryScreen(
                                 leadingIcon = { Icon(if (state.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, null, tint = colors.ink) },
                                 onClick = { showMenu = false; viewModel.toggleLock() }
                             )
+                            state.details?.trip?.let { trip ->
+                                DropdownMenuItem(
+                                    text = { Text("Add to calendar", style = TrippinType.Label, color = colors.ink) },
+                                    leadingIcon = { Icon(Icons.Default.CalendarMonth, null, tint = colors.ink) },
+                                    onClick = {
+                                        showMenu = false
+                                        launchAddTripToCalendar(
+                                            context = context,
+                                            trip = trip,
+                                            itineraryStatus = state.details?.itinerary?.status,
+                                            dayCount = days.size,
+                                            stopCount = days.sumOf { it.activities.size }
+                                        )
+                                    }
+                                )
+                            }
                             HorizontalDivider(color = colors.line)
                             DropdownMenuItem(
                                 text = { Text("Delete trip", style = TrippinType.Label, color = colors.danger) },
@@ -399,7 +417,8 @@ private fun DayList(
                 index = i + 1,
                 visited = act.id in state.visited,
                 onToggleVisited = { onToggleVisited(act.id) },
-                destinationName = destinationName
+                destinationName = destinationName,
+                dayDate = day.date
             )
         }
     }
@@ -458,4 +477,35 @@ private fun DeleteDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> 
             TextButton(onClick = onDismiss, enabled = !busy) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
         }
     )
+}
+
+/**
+ * Puts the whole trip on the device calendar as one all-day event, via ACTION_INSERT so the
+ * traveller's own calendar app does the writing and can be trusted with the permission, rather than
+ * this app asking for calendar write access itself.
+ *
+ * Silently does nothing when the trip has no usable dates: there is no place to report a failure from
+ * a menu action, and a malformed date from the server is not something the traveller can fix by trying
+ * again.
+ */
+private fun launchAddTripToCalendar(context: android.content.Context, trip: TripSummaryDto, itineraryStatus: String?, dayCount: Int, stopCount: Int) {
+    val event = com.trippin.core.common.tripCalendarEvent(
+        destination = trip.destination,
+        startDate = trip.startDate,
+        endDate = trip.endDate,
+        dayCount = dayCount,
+        stopCount = stopCount,
+        itineraryStatus = itineraryStatus
+    ) ?: return
+
+    val intent = Intent(Intent.ACTION_INSERT).apply {
+        data = android.provider.CalendarContract.Events.CONTENT_URI
+        putExtra(android.provider.CalendarContract.Events.TITLE, event.title)
+        putExtra(android.provider.CalendarContract.Events.DESCRIPTION, event.description)
+        event.location?.let { putExtra(android.provider.CalendarContract.Events.EVENT_LOCATION, it) }
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, event.allDay)
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.startMillis)
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, event.endMillis)
+    }
+    runCatching { context.startActivity(intent) }
 }

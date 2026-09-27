@@ -99,7 +99,8 @@ fun TodayContent(
                 index = i + 1,
                 visited = act.id in visited,
                 onToggleVisited = { onToggleVisited(act.id) },
-                destinationName = destinationName
+                destinationName = destinationName,
+                dayDate = todaysDay.date
             )
         }
     }
