@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -224,6 +226,16 @@ fun ItineraryScreen(
                     }
                 }
             }
+
+            if (state.deletePending) {
+                UndoDeleteBanner(
+                    onUndo = viewModel::undoDelete,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            }
         }
     }
 
@@ -235,7 +247,42 @@ fun ItineraryScreen(
         )
     }
     if (showDeleteDialog) {
-        DeleteDialog(busy = state.busy, onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.delete() })
+        DeleteDialog(
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.delete()
+            }
+        )
+    }
+}
+
+/**
+ * Sits over the bottom of the screen for the few seconds a delete can still be undone.
+ *
+ * The delete API has no restore, so once the grace window in [ItineraryViewModel.delete] ends there is
+ * nothing left to undo; this banner is gone by then regardless, because [state.deletePending] flips
+ * false the moment that happens.
+ */
+@Composable
+private fun UndoDeleteBanner(onUndo: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = TrippinTheme.colors
+    Row(
+        modifier
+            .clip(TrippinTheme.shapes.card)
+            .background(colors.ink)
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Trip deleted",
+            style = TrippinType.Body,
+            color = colors.paper,
+            modifier = Modifier.weight(1f).padding(vertical = 14.dp)
+        )
+        TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 44.dp)) {
+            Text("Undo", style = TrippinType.Label, color = colors.accent)
+        }
     }
 }
 
@@ -459,22 +506,22 @@ private fun ModifyDialog(busy: Boolean, onDismiss: () -> Unit, onApply: (String)
 }
 
 @Composable
-private fun DeleteDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun DeleteDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val colors = TrippinTheme.colors
     AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        onDismissRequest = onDismiss,
         containerColor = colors.panel,
         titleContentColor = colors.ink,
         textContentColor = colors.ink,
         title = { Text("Delete this trip", style = TrippinType.Heading) },
-        text = { Text("This deletes the trip and its plan. It cannot be undone.", style = TrippinType.Body, color = colors.inkMuted) },
+        text = { Text("This deletes the trip and its plan. You get a few seconds to undo it, and no longer after that.", style = TrippinType.Body, color = colors.inkMuted) },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !busy) {
-                Text(if (busy) "Deleting..." else "Delete", style = TrippinType.Label, color = colors.danger)
+            TextButton(onClick = onConfirm) {
+                Text("Delete", style = TrippinType.Label, color = colors.danger)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !busy) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
+            TextButton(onClick = onDismiss) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
         }
     )
 }
