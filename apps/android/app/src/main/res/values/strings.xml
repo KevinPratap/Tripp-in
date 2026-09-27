@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Trippin\u0027 AI</string>
+    <string name="app_tagline">Verified itineraries only</string>
+    <string name="profile_title">Traveller</string>
+    <string name="profile_subtitle">Trippin\u0027 AI traveller</string>
+</resources>

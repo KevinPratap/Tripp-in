@@ -1,0 +1,20 @@
+{
+  "testCaseId": "multi-city",
+  "name": "Multi-City Tokyo & Kyoto Explorer",
+  "description": "Cross-city journey combining Tokyo modern highlights with Kyoto heritage.",
+  "requirements": {
+    "destination": "Tokyo & Kyoto",
+    "startDate": "2026-10-01",
+    "endDate": "2026-10-06",
+    "travelersCount": 2,
+    "budgetTotal": 3000,
+    "currency": "USD",
+    "pace": "MODERATE",
+    "travelStyles": ["CULTURAL", "ADVENTURE"],
+    "interests": ["Temples", "Bullet Train", "Gardens", "Night Markets"]
+  },
+  "expectedChecks": {
+    "intercityTransitHandled": true,
+    "minDays": 5
+  }
+}

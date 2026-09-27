@@ -1,0 +1,147 @@
+name: Trippin AI CI
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend-and-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.3
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Shared Packages
+        run: |
+          pnpm --filter @trippin/shared-types run build
+          pnpm --filter @trippin/itinerary-schema run build
+          pnpm --filter @trippin/api-contracts run build
+
+      - name: Run Package Tests
+        run: pnpm --filter @trippin/itinerary-schema run test
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @trippin/backend exec prisma generate
+
+      - name: Build Backend
+        run: pnpm --filter @trippin/backend run build
+
+      - name: Run Backend Tests
+        run: pnpm --filter @trippin/backend run test
+
+  web-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.3
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Shared Packages
+        run: |
+          pnpm --filter @trippin/shared-types run build
+          pnpm --filter @trippin/itinerary-schema run build
+          pnpm --filter @trippin/api-contracts run build
+
+      - name: Build Next.js Web App
+        run: pnpm --filter @trippin/web run build
+
+  android-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x apps/android/gradlew
+
+      - name: Compile Android Debug Sources
+        working-directory: apps/android
+        run: ./gradlew compileDebugKotlin --no-daemon
+
+      - name: Run Android Unit Tests
+        working-directory: apps/android
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Run Android Lint
+        working-directory: apps/android
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Upload Lint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lint-report
+          path: apps/android/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+  android-release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: android-check
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x apps/android/gradlew
+
+      - name: Build Signed Release APK
+        working-directory: apps/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: trippin-release-apk
+          path: apps/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

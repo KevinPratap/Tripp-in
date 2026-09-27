@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Window theme only: the UI itself is Compose (see core/design/Theme.kt).
+      The app draws edge to edge, so the bars are transparent and Compose paints under them.
+    -->
+    <style name="Theme.Trippin" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/comic_paper</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:colorAccent">@color/comic_red</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!--
+      The launch theme. The system draws this while the process starts, then the AndroidX splash
+      library hands control to Theme.Trippin. MainActivity calls installSplashScreen() first thing.
+    -->
+    <style name="Theme.Trippin.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/comic_paper</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Trippin</item>
+    </style>
+</resources>

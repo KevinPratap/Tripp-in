@@ -1,0 +1,15 @@
+node_modules
+.pnpm-store
+.next
+dist
+build
+.gradle
+.kotlin
+coverage
+logs
+*.log
+*.tsbuildinfo
+apps/android/app/build
+apps/android/build
+apps/android/.gradle
+apps/web/.next

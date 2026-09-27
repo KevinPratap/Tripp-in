@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:name=".TrippinApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Trippin">
+        <!--
+             singleTask so a shared trip link tapped while the app is already running is delivered to
+             the same activity's onNewIntent rather than starting a second instance of it.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Trippin.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                 A shared trip link (https://web-production-a9ec6.up.railway.app/t/<token>) opens the
+                 app. No android:autoVerify: verifying an App Link needs an assetlinks.json published
+                 at that host, which is outside this app's own release process, so this is an ordinary
+                 deep link. Android still offers the app on a tapped link; without verification it is
+                 an option alongside the browser rather than the only one.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="web-production-a9ec6.up.railway.app"
+                    android:pathPrefix="/t/" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

@@ -1,0 +1,21 @@
+{
+  "testCaseId": "accessibility",
+  "name": "Accessible Travel Paris",
+  "description": "Traveler requiring wheelchair accessibility and elevator-equipped transit, avoiding steep stairs.",
+  "requirements": {
+    "destination": "Paris",
+    "startDate": "2026-07-01",
+    "endDate": "2026-07-04",
+    "travelersCount": 2,
+    "budgetTotal": 1500,
+    "currency": "EUR",
+    "pace": "RELAXED",
+    "travelStyles": ["CULTURAL"],
+    "interests": ["Art", "Scenic Drives", "Gardens"],
+    "accessibilityRequirements": ["WHEELCHAIR_ACCESSIBLE", "STEP_FREE_ACCESS"]
+  },
+  "expectedChecks": {
+    "stepFreeTransit": true,
+    "relaxedPace": true
+  }
+}

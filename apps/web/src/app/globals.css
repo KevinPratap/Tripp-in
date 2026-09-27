@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Keep a focused field clear of the sticky header on small screens */
+input,
+select,
+textarea {
+  scroll-margin-top: 5.5rem;
+}
+
+/* Leaflet's default zoom control is 30px square, below the 44px touch minimum.
+   The map imports leaflet.css after this file, so the override needs !important. */
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-touch .leaflet-control-zoom-in,
+.leaflet-touch .leaflet-control-zoom-out {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 20px !important;
+}
+
+:root {
+  /* Comic Red & Minimalist Palette */
+  --color-primary: #E11D48;
+  --color-primary-hover: #BE123C;
+  --color-primary-light: #FFE4E6;
+  
+  --color-bg: #FAF8F5;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F4F2EE;
+  
+  --color-ink: #18181B;
+  --color-ink-muted: #52525B;
+  --color-ink-faint: #D4D4D8;
+  
+  --color-accent-yellow: #FACC15;
+  --color-accent-blue: #0284C7;
+  
+  --border-ink: 2.5px solid #18181B;
+  --shadow-comic: 4px 4px 0px 0px #18181B;
+  --shadow-comic-sm: 2px 2px 0px 0px #18181B;
+  --shadow-comic-lg: 6px 6px 0px 0px #18181B;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Accessibility: Respect preferred-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+}
+
+/* Comic Graphic Panel Utilities */
+.comic-panel {
+  background-color: var(--color-surface);
+  border: 2.5px solid var(--color-ink);
+}
+
+.comic-panel-red {
+  background-color: var(--color-surface);
+  border: 2.5px solid var(--color-ink);
+}
+
+.comic-panel-sm {
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-ink);
+}
+
+.comic-btn-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border: 2.5px solid var(--color-ink);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.comic-btn-primary:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  background-color: var(--color-primary-hover);
+}
+
+.comic-btn-primary:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+.comic-btn-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: 2.5px solid var(--color-ink);
+  font-weight: 700;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.comic-btn-secondary:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+}
+
+.comic-btn-secondary:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+.comic-tag {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border: 2px solid var(--color-ink);
+}
+
+.comic-halftone {
+  background-image: radial-gradient(#E4E4E7 1.2px, transparent 1.2px);
+  background-size: 10px 10px;
+}
+
+/*
+ * Stamp entrance for the verification badges. The permanent tilt lives on the inner
+ * element as a rotate utility, so this keyframe only animates scale and opacity and the
+ * two never fight over the transform property. The global reduced motion block above
+ * already collapses this animation to nothing for users who ask for less motion.
+ */
+@keyframes stampIn {
+  0% {
+    transform: scale(1.32);
+    opacity: 0.3;
+  }
+  60% {
+    transform: scale(0.97);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-stamp {
+  animation: stampIn 300ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+/*
+ * Motion. One easing for everything that settles, so the app reads as one thing instead of a set of
+ * effects. Nothing here bounces, glows, floats or counts up: motion only reports something that
+ * actually happened (a plan finished, a day ended, a screen arrived). The reduced motion block above
+ * already collapses all of this for people who ask for less movement.
+ */
+:root {
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-arrive: 280ms;
+  --motion-stamp: 600ms;
+  --motion-mark: 220ms;
+}
+
+/* Arriving on a screen: a short rise and fade. Deliberately small, it should read as "you are here"
+   and never as "a page is loading". */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-arrive {
+  animation: arrive var(--motion-arrive) var(--ease-settle) both;
+}
+
+/* A finished plan landing as a stamp. Slower than a badge and it settles rather than springs,
+   because the thing being announced is a whole trip, not a notification. */
+@keyframes planStampIn {
+  0% {
+    opacity: 0;
+    transform: rotate(-1.5deg) scale(1.18);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-1.5deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-1.5deg) scale(1);
+  }
+}
+
+.motion-stamp {
+  animation: planStampIn var(--motion-stamp) var(--ease-settle) both;
+}
+
+/* For a figure that has just been committed. A drawn line says "this is final"; counting a number up
+   would suggest it was still being worked out, which for a sourced price range would be untrue. */
+@keyframes drawUnderline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.motion-underline {
+  transform-origin: left center;
+  animation: drawUnderline 400ms var(--ease-settle) both;
+}
+
+/* A committed action, like a vote landing. */
+@keyframes markIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.motion-mark {
+  animation: markIn var(--motion-mark) var(--ease-settle) both;
+}

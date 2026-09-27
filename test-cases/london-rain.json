@@ -1,0 +1,20 @@
+{
+  "testCaseId": "london-rain",
+  "name": "London Rain Adaptive Itinerary",
+  "description": "Checks weather responsiveness: when high precipitation is forecasted, outdoor activities must be substituted with indoor museums and covered markets.",
+  "requirements": {
+    "destination": "London",
+    "startDate": "2026-10-12",
+    "endDate": "2026-10-15",
+    "travelersCount": 2,
+    "budgetTotal": 1200,
+    "currency": "GBP",
+    "pace": "MODERATE",
+    "travelStyles": ["CULTURAL"],
+    "interests": ["Museums", "Galleries", "Theater", "Gastropubs"]
+  },
+  "expectedChecks": {
+    "weatherAdaptive": true,
+    "indoorPreferredOnRain": true
+  }
+}
