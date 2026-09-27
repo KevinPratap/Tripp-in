@@ -153,9 +153,9 @@ fun TrippinButton(
     val active = enabled && !loading
     TrippinSurface(
         modifier = modifier,
+        tier = SurfaceTier.ACTION,
         shape = TrippinTheme.shapes.button,
         background = if (active) container else colors.panelAlt,
-        borderColor = colors.line,
         fillWidth = true,
         enabled = active,
         onClick = { if (active) onClick() }
@@ -200,8 +200,7 @@ fun TrippinOutlineButton(
         modifier = modifier,
         shape = TrippinTheme.shapes.button,
         background = colors.panel,
-        borderColor = colors.line,
-        shadow = 3.dp,
+        borderColor = colors.controlEdge,
         fillWidth = true,
         enabled = enabled,
         onClick = onClick
@@ -264,8 +263,7 @@ fun TrippinChoiceChip(
         modifier = modifier,
         shape = TrippinTheme.shapes.chip,
         background = if (selected) colors.accent else colors.panel,
-        borderColor = colors.line,
-        shadow = if (selected) 3.dp else 2.dp,
+        borderColor = if (selected) Color.Transparent else colors.controlEdge,
         fillWidth = false,
         onClick = onClick
     ) {
@@ -298,8 +296,8 @@ fun TrippinSegmentedTabs(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .border(2.5.dp, colors.line, TrippinTheme.shapes.button)
-            .background(colors.panel, TrippinTheme.shapes.button)
+            .border(1.dp, colors.hairline, TrippinTheme.shapes.button)
+            .background(colors.panelAlt, TrippinTheme.shapes.button)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -341,8 +339,8 @@ fun trippinTextFieldColors(): TextFieldColors {
         disabledTextColor = colors.inkMuted,
         cursorColor = colors.accent,
         focusedBorderColor = colors.accent,
-        unfocusedBorderColor = colors.line,
-        disabledBorderColor = colors.inkMuted,
+        unfocusedBorderColor = colors.controlEdge,
+        disabledBorderColor = colors.hairline,
         focusedContainerColor = colors.panel,
         unfocusedContainerColor = colors.panel,
         disabledContainerColor = colors.panelAlt,
@@ -400,7 +398,7 @@ fun TrippinTextField(
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
-        style = TrippinType.Label,
+        style = TrippinType.Eyebrow,
         color = TrippinTheme.colors.inkMuted,
         modifier = modifier
     )
@@ -408,7 +406,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 enum class PillTone { ACCENT, GOOD, WARN, NEUTRAL, DANGER }
 
-/** A bordered status pill: VERIFIED, DRAFT, LOCKED, OVER BUDGET. */
+/** A tinted status pill: VERIFIED, DRAFT, LOCKED, OVER BUDGET. Tone carries it, not an ink border. */
 @Composable
 fun StatusPill(text: String, tone: PillTone, modifier: Modifier = Modifier) {
     val colors = TrippinTheme.colors
@@ -421,11 +419,10 @@ fun StatusPill(text: String, tone: PillTone, modifier: Modifier = Modifier) {
     }
     Box(
         modifier = modifier
-            .border(1.5.dp, colors.line, TrippinTheme.shapes.badge)
             .background(bg, TrippinTheme.shapes.badge)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 9.dp, vertical = 4.dp)
     ) {
-        Text(text = text.uppercase(), style = TrippinType.Caption, color = fg)
+        Text(text = text.uppercase(), style = TrippinType.Eyebrow, color = fg)
     }
 }
 

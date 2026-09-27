@@ -42,6 +42,7 @@ import com.trippin.core.design.PillTone
 import com.trippin.core.design.PlacePlate
 import com.trippin.core.design.SectionLabel
 import com.trippin.core.design.StatusPill
+import com.trippin.core.design.SurfaceTier
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
@@ -192,7 +193,12 @@ private fun TripCard(
     }
     val (statusText, statusTone) = statusPill(trip.itineraryStatus ?: trip.status)
 
-    TrippinCard(onClick = onOpen) {
+    // The trip happening right now is the one thing on this screen worth leading with, so it is the
+    // only card that lifts. The rest sit flat, which is what makes the lift mean anything.
+    TrippinCard(
+        tier = if (isLive) SurfaceTier.RAISED else SurfaceTier.FLAT,
+        onClick = onOpen
+    ) {
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),

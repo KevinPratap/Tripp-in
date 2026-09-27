@@ -31,10 +31,26 @@ data class TrippinColors(
     val panel: Color,
     /** A quieter surface, one step off the page: a nested row, a field, a disabled control. */
     val panelAlt: Color,
-    /** The colour of a border or hairline. Ink, so edges stay loud. */
+    /**
+     * A card that leads the screen. In light mode this is the same paper as [panel] and the lift comes
+     * from a soft shadow; in dark mode a shadow on a dark page is invisible, so the lift has to come
+     * from the surface being a step lighter instead.
+     */
+    val panelRaised: Color,
+    /**
+     * The edge of a card or a divider: ink at low opacity, so a card is bounded without being outlined.
+     * Every surface used to carry a 2.5dp edge of full ink, which left nothing on a screen quieter than
+     * anything else.
+     */
+    val hairline: Color,
+    /** The edge of something a finger acts on: a field, a secondary button, an unselected chip. */
+    val controlEdge: Color,
+    /** Full ink. For a deliberate hard edge only, and for the offset shadow under a primary action. */
     val line: Color,
-    /** The hard offset shadow behind a raised card or button. */
+    /** The hard offset shadow. Reserved for the primary action; it is what the app is known for. */
     val shadow: Color,
+    /** Tint for the soft shadow under a raised card. */
+    val shadowSoft: Color,
     /** A caution, on its own surface: over budget, a stop that clashes with opening hours. */
     val warn: Color,
     val warnSurface: Color,
@@ -57,8 +73,12 @@ val LightTrippinColors = TrippinColors(
     paper = Color(0xFFFAF8F5),
     panel = Color(0xFFFFFFFF),
     panelAlt = Color(0xFFF1EDE6),
+    panelRaised = Color(0xFFFFFFFF),
+    hairline = Color(0x1718181B),
+    controlEdge = Color(0x2B18181B),
     line = Color(0xFF18181B),
     shadow = Color(0xFF18181B),
+    shadowSoft = Color(0xFF18181B),
     warn = Color(0xFF8A5A00),
     warnSurface = Color(0xFFFFF4D6),
     good = Color(0xFF14532D),
@@ -78,8 +98,12 @@ val DarkTrippinColors = TrippinColors(
     paper = Color(0xFF141110),
     panel = Color(0xFF201C19),
     panelAlt = Color(0xFF2A2521),
+    panelRaised = Color(0xFF29231E),
+    hairline = Color(0x24F5EFE7),
+    controlEdge = Color(0x3DF5EFE7),
     line = Color(0xFFF5EFE7),
     shadow = Color(0xFF000000),
+    shadowSoft = Color(0xFF000000),
     warn = Color(0xFFF3C77A),
     warnSurface = Color(0xFF352B14),
     good = Color(0xFF8FD9AC),

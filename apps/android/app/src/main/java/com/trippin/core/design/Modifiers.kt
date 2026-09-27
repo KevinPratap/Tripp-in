@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -22,28 +23,73 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The one raised surface in the app: a face with a thick ink border and a hard offset shadow behind
- * it, the tactile 4px drop shadow the design system fixes for every Tripp'in surface. It is drawn,
- * not elevated: there is no blur and no Material tonal lift, so a card in light mode is white paper
- * with a black shadow and in dark mode a carbon panel with the same hard offset.
+ * How much a surface is meant to stand out.
  *
- * The shadow sits in reserved space (the surface pads its own bottom and end by [shadow]), so a card
- * in a list never bleeds its shadow onto the card below it. When [onClick] is set the face presses
- * down onto its shadow, the way a physical stamp would, instead of rippling.
+ * Every surface in the app used to be the same: a 2.5dp edge of full ink and a hard 4dp offset shadow,
+ * on cards, buttons, chips, fields and tabs alike. With nothing quieter than anything else there was no
+ * hierarchy, and a screen read as one flat wall. These three tiers are the fix, and a screen picks one
+ * per element rather than getting the loudest by default.
+ */
+enum class SurfaceTier {
+    /** The default. A hairline edge, no shadow: a list row, a form card, a chip, a field. */
+    FLAT,
+
+    /** The one thing on a screen that leads. A hairline plus a soft shadow, or in dark mode a lift. */
+    RAISED,
+
+    /**
+     * The primary action, and nothing else. Keeps the hard offset shadow in ink, which is the app's own
+     * signature: it survives here precisely because here it means something.
+     */
+    ACTION
+}
+
+/**
+ * A surface, drawn at one of three [SurfaceTier]s.
+ *
+ * [SurfaceTier.ACTION] keeps the original treatment: a face over a hard offset shadow, in space the
+ * surface reserves by padding its own end and bottom, so it never bleeds onto what is below it, and it
+ * presses down onto that shadow on touch instead of rippling. The quieter two tiers reserve nothing and
+ * sit flush, which is also what lets a list of cards keep an even rhythm: the old asymmetric padding
+ * pushed every card 4dp off its own column.
  */
 @Composable
 fun TrippinSurface(
     modifier: Modifier = Modifier,
+    tier: SurfaceTier = SurfaceTier.FLAT,
     shape: Shape = TrippinTheme.shapes.card,
-    background: Color = TrippinTheme.colors.panel,
-    borderColor: Color = TrippinTheme.colors.line,
-    borderWidth: Dp = 2.5.dp,
-    shadow: Dp = 4.dp,
+    background: Color = if (tier == SurfaceTier.RAISED) {
+        TrippinTheme.colors.panelRaised
+    } else {
+        TrippinTheme.colors.panel
+    },
+    borderColor: Color = if (tier == SurfaceTier.ACTION) {
+        TrippinTheme.colors.line
+    } else {
+        TrippinTheme.colors.hairline
+    },
+    borderWidth: Dp = if (tier == SurfaceTier.ACTION) 2.dp else 1.dp,
+    shadow: Dp = if (tier == SurfaceTier.ACTION) 3.dp else 0.dp,
     fillWidth: Boolean = true,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    if (tier != SurfaceTier.ACTION) {
+        QuietSurface(
+            modifier = modifier,
+            tier = tier,
+            shape = shape,
+            background = background,
+            borderColor = borderColor,
+            borderWidth = borderWidth,
+            fillWidth = fillWidth,
+            enabled = enabled,
+            onClick = onClick,
+            content = content
+        )
+        return
+    }
     val shadowColor = TrippinTheme.colors.shadow
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -87,16 +133,66 @@ fun TrippinSurface(
     }
 }
 
-/** Shorthand: the default card shape, filling its width. */
+/**
+ * The flat and raised tiers. No offset shadow, so nothing is reserved and the surface sits flush in its
+ * column; a raised one carries a real soft shadow, which on a dark page is close to invisible, so there
+ * the lift comes from [TrippinColors.panelRaised] being a step lighter instead.
+ */
+@Composable
+private fun QuietSurface(
+    modifier: Modifier,
+    tier: SurfaceTier,
+    shape: Shape,
+    background: Color,
+    borderColor: Color,
+    borderWidth: Dp,
+    fillWidth: Boolean,
+    enabled: Boolean,
+    onClick: (() -> Unit)?,
+    content: @Composable () -> Unit
+) {
+    val colors = TrippinTheme.colors
+    val base = modifier
+        .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+        .then(
+            if (tier == SurfaceTier.RAISED) {
+                Modifier.shadow(
+                    elevation = 10.dp,
+                    shape = shape,
+                    clip = false,
+                    ambientColor = colors.shadowSoft,
+                    spotColor = colors.shadowSoft
+                )
+            } else Modifier
+        )
+        .clip(shape)
+        .background(background)
+        .border(borderWidth, borderColor, shape)
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(enabled = enabled, onClick = onClick)
+            } else Modifier
+        )
+
+    Box(modifier = base) { content() }
+}
+
+/** Shorthand: the default card shape, filling its width. Quiet unless asked to lead. */
 @Composable
 fun TrippinCard(
     modifier: Modifier = Modifier,
-    background: Color = TrippinTheme.colors.panel,
+    tier: SurfaceTier = SurfaceTier.FLAT,
+    background: Color = if (tier == SurfaceTier.RAISED) {
+        TrippinTheme.colors.panelRaised
+    } else {
+        TrippinTheme.colors.panel
+    },
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     TrippinSurface(
         modifier = modifier,
+        tier = tier,
         shape = TrippinTheme.shapes.card,
         background = background,
         onClick = onClick,
