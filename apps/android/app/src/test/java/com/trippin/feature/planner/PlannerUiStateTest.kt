@@ -209,6 +209,57 @@ class PlannerUiStateTest {
         assertEquals(SuggestionHint.NONE, state.suggestionHint)
     }
 
+    // ---- Recent destinations ----
+
+    @Test
+    fun `an empty focused field offers recent destinations ahead of everything else`() {
+        val state = PlannerUiState(
+            destination = "",
+            suggestionsVisible = true,
+            recentDestinations = listOf(lisbon, bangkok)
+        )
+        assertEquals(SuggestionHint.RECENT, state.suggestionHint)
+    }
+
+    @Test
+    fun `an empty field with no recent destinations offers nothing`() {
+        val state = PlannerUiState(destination = "", suggestionsVisible = true, recentDestinations = emptyList())
+        assertEquals(SuggestionHint.NONE, state.suggestionHint)
+    }
+
+    @Test
+    fun `whitespace alone counts as empty for recents, the way it does for every other rule`() {
+        val state = PlannerUiState(destination = "   ", suggestionsVisible = true, recentDestinations = listOf(lisbon))
+        assertEquals(SuggestionHint.RECENT, state.suggestionHint)
+    }
+
+    @Test
+    fun `recents are not offered once there is a live lookup or a resolved place`() {
+        val withResults = PlannerUiState(
+            destination = "Lisb",
+            suggestionsVisible = true,
+            suggestions = listOf(lisbon),
+            recentDestinations = listOf(bangkok)
+        )
+        assertEquals(SuggestionHint.RESULTS, withResults.suggestionHint)
+
+        val resolved = PlannerUiState().withSuggestionPicked(lisbon)
+            .copy(suggestionsVisible = true, recentDestinations = listOf(bangkok))
+        assertEquals(SuggestionHint.NONE, resolved.suggestionHint)
+    }
+
+    @Test
+    fun `an unfocused field offers no recents even when there are some to show`() {
+        val state = PlannerUiState(destination = "", suggestionsVisible = false, recentDestinations = listOf(lisbon))
+        assertEquals(SuggestionHint.NONE, state.suggestionHint)
+    }
+
+    @Test
+    fun `gaining focus opens the field the same way typing does`() {
+        val state = PlannerUiState(recentDestinations = listOf(lisbon)).withDestinationFocused()
+        assertEquals(SuggestionHint.RECENT, state.suggestionHint)
+    }
+
     // ---- Dates, budget, and the order things are asked in ----
 
     @Test

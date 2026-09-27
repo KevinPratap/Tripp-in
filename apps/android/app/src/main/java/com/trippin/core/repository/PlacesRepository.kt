@@ -2,6 +2,8 @@ package com.trippin.core.repository
 
 import com.trippin.core.common.DataResult
 import com.trippin.core.common.runNetwork
+import com.trippin.core.database.RecentDestinationDao
+import com.trippin.core.database.RecentDestinationEntity
 import com.trippin.core.database.SavedSpotDao
 import com.trippin.core.database.SavedSpotEntity
 import com.trippin.core.network.ApiService
@@ -18,6 +20,7 @@ import javax.inject.Singleton
 class PlacesRepository @Inject constructor(
     private val api: ApiService,
     private val savedDao: SavedSpotDao,
+    private val recentDao: RecentDestinationDao,
     private val json: Json
 ) {
     suspend fun search(query: String): DataResult<List<PlaceSearchResultDto>> =
@@ -38,6 +41,25 @@ class PlacesRepository @Inject constructor(
             is DataResult.Ok -> result.value.suggestions
             is DataResult.Fail -> emptyList()
         }
+    }
+
+    /** The destinations most recently picked from the autocomplete list, newest first. */
+    fun observeRecentDestinations(): Flow<List<DestinationSuggestionDto>> = recentDao.observeRecent().map { rows ->
+        rows.mapNotNull { row ->
+            runCatching { json.decodeFromString(DestinationSuggestionDto.serializer(), row.json) }.getOrNull()
+        }
+    }
+
+    /** Remembers a destination as picked, so it can be offered again next time the field is empty. */
+    suspend fun rememberDestination(suggestion: DestinationSuggestionDto) {
+        if (suggestion.id.isBlank()) return
+        recentDao.remember(
+            RecentDestinationEntity(
+                placeId = suggestion.id,
+                json = json.encodeToString(DestinationSuggestionDto.serializer(), suggestion),
+                pickedAt = System.currentTimeMillis()
+            )
+        )
     }
 
     fun observeSavedSpots(): Flow<List<PlaceSearchResultDto>> = savedDao.observeAll().map { rows ->

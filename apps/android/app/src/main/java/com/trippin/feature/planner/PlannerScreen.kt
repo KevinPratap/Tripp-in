@@ -107,11 +107,13 @@ fun PlannerScreen(
                     DestinationField(
                         value = state.destination,
                         suggestions = state.suggestions,
+                        recentDestinations = state.recentDestinations,
                         hint = state.suggestionHint,
                         loading = state.suggestionsLoading,
                         resolvedLabel = state.resolved?.label,
                         onValueChange = viewModel::onDestinationChange,
                         onPick = viewModel::pickSuggestion,
+                        onFocusGained = viewModel::onDestinationFocused,
                         onDismiss = viewModel::dismissSuggestions
                     )
                     if (state.destinationIsUnresolved) {
@@ -260,11 +262,13 @@ fun PlannerScreen(
 private fun DestinationField(
     value: String,
     suggestions: List<DestinationSuggestionDto>,
+    recentDestinations: List<DestinationSuggestionDto>,
     hint: SuggestionHint,
     loading: Boolean,
     resolvedLabel: String?,
     onValueChange: (String) -> Unit,
     onPick: (DestinationSuggestionDto) -> Unit,
+    onFocusGained: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val colors = TrippinTheme.colors
@@ -276,7 +280,7 @@ private fun DestinationField(
                 .fillMaxWidth()
                 // Leaving the field puts the list away, so it does not sit open over the rest of the
                 // form while the traveller fills in dates.
-                .onFocusChanged { focus -> if (!focus.isFocused) onDismiss() },
+                .onFocusChanged { focus -> if (focus.isFocused) onFocusGained() else onDismiss() },
             placeholder = "e.g. Manali, Lisbon, Tokyo",
             leadingIcon = Icons.Default.Search,
             trailingIcon = {
@@ -306,26 +310,16 @@ private fun DestinationField(
         when (hint) {
             SuggestionHint.NONE -> Unit
 
+            SuggestionHint.RECENT -> {
+                Spacer(Modifier.height(8.dp))
+                SuggestionRowList(recentDestinations, onPick)
+                Spacer(Modifier.height(6.dp))
+                Text("Places you have planned before", style = TrippinType.Caption, color = colors.inkMuted)
+            }
+
             SuggestionHint.RESULTS -> {
                 Spacer(Modifier.height(8.dp))
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .border(2.dp, colors.line, TrippinTheme.shapes.field)
-                        .background(colors.panel, TrippinTheme.shapes.field)
-                ) {
-                    suggestions.forEachIndexed { index, suggestion ->
-                        if (index > 0) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(colors.panelAlt)
-                            )
-                        }
-                        SuggestionRow(suggestion) { onPick(suggestion) }
-                    }
-                }
+                SuggestionRowList(suggestions, onPick)
                 Spacer(Modifier.height(6.dp))
                 // Provenance, stated rather than implied.
                 Text("Places from OpenStreetMap", style = TrippinType.Caption, color = colors.inkMuted)
@@ -345,6 +339,30 @@ private fun DestinationField(
                     color = colors.inkMuted
                 )
             }
+        }
+    }
+}
+
+/** The bordered list both recent destinations and live results render into. */
+@Composable
+private fun SuggestionRowList(items: List<DestinationSuggestionDto>, onPick: (DestinationSuggestionDto) -> Unit) {
+    val colors = TrippinTheme.colors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(2.dp, colors.line, TrippinTheme.shapes.field)
+            .background(colors.panel, TrippinTheme.shapes.field)
+    ) {
+        items.forEachIndexed { index, suggestion ->
+            if (index > 0) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(colors.panelAlt)
+                )
+            }
+            SuggestionRow(suggestion) { onPick(suggestion) }
         }
     }
 }

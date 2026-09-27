@@ -19,13 +19,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** What sits under the destination field: the suggestions, a progress note, or nothing. */
-enum class SuggestionHint { NONE, RESULTS, LOADING, NO_MATCHES }
+/** What sits under the destination field: recents, the suggestions, a progress note, or nothing. */
+enum class SuggestionHint { NONE, RECENT, RESULTS, LOADING, NO_MATCHES }
 
 data class PlannerUiState(
     val destination: String = "",
@@ -37,6 +38,8 @@ data class PlannerUiState(
      */
     val resolved: DestinationSuggestionDto? = null,
     val suggestions: List<DestinationSuggestionDto> = emptyList(),
+    /** Destinations picked before, offered when the field is empty and focused. */
+    val recentDestinations: List<DestinationSuggestionDto> = emptyList(),
     val suggestionsLoading: Boolean = false,
     val suggestionsVisible: Boolean = false,
     val startDate: LocalDate? = null,
@@ -115,6 +118,9 @@ data class PlannerUiState(
      */
     val suggestionHint: SuggestionHint get() = when {
         !suggestionsVisible -> SuggestionHint.NONE
+        // An empty field offers what was picked before, ahead of every other case: there is nothing
+        // to load or match yet, and recents are exactly what an empty, focused field is for.
+        destination.isBlank() -> if (recentDestinations.isNotEmpty()) SuggestionHint.RECENT else SuggestionHint.NONE
         suggestions.isNotEmpty() -> SuggestionHint.RESULTS
         destination.trim().length < 2 -> SuggestionHint.NONE
         suggestionsLoading -> SuggestionHint.LOADING
@@ -167,6 +173,9 @@ data class PlannerUiState(
         val (start, end) = datesFor(preset, today)
         return startDate == start && endDate == end
     }
+
+    /** The field gained focus. An empty field opens straight to recents rather than waiting for a keystroke. */
+    fun withDestinationFocused(): PlannerUiState = copy(suggestionsVisible = true)
 }
 
 @HiltViewModel
@@ -196,7 +205,16 @@ class PlannerViewModel @Inject constructor(
         // rather than waiting for the traveller to edit a field they did not fill in.
         val seeded = _uiState.value.destination
         if (seeded.length >= 2) requestSuggestions(seeded)
+
+        viewModelScope.launch {
+            placesRepository.observeRecentDestinations().collectLatest { recents ->
+                _uiState.update { it.copy(recentDestinations = recents) }
+            }
+        }
     }
+
+    /** The field gained focus. See [PlannerUiState.withDestinationFocused]. */
+    fun onDestinationFocused() = _uiState.update { it.withDestinationFocused() }
 
     fun onDestinationChange(v: String) {
         _uiState.update { it.withDestinationTyped(v) }
@@ -229,6 +247,7 @@ class PlannerViewModel @Inject constructor(
     fun pickSuggestion(suggestion: DestinationSuggestionDto) {
         suggestJob?.cancel()
         _uiState.update { it.withSuggestionPicked(suggestion) }
+        viewModelScope.launch { placesRepository.rememberDestination(suggestion) }
     }
 
     fun dismissSuggestions() = _uiState.update { it.copy(suggestionsVisible = false) }
