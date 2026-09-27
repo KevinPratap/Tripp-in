@@ -32,6 +32,7 @@ import com.trippin.core.network.TripDetailsDto
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * The stops for today, with the one happening now called out. Uses the trip's own dates to decide
@@ -80,7 +81,10 @@ fun TodayContent(
             TrippinCard {
                 Column(Modifier.padding(16.dp)) {
                     Text("Today", style = TrippinType.Title, color = colors.ink)
-                    Text(todaysDay.date, style = TrippinType.Caption, color = colors.inkMuted)
+                    val formattedDate = runCatching {
+                        LocalDate.parse(todaysDay.date.take(10)).format(todayHeaderFormat)
+                    }.getOrDefault(todaysDay.date)
+                    Text(formattedDate, style = TrippinType.Caption, color = colors.inkMuted)
                     if (nowStop != null) {
                         Spacer(Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -107,6 +111,7 @@ fun TodayContent(
 }
 
 private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
+private val todayHeaderFormat = DateTimeFormatter.ofPattern("EEEE, d MMM", Locale.US)
 
 /** The stop whose window contains the current time, if any. */
 private fun currentStop(activities: List<ActivityDto>): ActivityDto? {

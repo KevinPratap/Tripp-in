@@ -78,6 +78,11 @@ import kotlinx.coroutines.launch
 
 private const val WEB_BASE = "https://web-production-a9ec6.up.railway.app"
 
+private val dayHeaderFormat = java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM", java.util.Locale.US)
+
+private fun formatDayDate(raw: String): String =
+    runCatching { java.time.LocalDate.parse(raw.take(10)).format(dayHeaderFormat) }.getOrDefault(raw)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryScreen(
@@ -435,7 +440,7 @@ private fun DayList(
             TrippinCard {
                 Column(Modifier.padding(14.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Day ${day.dayIndex} · ${day.date}", style = TrippinType.Label, color = colors.ink)
+                        Text("Day ${day.dayIndex} · ${formatDayDate(day.date)}", style = TrippinType.Label, color = colors.ink)
                         if (dayTotal != null && dayTotal > 0) {
                             Text("Stops total ${formatStatedAmount(dayTotal, singleCurrency)}", style = TrippinType.Caption, color = colors.ink)
                         }
