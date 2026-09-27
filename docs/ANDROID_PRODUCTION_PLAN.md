@@ -45,12 +45,17 @@ project's own invariant (AGENTS.md section 1.5, currency must follow the destina
 app can save one. The "You" tab shows a list that can never fill. There is no search or discovery
 surface at all.
 
-**5. The small conveniences are all absent.** No recent or suggested destinations. No date presets,
-and two separate single-date dialogs instead of one range picker. No notification when a plan
-finishes, so a two-minute wait means staring at the screen. No deep links, so a shared trip link
-cannot open the app. No share sheet, no add-to-calendar (the web app has ICS export, Android does
-not), no maps hand-off per stop, no haptics, no undo on delete, no swipe actions. Loading states are
-a text label (`LoadingBlock("Loading your trips")`) rather than skeletons.
+**5. Some of the small conveniences are absent, though fewer than a first pass suggested.**
+Correction: I originally wrote that the app had no share sheet, no maps hand-off and no haptics.
+Wrong on all three, and found only once I grepped for them directly rather than inferring from a read
+of a few screens: `ActivityCard.kt` and `MapScreen.kt` both launch Google Maps with `ACTION_VIEW`,
+`GroupScreen.kt` and `ItineraryScreen.kt` already open the share sheet with `ACTION_SEND`, and
+`Interactions.kt` has a haptic already wired into `ActivityCard.kt`. What is actually missing, checked
+the same way: no recent or suggested destinations, no date presets or a range picker (two separate
+single-date dialogs instead), no notification when a plan finishes so a two-minute wait means staring
+at the screen, no deep links so a shared trip link cannot open the app, no add-to-calendar (the web
+app has ICS export, Android has nothing), no undo on delete, no swipe actions. Loading states were a
+text label (`LoadingBlock("Loading your trips")`) rather than skeletons.
 
 **6. Zero tests.** No `test/` or `androidTest/` directory exists. 6,100 lines, not one test.
 
@@ -294,9 +299,10 @@ keep spinners, having no content shape to stand in for.
 
 The screen rebuilds on the new tiers (phase 4) and release hardening (phase 5): R8 with verified keep
 rules, signing from environment variables, a baseline profile, crash reporting, and the accessibility
-pass. Still open in the convenience layer: a notification when a plan is ready, deep links, the share
-and calendar and maps hand-offs, haptics, undo on delete, recent destinations, and a search surface
-that makes saved places reachable. Plus the rate limiter's move to Redis.
+pass. Still open in the convenience layer: a notification when a plan is ready, deep links,
+add-to-calendar, undo on delete, recent destinations, swipe actions, and a search surface that makes
+saved places reachable. Share, the maps hand-off and haptics do not belong on this list: section 5
+above corrects an earlier claim that they were missing. Plus the rate limiter's move to Redis.
 
 Phase 4 is where the design direction wants a decision from Kevin: the mock at
 https://claude.ai/artifact/QEPKAgKcWsZLBpgArc8H5h shows the current Trips screen beside the proposed
