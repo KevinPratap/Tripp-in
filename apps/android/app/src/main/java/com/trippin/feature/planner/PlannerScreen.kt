@@ -57,6 +57,7 @@ import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinChoiceChip
 import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
+import com.trippin.core.design.TrippinSurface
 import com.trippin.core.design.TrippinTextField
 import com.trippin.core.design.TrippinTopBar
 import com.trippin.core.network.DestinationSuggestionDto
@@ -350,7 +351,7 @@ private fun SuggestionRowList(items: List<DestinationSuggestionDto>, onPick: (De
     Column(
         Modifier
             .fillMaxWidth()
-            .border(2.dp, colors.line, TrippinTheme.shapes.field)
+            .border(1.dp, colors.hairline, TrippinTheme.shapes.field)
             .background(colors.panel, TrippinTheme.shapes.field)
     ) {
         items.forEachIndexed { index, suggestion ->
@@ -425,23 +426,25 @@ private fun DateField(label: String, date: LocalDate?, modifier: Modifier = Modi
     Column(modifier) {
         Text(label, style = TrippinType.Caption, color = colors.inkMuted)
         Spacer(Modifier.height(4.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp)
-                .border(2.dp, colors.line, TrippinTheme.shapes.field)
-                .background(colors.panel, TrippinTheme.shapes.field)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        TrippinSurface(
+            shape = TrippinTheme.shapes.field,
+            onClick = onClick
         ) {
-            Text(
-                date?.format(plannerDateLabel) ?: "Choose a day",
-                style = if (date == null) TrippinType.Body else TrippinType.Label,
-                color = if (date == null) colors.inkMuted else colors.ink
-            )
-            Icon(Icons.Default.DateRange, contentDescription = null, tint = colors.ink, modifier = Modifier.size(20.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    date?.format(plannerDateLabel) ?: "Choose a day",
+                    style = if (date == null) TrippinType.Body else TrippinType.Label,
+                    color = if (date == null) colors.inkMuted else colors.ink
+                )
+                Icon(Icons.Default.DateRange, contentDescription = null, tint = colors.ink, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
