@@ -221,23 +221,59 @@ report what passed and what did not at each step.
 
 ## 6. Progress
 
-**Done and verified (backend suite 135 passing across 14 suites, backend and web builds clean):**
+Verified by CI on every push to this branch, which compiles, unit tests and lints the Android sources.
+`dl.google.com` is denied in the agent environment, so there is no local Android toolchain and CI is
+where the Kotlin gets checked.
 
-- `GET /api/v1/places/autocomplete`, backed by Photon, returning resolved coordinates and the
-  country's currency per suggestion. 23 tests. The fixtures follow Photon's documented shape; the
-  live service is unreachable from this environment, so that shape still wants one real check.
-- Currency from the ISO country code, replacing the web app's hand-written city table and the Android
-  app's hardcoded INR. 10 tests.
-- Real email delivery for magic links behind a `Mailer` seam, Resend or console. 12 tests.
-- An account takeover fixed: `POST /auth/request-link` returned the raw sign in token in its response
-  body, on a route that by design requires no identity. It is now withheld in production and whenever
-  a provider is delivering. 5 tests.
-- CI now runs on `claude/**` branches and compiles the Android sources as their own step, plus lint.
-  Previously no branch but `main` and `develop` was checked at all.
+### Phase 1, done
 
-**Not started:** phases 2 through 5, and the rate limiter's move to Redis.
+**Destination autocomplete, end to end.** `GET /api/v1/places/autocomplete` backed by Photon, and the
+Android field that uses it: suggestions as you type, debounced at 250ms, a stale response dropped
+rather than shown, and a tick that distinguishes a place we resolved from words still to be guessed at.
+Picking one puts the full label in the field so the engine geocodes something unambiguous. Typing is
+never blocked, because the suggestions come from a call that can fail and the engine resolves the
+destination again at build time. `PlacesRepository.search` was already in the repo with nothing calling
+it; that is no longer the case.
 
-**Still blocked:** everything that needs the Android toolchain. `dl.google.com` remains denied here,
-so the two Kotlin files changed so far (the magic link DTO and the sign in view model, both forced by
-the wire contract change) are uncompiled locally. CI compiles them on push now, which is the
-substitute available.
+**The currency bug, properly.** The Android planner opened every trip in INR whatever the destination,
+and the web planner carried a hand-written table of about two hundred city names. Currency now comes
+from the ISO country code the geocoder returns. There is no universal default, so there is none: the
+destination sets it, a choice the traveller makes outranks that, and a country we cannot price leaves
+it alone rather than guessing. A resolved currency outside the five base chips is added to them, so
+Bangkok resolving to THB can still be seen and kept.
+
+**Sign in works.** Magic links are emailed through a `Mailer` seam, Resend when configured and the
+console log otherwise. A half configured mailer falls back rather than dropping links silently, and a
+send failure surfaces as retryable instead of telling the traveller to check an inbox nothing reached.
+
+**An account takeover, closed.** `POST /auth/request-link` is necessarily unguarded, since it is how a
+caller first gets an identity, but it returned `loginUrl` with the raw token in its response body.
+Anyone could name an address and read back a working session for it. The token is now returned only
+outside production and never once a provider is delivering, so a misconfigured production fails closed.
+
+**A UI bug I introduced and then found.** `suggestionsLoading` was set after the debounce rather than
+before it, so every first lookup flashed "No matches yet" for a word nothing had searched for. The
+composable had been deciding that from four booleans; it is now one `SuggestionHint` on the state,
+ordered so loading outranks no-matches, with tests on the ordering.
+
+**CI actually covers this branch.** It ran only on `main` and `develop`, so a feature branch got no
+verification at all until a pull request existed. Compile is now its own step, and lint runs.
+
+### Counts
+
+- Backend: 135 tests across 14 suites, up from 86. Backend and web builds clean.
+- Android: 30 unit tests, up from zero. The app had no `test/` directory at all.
+
+### Not started
+
+Phases 2 through 5: the design system re-tier, the rest of the convenience layer, the screen rebuilds,
+and release hardening. Plus the rate limiter's move to Redis.
+
+### Still unverified
+
+- Photon's live response shape. The fixtures follow its documented format, but `photon.komoot.io` is
+  denied here, so one check against the real service is still owed before release.
+- Resend delivery. `api.resend.com` is denied here, so the transport is tested against a fake and has
+  never sent a real email.
+- Anything on a device. No emulator or device exists in this container, so nothing here has been seen
+  running. CI compiles, tests and lints; it does not look at the screen.
