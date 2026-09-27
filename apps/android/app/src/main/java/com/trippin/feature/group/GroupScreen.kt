@@ -46,7 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trippin.core.common.InterestWords
 import com.trippin.core.common.TravellerPaceChoices
-import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.CardListSkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.SectionLabel
@@ -102,7 +102,7 @@ fun GroupScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.loading -> LoadingBlock("Loading the group")
+                state.loading -> CardListSkeleton(rows = 2, label = "Loading the group")
                 state.travellers.isEmpty() && state.error != null -> MessageState(
                     icon = Icons.Default.GroupAdd,
                     title = "Could not load the group",

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.trippin.core.design.CardListSkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.PlacePlate
@@ -110,7 +111,7 @@ fun TripsScreen(
                 .padding(padding)
         ) {
             if (state.loading) {
-                com.trippin.core.design.LoadingBlock("Loading your trips")
+                CardListSkeleton(label = "Loading your trips")
             } else if (state.myTrips.isEmpty() && state.home == null) {
                 MessageState(
                     icon = Icons.Default.CardTravel,

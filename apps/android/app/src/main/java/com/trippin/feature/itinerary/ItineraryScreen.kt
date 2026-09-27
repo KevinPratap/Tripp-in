@@ -52,7 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.PlanDaySkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.StatusPill
@@ -145,7 +145,7 @@ fun ItineraryScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.loading -> LoadingBlock("Loading the plan")
+                state.loading -> PlanDaySkeleton()
                 state.loadError != null && state.details == null -> MessageState(
                     icon = Icons.Default.Map,
                     title = "Could not load the plan",
