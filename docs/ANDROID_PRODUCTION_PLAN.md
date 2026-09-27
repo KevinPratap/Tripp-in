@@ -70,12 +70,19 @@ are the only ways to get an identity." The only way in is a magic link, and the 
 (`auth.service.ts:20`). So a real user cannot get into the app at all. This is the single most
 important fix and it needs your Resend key.
 
-**Correction to an earlier claim in this plan.** I first wrote that generation was unthrottled. That
-was wrong: `POST /trips/:id/generate` carries `@RateLimit({ limit: 5, windowMs: 60000 })`
-(`trips.controller.ts:34`), and every other write route is limited too. The real gap is narrower. The
-limiter keeps its buckets in a process-local `Map` (`rate-limit.guard.ts:43`), so on more than one
-Railway instance each instance counts separately and the effective limit multiplies by the instance
-count. Redis is already wired into the app and is where that state belongs.
+**Second correction to the same claim.** I first wrote that generation was unthrottled, which was
+wrong: `POST /trips/:id/generate` carries `@RateLimit({ limit: 5, windowMs: 60000 })`
+(`trips.controller.ts:34`), and every other write route is limited too. I then wrote that the real gap
+was narrower rather than absent: the limiter keeps its buckets in a process-local `Map`
+(`rate-limit.guard.ts:43`), so the effective limit would multiply by the instance count on more than
+one Railway instance, and proposed moving that state into Redis. That was wrong too, in the way that
+matters: the guard's own comment says single-instance is deliberate ("Railway runs a single instance,
+so per-process state is the same as per-deployment state"), `railway.json` sets no replica count, and
+Railway's default is one instance. So today's limiter is correct as deployed, not almost-correct, and
+moving it to Redis would be solving a problem this deployment does not have. It is a real limitation
+only if this ever scales past one instance, at which point the limit would silently multiply with no
+error to notice it by. Worth a one-line note for whoever changes the replica count in future; not
+worth building against now.
 
 ### Verified baseline
 
@@ -97,8 +104,9 @@ count. Redis is already wired into the app and is where that state belongs.
    Returns a canonical name, region, country code, coordinates and a stable id.
 3. Currency inferred from the **resolved country code** that autocomplete returns, not from matching
    strings against a city name. Shared logic so Android and the backend agree.
-4. Move the rate limiter's buckets into Redis so the limit holds across instances, and bound the new
-   autocomplete route, which is called as the traveller types.
+4. Bound the new autocomplete route, which is called as the traveller types: done, at 100 a minute
+   (`places.controller.ts:35`). The rate limiter's buckets do not need to move to Redis: see the
+   correction above.
 5. Test infrastructure for Android: JUnit + Turbine + a Compose UI test harness, plus an Android job
    in CI (compile, unit tests, lint). CI has no Android job today.
 
@@ -302,7 +310,8 @@ rules, signing from environment variables, a baseline profile, crash reporting, 
 pass. Still open in the convenience layer: a notification when a plan is ready, deep links,
 add-to-calendar, undo on delete, recent destinations, swipe actions, and a search surface that makes
 saved places reachable. Share, the maps hand-off and haptics do not belong on this list: section 5
-above corrects an earlier claim that they were missing. Plus the rate limiter's move to Redis.
+above corrects an earlier claim that they were missing. The rate limiter's move to Redis, listed
+here in an earlier version of this section, is dropped: see the correction above.
 
 Phase 4 is where the design direction wants a decision from Kevin: the mock at
 https://claude.ai/artifact/QEPKAgKcWsZLBpgArc8H5h shows the current Trips screen beside the proposed
