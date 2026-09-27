@@ -65,6 +65,24 @@ class TripRepository @Inject constructor(
         return result
     }
 
+    /**
+     * Resolves a shared trip link and caches it, so the screen it opens onto reads instantly rather
+     * than starting blank. No identity is required: the token is the credential.
+     */
+    suspend fun resolveShareToken(token: String): DataResult<TripDetailsDto> {
+        val result = runNetwork { api.resolveShareToken(token) }
+        if (result is DataResult.Ok) {
+            cache.put(
+                CachedJsonEntity(
+                    key = tripKey(result.value.trip.id),
+                    json = json.encodeToString(TripDetailsDto.serializer(), result.value),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+        return result
+    }
+
     // ---- Trip list (offline-first) ----
 
     fun observeMyTrips(): Flow<List<SavedTripSummaryDto>> =

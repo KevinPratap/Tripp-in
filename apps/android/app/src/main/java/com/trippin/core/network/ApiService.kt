@@ -95,4 +95,11 @@ interface ApiService {
     /** The invite link for a trip, created on demand. The owner only. */
     @POST("api/v1/trips/{id}/share")
     suspend fun createShareLink(@Path("id") tripId: String): ShareLinkDto
+
+    /**
+     * Resolves a share token to the trip it points at. No identity is required to call this: the
+     * token itself is the credential, the same as when a browser opens the share link.
+     */
+    @GET("api/v1/t/{token}")
+    suspend fun resolveShareToken(@Path("token") token: String): TripDetailsDto
 }
