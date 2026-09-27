@@ -5,6 +5,7 @@ import com.trippin.core.common.runNetwork
 import com.trippin.core.database.SavedSpotDao
 import com.trippin.core.database.SavedSpotEntity
 import com.trippin.core.network.ApiService
+import com.trippin.core.network.DestinationSuggestionDto
 import com.trippin.core.network.PlaceSearchResultDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -21,6 +22,23 @@ class PlacesRepository @Inject constructor(
 ) {
     suspend fun search(query: String): DataResult<List<PlaceSearchResultDto>> =
         runNetwork { api.searchPlaces(query.trim()) }
+
+    /**
+     * Destination suggestions for what has been typed so far.
+     *
+     * A query under two characters returns an empty list without a request: one character matches most
+     * of the planet. A failure returns an empty list too, not an error, because suggestions are a
+     * convenience: the planner still accepts typed text, and the engine resolves the destination again
+     * when it builds the plan. So an outage costs the traveller the dropdown, never the trip.
+     */
+    suspend fun autocompleteDestinations(query: String): List<DestinationSuggestionDto> {
+        val term = query.trim()
+        if (term.length < 2) return emptyList()
+        return when (val result = runNetwork { api.autocompleteDestinations(term) }) {
+            is DataResult.Ok -> result.value.suggestions
+            is DataResult.Fail -> emptyList()
+        }
+    }
 
     fun observeSavedSpots(): Flow<List<PlaceSearchResultDto>> = savedDao.observeAll().map { rows ->
         rows.mapNotNull { row ->

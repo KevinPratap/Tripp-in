@@ -193,6 +193,35 @@ data class GeoPointDto(
     val longitude: Double = 0.0
 )
 
+/**
+ * One destination the traveller can pick while typing, from GET /api/v1/places/autocomplete.
+ *
+ * Picking one is what replaces a typed guess with a resolved place: the coordinates anchor the plan,
+ * and `currency` is the destination's own money, worked out by the server from the country rather than
+ * guessed on the phone. Before this the planner created every trip in INR whatever the destination.
+ *
+ * `currency` is null when the server does not know the country's tender. Null means ask, never assume:
+ * the form keeps whatever the traveller chose instead of substituting a default.
+ */
+@Serializable
+data class DestinationSuggestionDto(
+    val id: String = "",
+    val name: String = "",
+    val region: String? = null,
+    val country: String? = null,
+    val countryCode: String? = null,
+    val currency: String? = null,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    /** The single line to show in the list, already assembled by the server. */
+    val label: String = ""
+)
+
+@Serializable
+data class AutocompleteResponseDto(
+    val suggestions: List<DestinationSuggestionDto> = emptyList()
+)
+
 @Serializable
 data class ReplanRequestDto(
     val intent: String

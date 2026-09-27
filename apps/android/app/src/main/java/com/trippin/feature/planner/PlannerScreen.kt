@@ -23,8 +23,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,10 +55,11 @@ import com.trippin.core.common.TripPaceChoices
 import com.trippin.core.design.TrippinButton
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinChoiceChip
-import com.trippin.core.design.TrippinCurrencies
+import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
 import com.trippin.core.design.TrippinTextField
 import com.trippin.core.design.TrippinTopBar
+import com.trippin.core.network.DestinationSuggestionDto
 import com.trippin.core.design.TrippinTheme
 import com.trippin.core.design.TrippinType
 import com.trippin.core.design.currencySymbol
@@ -97,12 +104,25 @@ fun PlannerScreen(
         ) {
             item {
                 PlannerCard("Where to") {
-                    TrippinTextField(
+                    DestinationField(
                         value = state.destination,
+                        suggestions = state.suggestions,
+                        loading = state.suggestionsLoading,
+                        expanded = state.suggestionsVisible,
+                        resolvedLabel = state.resolved?.label,
                         onValueChange = viewModel::onDestinationChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = "e.g. Manali, Lisbon, Tokyo"
+                        onPick = viewModel::pickSuggestion,
+                        onDismiss = viewModel::dismissSuggestions
                     )
+                    if (state.destinationIsUnresolved) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Pick a place from the list so the plan is built around the right one. " +
+                                "Typed text still works, but a name we cannot find will fail once the plan starts.",
+                            style = TrippinType.Caption,
+                            color = colors.inkMuted
+                        )
+                    }
                 }
             }
 
@@ -130,7 +150,11 @@ fun PlannerScreen(
                         value = state.budget,
                         onValueChange = viewModel::onBudgetChange,
                         modifier = Modifier.fillMaxWidth(),
-                        label = "Budget per person (${currencySymbol(state.currency)})",
+                        label = if (state.currency == null) {
+                            "Budget per person"
+                        } else {
+                            "Budget per person (${currencySymbol(state.currency)})"
+                        },
                         placeholder = "Optional",
                         keyboardType = KeyboardType.Decimal
                     )
@@ -138,13 +162,19 @@ fun PlannerScreen(
                     Text("Currency", style = TrippinType.Caption, color = colors.inkMuted)
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TrippinCurrencies.forEach { (code, symbol) ->
+                        state.offeredCurrencies.forEach { (code, symbol) ->
                             TrippinChoiceChip("$symbol $code", state.currency == code) { viewModel.setCurrency(code) }
                         }
                     }
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "The trip is created in the currency you pick, and every amount in it is stated in that currency. Leave the budget blank and the plan is not checked against one.",
+                        if (state.resolved?.currency != null && !state.currencyTouched) {
+                            "Set from ${state.resolved?.country ?: "the destination"}, because that is where you are spending. " +
+                                "Change it if you would rather budget in something else."
+                        } else {
+                            "The trip is created in the currency you pick, and every amount in it is stated in that currency. " +
+                                "Leave the budget blank and the plan is not checked against one."
+                        },
                         style = TrippinType.Caption,
                         color = colors.inkMuted
                     )
@@ -200,6 +230,140 @@ fun PlannerScreen(
     }
     if (pickingEnd) {
         PlannerDatePicker(state.endDate, { pickingEnd = false }, viewModel::setEndDate)
+    }
+}
+
+/**
+ * The destination field, with suggestions underneath as the traveller types.
+ *
+ * Picking one is the point: it resolves the trip to a real place with coordinates behind it and sets
+ * the currency from that country. Typing is never blocked, because the suggestions come from a network
+ * call that can fail, and the engine resolves the destination again when it builds the plan.
+ *
+ * The list is a plain surface rather than a floating menu, so it pushes the form down instead of
+ * covering the next field, and a phone keyboard cannot hide it.
+ */
+@Composable
+private fun DestinationField(
+    value: String,
+    suggestions: List<DestinationSuggestionDto>,
+    loading: Boolean,
+    expanded: Boolean,
+    resolvedLabel: String?,
+    onValueChange: (String) -> Unit,
+    onPick: (DestinationSuggestionDto) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = TrippinTheme.colors
+    Column(Modifier.fillMaxWidth()) {
+        TrippinTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                // Leaving the field puts the list away, so it does not sit open over the rest of the
+                // form while the traveller fills in dates.
+                .onFocusChanged { focus -> if (!focus.isFocused) onDismiss() },
+            placeholder = "e.g. Manali, Lisbon, Tokyo",
+            leadingIcon = Icons.Default.Search,
+            trailingIcon = {
+                when {
+                    loading -> CircularProgressIndicator(
+                        color = colors.accent,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    // A tick, so the traveller can see the difference between a place we resolved and
+                    // words we are still going to have to guess at.
+                    resolvedLabel != null -> Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Destination found",
+                        tint = colors.good
+                    )
+                    value.isNotEmpty() -> TrippinIconButton(
+                        icon = Icons.Default.Close,
+                        contentDescription = "Clear the destination",
+                        onClick = { onValueChange("") }
+                    )
+                    else -> Unit
+                }
+            }
+        )
+
+        if (expanded && suggestions.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(2.dp, colors.line, TrippinTheme.shapes.field)
+                    .background(colors.panel, TrippinTheme.shapes.field)
+            ) {
+                suggestions.forEachIndexed { index, suggestion ->
+                    if (index > 0) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(colors.panelAlt)
+                        )
+                    }
+                    SuggestionRow(suggestion) { onPick(suggestion) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Places from OpenStreetMap",
+                style = TrippinType.Caption,
+                color = colors.inkMuted
+            )
+        } else if (expanded && loading && value.trim().length >= 2) {
+            Spacer(Modifier.height(8.dp))
+            Text("Looking for places", style = TrippinType.Caption, color = colors.inkMuted)
+        } else if (expanded && !loading && value.trim().length >= 2 && resolvedLabel == null) {
+            Spacer(Modifier.height(8.dp))
+            // Honest: no match found is not the same as the place not existing, and typing still works.
+            Text(
+                "No matches yet. Keep typing, or use the name as it appears on a map.",
+                style = TrippinType.Caption,
+                color = colors.inkMuted
+            )
+        }
+    }
+}
+
+/** One place in the suggestion list. Tapping the whole row picks it. */
+@Composable
+private fun SuggestionRow(suggestion: DestinationSuggestionDto, onClick: () -> Unit) {
+    val colors = TrippinTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            // Comfortably above the 44dp touch minimum the design system fixes.
+            .heightIn(min = 52.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.LocationOn,
+            contentDescription = null,
+            tint = colors.inkMuted,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(suggestion.name, style = TrippinType.Label, color = colors.ink)
+            val place = listOfNotNull(suggestion.region.takeIf { it != suggestion.name }, suggestion.country)
+                .joinToString(", ")
+            if (place.isNotBlank()) {
+                Text(place, style = TrippinType.Caption, color = colors.inkMuted)
+            }
+        }
+        // Shown because it decides what the trip is budgeted in, so it is not a surprise later.
+        suggestion.currency?.let {
+            Spacer(Modifier.width(8.dp))
+            Text(it, style = TrippinType.Caption, color = colors.inkMuted)
+        }
     }
 }
 
