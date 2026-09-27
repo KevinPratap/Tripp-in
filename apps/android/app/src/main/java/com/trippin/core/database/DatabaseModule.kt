@@ -28,4 +28,7 @@ object DatabaseModule {
 
     @Provides
     fun provideSavedSpotDao(db: TrippinDatabase): SavedSpotDao = db.savedSpotDao()
+
+    @Provides
+    fun provideRecentDestinationDao(db: TrippinDatabase): RecentDestinationDao = db.recentDestinationDao()
 }

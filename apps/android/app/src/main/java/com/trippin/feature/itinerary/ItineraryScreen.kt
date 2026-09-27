@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Lock
@@ -47,12 +49,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.PlanDaySkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.StatusPill
@@ -69,10 +72,16 @@ import com.trippin.core.design.TrippinType
 import com.trippin.core.design.formatStatedAmount
 import com.trippin.core.design.rememberIsOffline
 import com.trippin.core.network.ItineraryDayDto
+import com.trippin.core.network.TripSummaryDto
 import com.trippin.feature.today.TodayContent
 import kotlinx.coroutines.launch
 
 private const val WEB_BASE = "https://web-production-a9ec6.up.railway.app"
+
+private val dayHeaderFormat = java.time.format.DateTimeFormatter.ofPattern("EEE, d MMM", java.util.Locale.US)
+
+private fun formatDayDate(raw: String): String =
+    runCatching { java.time.LocalDate.parse(raw.take(10)).format(dayHeaderFormat) }.getOrDefault(raw)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,6 +140,22 @@ fun ItineraryScreen(
                                 leadingIcon = { Icon(if (state.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, null, tint = colors.ink) },
                                 onClick = { showMenu = false; viewModel.toggleLock() }
                             )
+                            state.details?.trip?.let { trip ->
+                                DropdownMenuItem(
+                                    text = { Text("Add to calendar", style = TrippinType.Label, color = colors.ink) },
+                                    leadingIcon = { Icon(Icons.Default.CalendarMonth, null, tint = colors.ink) },
+                                    onClick = {
+                                        showMenu = false
+                                        launchAddTripToCalendar(
+                                            context = context,
+                                            trip = trip,
+                                            itineraryStatus = state.details?.itinerary?.status,
+                                            dayCount = days.size,
+                                            stopCount = days.sumOf { it.activities.size }
+                                        )
+                                    }
+                                )
+                            }
                             HorizontalDivider(color = colors.line)
                             DropdownMenuItem(
                                 text = { Text("Delete trip", style = TrippinType.Label, color = colors.danger) },
@@ -145,7 +170,7 @@ fun ItineraryScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.loading -> LoadingBlock("Loading the plan")
+                state.loading -> PlanDaySkeleton()
                 state.loadError != null && state.details == null -> MessageState(
                     icon = Icons.Default.Map,
                     title = "Could not load the plan",
@@ -206,6 +231,16 @@ fun ItineraryScreen(
                     }
                 }
             }
+
+            if (state.deletePending) {
+                UndoDeleteBanner(
+                    onUndo = viewModel::undoDelete,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            }
         }
     }
 
@@ -217,7 +252,42 @@ fun ItineraryScreen(
         )
     }
     if (showDeleteDialog) {
-        DeleteDialog(busy = state.busy, onDismiss = { showDeleteDialog = false }, onConfirm = { viewModel.delete() })
+        DeleteDialog(
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.delete()
+            }
+        )
+    }
+}
+
+/**
+ * Sits over the bottom of the screen for the few seconds a delete can still be undone.
+ *
+ * The delete API has no restore, so once the grace window in [ItineraryViewModel.delete] ends there is
+ * nothing left to undo; this banner is gone by then regardless, because [state.deletePending] flips
+ * false the moment that happens.
+ */
+@Composable
+private fun UndoDeleteBanner(onUndo: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = TrippinTheme.colors
+    Row(
+        modifier
+            .clip(TrippinTheme.shapes.card)
+            .background(colors.ink)
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Trip deleted",
+            style = TrippinType.Body,
+            color = colors.paper,
+            modifier = Modifier.weight(1f).padding(vertical = 14.dp)
+        )
+        TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 44.dp)) {
+            Text("Undo", style = TrippinType.Label, color = colors.accent)
+        }
     }
 }
 
@@ -370,7 +440,7 @@ private fun DayList(
             TrippinCard {
                 Column(Modifier.padding(14.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Day ${day.dayIndex} · ${day.date}", style = TrippinType.Label, color = colors.ink)
+                        Text("Day ${day.dayIndex} · ${formatDayDate(day.date)}", style = TrippinType.Label, color = colors.ink)
                         if (dayTotal != null && dayTotal > 0) {
                             Text("Stops total ${formatStatedAmount(dayTotal, singleCurrency)}", style = TrippinType.Caption, color = colors.ink)
                         }
@@ -399,7 +469,8 @@ private fun DayList(
                 index = i + 1,
                 visited = act.id in state.visited,
                 onToggleVisited = { onToggleVisited(act.id) },
-                destinationName = destinationName
+                destinationName = destinationName,
+                dayDate = day.date
             )
         }
     }
@@ -440,22 +511,53 @@ private fun ModifyDialog(busy: Boolean, onDismiss: () -> Unit, onApply: (String)
 }
 
 @Composable
-private fun DeleteDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun DeleteDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val colors = TrippinTheme.colors
     AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        onDismissRequest = onDismiss,
         containerColor = colors.panel,
         titleContentColor = colors.ink,
         textContentColor = colors.ink,
         title = { Text("Delete this trip", style = TrippinType.Heading) },
-        text = { Text("This deletes the trip and its plan. It cannot be undone.", style = TrippinType.Body, color = colors.inkMuted) },
+        text = { Text("This deletes the trip and its plan. You get a few seconds to undo it, and no longer after that.", style = TrippinType.Body, color = colors.inkMuted) },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !busy) {
-                Text(if (busy) "Deleting..." else "Delete", style = TrippinType.Label, color = colors.danger)
+            TextButton(onClick = onConfirm) {
+                Text("Delete", style = TrippinType.Label, color = colors.danger)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !busy) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
+            TextButton(onClick = onDismiss) { Text("Keep", style = TrippinType.Label, color = colors.inkMuted) }
         }
     )
+}
+
+/**
+ * Puts the whole trip on the device calendar as one all-day event, via ACTION_INSERT so the
+ * traveller's own calendar app does the writing and can be trusted with the permission, rather than
+ * this app asking for calendar write access itself.
+ *
+ * Silently does nothing when the trip has no usable dates: there is no place to report a failure from
+ * a menu action, and a malformed date from the server is not something the traveller can fix by trying
+ * again.
+ */
+private fun launchAddTripToCalendar(context: android.content.Context, trip: TripSummaryDto, itineraryStatus: String?, dayCount: Int, stopCount: Int) {
+    val event = com.trippin.core.common.tripCalendarEvent(
+        destination = trip.destination,
+        startDate = trip.startDate,
+        endDate = trip.endDate,
+        dayCount = dayCount,
+        stopCount = stopCount,
+        itineraryStatus = itineraryStatus
+    ) ?: return
+
+    val intent = Intent(Intent.ACTION_INSERT).apply {
+        data = android.provider.CalendarContract.Events.CONTENT_URI
+        putExtra(android.provider.CalendarContract.Events.TITLE, event.title)
+        putExtra(android.provider.CalendarContract.Events.DESCRIPTION, event.description)
+        event.location?.let { putExtra(android.provider.CalendarContract.Events.EVENT_LOCATION, it) }
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, event.allDay)
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.startMillis)
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, event.endMillis)
+    }
+    runCatching { context.startActivity(intent) }
 }

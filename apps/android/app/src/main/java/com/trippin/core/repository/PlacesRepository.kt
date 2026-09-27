@@ -2,9 +2,12 @@ package com.trippin.core.repository
 
 import com.trippin.core.common.DataResult
 import com.trippin.core.common.runNetwork
+import com.trippin.core.database.RecentDestinationDao
+import com.trippin.core.database.RecentDestinationEntity
 import com.trippin.core.database.SavedSpotDao
 import com.trippin.core.database.SavedSpotEntity
 import com.trippin.core.network.ApiService
+import com.trippin.core.network.DestinationSuggestionDto
 import com.trippin.core.network.PlaceSearchResultDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,10 +20,47 @@ import javax.inject.Singleton
 class PlacesRepository @Inject constructor(
     private val api: ApiService,
     private val savedDao: SavedSpotDao,
+    private val recentDao: RecentDestinationDao,
     private val json: Json
 ) {
     suspend fun search(query: String): DataResult<List<PlaceSearchResultDto>> =
         runNetwork { api.searchPlaces(query.trim()) }
+
+    /**
+     * Destination suggestions for what has been typed so far.
+     *
+     * A query under two characters returns an empty list without a request: one character matches most
+     * of the planet. A failure returns an empty list too, not an error, because suggestions are a
+     * convenience: the planner still accepts typed text, and the engine resolves the destination again
+     * when it builds the plan. So an outage costs the traveller the dropdown, never the trip.
+     */
+    suspend fun autocompleteDestinations(query: String): List<DestinationSuggestionDto> {
+        val term = query.trim()
+        if (term.length < 2) return emptyList()
+        return when (val result = runNetwork { api.autocompleteDestinations(term) }) {
+            is DataResult.Ok -> result.value.suggestions
+            is DataResult.Fail -> emptyList()
+        }
+    }
+
+    /** The destinations most recently picked from the autocomplete list, newest first. */
+    fun observeRecentDestinations(): Flow<List<DestinationSuggestionDto>> = recentDao.observeRecent().map { rows ->
+        rows.mapNotNull { row ->
+            runCatching { json.decodeFromString(DestinationSuggestionDto.serializer(), row.json) }.getOrNull()
+        }
+    }
+
+    /** Remembers a destination as picked, so it can be offered again next time the field is empty. */
+    suspend fun rememberDestination(suggestion: DestinationSuggestionDto) {
+        if (suggestion.id.isBlank()) return
+        recentDao.remember(
+            RecentDestinationEntity(
+                placeId = suggestion.id,
+                json = json.encodeToString(DestinationSuggestionDto.serializer(), suggestion),
+                pickedAt = System.currentTimeMillis()
+            )
+        )
+    }
 
     fun observeSavedSpots(): Flow<List<PlaceSearchResultDto>> = savedDao.observeAll().map { rows ->
         rows.mapNotNull { row ->

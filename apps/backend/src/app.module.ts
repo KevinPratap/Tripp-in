@@ -12,6 +12,7 @@ import { ItinerariesModule } from './itineraries/itineraries.module';
 import { DestinationsModule } from './destinations/destinations.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
+import { MailModule } from './common/mail/mail.module';
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisService } from './common/redis/redis.service';
 
@@ -21,6 +22,7 @@ import { RedisService } from './common/redis/redis.service';
       isGlobal: true,
       envFilePath: ['.env', '../../infrastructure/environments/.env.example']
     }),
+    MailModule,
     TripsModule,
     PlacesModule,
     RoutesModule,

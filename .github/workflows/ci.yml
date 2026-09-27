@@ -2,7 +2,7 @@ name: Trippin AI CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'claude/**']
   pull_request:
     branches: [main, develop]
 
@@ -90,6 +90,58 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x apps/android/gradlew
 
+      - name: Compile Android Debug Sources
+        working-directory: apps/android
+        run: ./gradlew compileDebugKotlin --no-daemon
+
       - name: Run Android Unit Tests
         working-directory: apps/android
         run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Run Android Lint
+        working-directory: apps/android
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Upload Lint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lint-report
+          path: apps/android/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+  android-release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: android-check
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x apps/android/gradlew
+
+      - name: Build Signed Release APK
+        working-directory: apps/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: trippin-release-apk
+          path: apps/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

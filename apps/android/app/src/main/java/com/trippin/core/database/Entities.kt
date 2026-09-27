@@ -32,3 +32,16 @@ data class SavedSpotEntity(
     val json: String,
     val savedAt: Long
 )
+
+/**
+ * A destination the traveller picked from the autocomplete list before, offered again when the
+ * planner's destination field is empty and focused. Keyed on the suggestion's own id, so picking the
+ * same place again updates when it was last chosen rather than adding a second row.
+ */
+@Entity(tableName = "recent_destinations")
+data class RecentDestinationEntity(
+    @PrimaryKey val placeId: String,
+    /** The DestinationSuggestionDto this came from, serialised, so nothing here is retyped by hand. */
+    val json: String,
+    val pickedAt: Long
+)

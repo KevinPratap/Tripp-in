@@ -27,6 +27,16 @@ interface ApiService {
     @GET("api/v1/places/search")
     suspend fun searchPlaces(@Query("q") query: String): List<PlaceSearchResultDto>
 
+    /**
+     * Destination suggestions as the traveller types. Each one carries the resolved coordinates and
+     * the destination's own currency, so picking one replaces free text with a real place.
+     */
+    @GET("api/v1/places/autocomplete")
+    suspend fun autocompleteDestinations(
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 6
+    ): AutocompleteResponseDto
+
     @POST("api/v1/trips/{id}/lock")
     suspend fun lockTrip(@Path("id") tripId: String): LockResponseDto
 
@@ -85,4 +95,11 @@ interface ApiService {
     /** The invite link for a trip, created on demand. The owner only. */
     @POST("api/v1/trips/{id}/share")
     suspend fun createShareLink(@Path("id") tripId: String): ShareLinkDto
+
+    /**
+     * Resolves a share token to the trip it points at. No identity is required to call this: the
+     * token itself is the credential, the same as when a browser opens the share link.
+     */
+    @GET("api/v1/t/{token}")
+    suspend fun resolveShareToken(@Path("token") token: String): TripDetailsDto
 }

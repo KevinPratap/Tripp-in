@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Directions
@@ -74,6 +75,8 @@ fun ActivityCard(
     visited: Boolean,
     onToggleVisited: () -> Unit,
     destinationName: String?,
+    /** The day this stop falls on ("yyyy-MM-dd..."), so it can be added to the device calendar. */
+    dayDate: String? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = TrippinTheme.colors
@@ -201,6 +204,14 @@ fun ActivityCard(
                             )
                             Spacer(Modifier.width(8.dp))
                         }
+                        if (dayDate != null) {
+                            com.trippin.core.design.TrippinIconButton(
+                                icon = Icons.Default.CalendarMonth,
+                                contentDescription = "Add to calendar",
+                                onClick = { launchAddStopToCalendar(context, activity, dayDate) }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
                         if (canNavigate) {
                             com.trippin.core.design.TrippinOutlineButton(
                                 text = "Take me there",
@@ -279,6 +290,33 @@ private fun statusVisual(status: String, good: Color, warn: Color, muted: Color)
         "estimated" -> Icons.Default.WarningAmber to warn
         else -> Icons.Default.HelpOutline to muted
     }
+
+/**
+ * Puts one stop on the device calendar, via ACTION_INSERT so the traveller's own calendar app does the
+ * writing. Silently does nothing when the stop's times will not parse into an event: there is no place
+ * to report a failure from an icon button, and a malformed time from the server is not something
+ * retrying fixes.
+ */
+private fun launchAddStopToCalendar(context: android.content.Context, activity: ActivityDto, dayDate: String) {
+    val event = com.trippin.core.common.stopCalendarEvent(
+        title = activity.title,
+        dayDate = dayDate,
+        startTime = activity.startTime,
+        endTime = activity.endTime,
+        address = activity.place?.formattedAddress,
+        zone = java.time.ZoneId.systemDefault()
+    ) ?: return
+
+    val intent = Intent(Intent.ACTION_INSERT).apply {
+        data = android.provider.CalendarContract.Events.CONTENT_URI
+        putExtra(android.provider.CalendarContract.Events.TITLE, event.title)
+        putExtra(android.provider.CalendarContract.Events.DESCRIPTION, event.description)
+        event.location?.let { putExtra(android.provider.CalendarContract.Events.EVENT_LOCATION, it) }
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.startMillis)
+        putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, event.endMillis)
+    }
+    runCatching { context.startActivity(intent) }
+}
 
 private fun launchMaps(context: android.content.Context, activity: ActivityDto, destinationName: String?) {
     val point = activity.place?.location

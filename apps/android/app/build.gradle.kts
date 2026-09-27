@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -22,11 +24,31 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        create("release") {
+            val b64 = System.getenv("KEYSTORE_BASE64") ?: return@create
+            val alias = System.getenv("KEY_ALIAS") ?: return@create
+            val kp = System.getenv("KEY_PASSWORD") ?: return@create
+            val sp = System.getenv("STORE_PASSWORD") ?: return@create
+
+            val ksFile = layout.buildDirectory.file("tmp/release.keystore").get().asFile
+            ksFile.parentFile.mkdirs()
+            ksFile.writeBytes(Base64.getDecoder().decode(b64))
+
+            storeFile = ksFile
+            storePassword = sp
+            keyAlias = alias
+            keyPassword = kp
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
         }
         release {
+            val rc = signingConfigs.findByName("release")
+            if (rc?.storeFile != null) signingConfig = rc
             // R8 is left off until the keep rules can be verified on a device build; the rules in
             // proguard-rules.pro are ready for when it is turned on.
             isMinifyEnabled = false

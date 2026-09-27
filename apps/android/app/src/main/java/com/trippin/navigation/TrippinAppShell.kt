@@ -41,6 +41,7 @@ import com.trippin.core.design.LoadingBlock
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.TrippinTheme
 import com.trippin.core.design.TrippinType
+import com.trippin.core.common.shareTokenFromPath
 import com.trippin.core.design.clickableTab
 import com.trippin.feature.auth.SignInScreen
 import com.trippin.feature.group.GroupScreen
@@ -52,17 +53,24 @@ import com.trippin.feature.today.TodayScreen
 import com.trippin.feature.trips.TripsScreen
 
 @Composable
-fun TrippinAppShell(viewModel: ShellViewModel = hiltViewModel()) {
+fun TrippinAppShell(
+    /** The path of the link the app was opened or resumed with ("/t/<token>"), or null for a plain launch. */
+    pendingSharePath: String? = null,
+    onSharePathConsumed: () -> Unit = {},
+    viewModel: ShellViewModel = hiltViewModel()
+) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
 
     when (val state = authState) {
         is AuthState.Loading -> Box(Modifier.fillMaxSize().background(TrippinTheme.colors.paper)) {
             LoadingBlock("Loading")
         }
+        // A shared link opened while signed out still needs an account first: the link is not lost,
+        // just held until SignedInShell exists to act on it.
         is AuthState.SignedOut -> SignInScreen(onSignedIn = {})
         is AuthState.SignedIn -> {
             LaunchedEffect(state.account.id) { viewModel.revalidate() }
-            SignedInShell(viewModel)
+            SignedInShell(viewModel, pendingSharePath, onSharePathConsumed)
         }
     }
 }
@@ -75,11 +83,31 @@ private enum class ShellTab(val label: String, val icon: ImageVector) {
 }
 
 @Composable
-private fun SignedInShell(viewModel: ShellViewModel) {
+private fun SignedInShell(
+    viewModel: ShellViewModel,
+    pendingSharePath: String?,
+    onSharePathConsumed: () -> Unit
+) {
     val navController = rememberNavController()
     val currentTripId by viewModel.currentTripId.collectAsStateWithLifecycle()
+    val resolvedShareTripId by viewModel.resolvedShareTripId.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+
+    // A share link is consumed the moment it is looked at, whether or not it turns out to be one:
+    // there is nothing to gain by asking again for a path that already failed to resolve.
+    LaunchedEffect(pendingSharePath) {
+        val token = shareTokenFromPath(pendingSharePath)
+        if (pendingSharePath != null) onSharePathConsumed()
+        if (token != null) viewModel.openSharedTrip(token)
+    }
+
+    LaunchedEffect(resolvedShareTripId) {
+        resolvedShareTripId?.let { tripId ->
+            navController.navigate(Plan(tripId)) { launchSingleTop = true }
+            viewModel.clearResolvedShareTrip()
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(TrippinTheme.colors.paper)) {
         Box(Modifier.weight(1f)) {

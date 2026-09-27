@@ -1,5 +1,6 @@
 package com.trippin.feature.trips
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,11 +38,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.trippin.core.design.CardListSkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.PlacePlate
 import com.trippin.core.design.SectionLabel
 import com.trippin.core.design.StatusPill
+import com.trippin.core.design.SurfaceTier
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
@@ -109,7 +112,7 @@ fun TripsScreen(
                 .padding(padding)
         ) {
             if (state.loading) {
-                com.trippin.core.design.LoadingBlock("Loading your trips")
+                CardListSkeleton(label = "Loading your trips")
             } else if (state.myTrips.isEmpty() && state.home == null) {
                 MessageState(
                     icon = Icons.Default.CardTravel,
@@ -160,7 +163,7 @@ fun TripsScreen(
 @Composable
 private fun StartTripCard(onClick: () -> Unit) {
     val colors = TrippinTheme.colors
-    TrippinCard(onClick = onClick, background = colors.accent) {
+    TrippinCard(tier = SurfaceTier.ACTION, onClick = onClick, background = colors.accent) {
         Row(
             Modifier.fillMaxWidth().padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -192,55 +195,53 @@ private fun TripCard(
     }
     val (statusText, statusTone) = statusPill(trip.itineraryStatus ?: trip.status)
 
-    TrippinCard(onClick = onOpen) {
-        Column(Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = trip.destinationName.ifBlank { "Untitled trip" },
-                    style = TrippinType.Title,
-                    color = colors.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(8.dp))
-                StatusPill(text = statusText, tone = statusTone)
-            }
-            if (dateLabel != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(dateLabel, style = TrippinType.Body, color = colors.inkMuted)
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    // The trip happening right now is the one thing on this screen worth leading with, so it is the
+    // only card that lifts. The rest sit flat, which is what makes the lift mean anything.
+    TrippinCard(
+        tier = if (isLive) SurfaceTier.RAISED else SurfaceTier.FLAT,
+        onClick = onOpen
+    ) {
+        Column {
+            // Destination header: names the place in its own letters rather than using a stock image.
+            PlacePlate(
+                title = trip.destinationName.ifBlank { "Untitled" },
+                category = dateLabel ?: "",
+                height = 88.dp
+            )
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusPill(text = statusText, tone = statusTone)
+                    val cost = trip.totalEstimatedCost
+                    if (cost != null && cost > 0 && !trip.currency.isNullOrBlank()) {
+                        Text(
+                            "Est. ${formatStatedAmount(cost, trip.currency)}",
+                            style = TrippinType.Caption,
+                            color = colors.inkMuted
+                        )
+                    }
+                }
                 val stopWord = if (trip.stopCount == 1) "stop" else "stops"
                 val dayWord = if (trip.dayCount == 1) "day" else "days"
+                Spacer(Modifier.height(8.dp))
                 Text(
                     "${trip.dayCount} $dayWord · ${trip.stopCount} $stopWord",
                     style = TrippinType.Caption,
                     color = colors.inkMuted
                 )
-                val cost = trip.totalEstimatedCost
-                if (cost != null && cost > 0 && !trip.currency.isNullOrBlank()) {
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Est. ${formatStatedAmount(cost, trip.currency)}",
-                        style = TrippinType.Caption,
-                        color = colors.ink
+                if (isLive) {
+                    Spacer(Modifier.height(10.dp))
+                    com.trippin.core.design.TrippinOutlineButton(
+                        text = "Today",
+                        onClick = onOpenToday,
+                        leadingIcon = Icons.Default.Today,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-            if (isLive) {
-                Spacer(Modifier.height(12.dp))
-                com.trippin.core.design.TrippinOutlineButton(
-                    text = "Today",
-                    onClick = onOpenToday,
-                    leadingIcon = Icons.Default.Today,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     }

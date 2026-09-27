@@ -33,7 +33,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request a single use magic link',
     description:
-      'Stores only the hash of the token. No mail provider is configured, so the link is written to the server log and the response states that plainly.'
+      'Stores only the hash of the token. Emails the link when a mail provider is configured, and says so in the delivery field; otherwise the link is written to the server log and delivery reports console. The raw token is never returned in production.'
   })
   async requestLink(@Body() dto: RequestMagicLinkDto): Promise<RequestedMagicLink> {
     return this.authService.requestMagicLink(dto);

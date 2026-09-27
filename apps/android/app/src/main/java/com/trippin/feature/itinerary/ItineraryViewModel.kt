@@ -33,6 +33,12 @@ data class ItineraryUiState(
     val buildDismissed: Boolean = false,
     val generationProgress: Int? = null,
     val generationStage: String? = null,
+    /**
+     * True from the moment Delete is confirmed until the grace window ends. The trip is not actually
+     * gone yet: the network call is deliberately delayed, so this is the honest window in which Undo
+     * can still work. See [ItineraryViewModel.delete].
+     */
+    val deletePending: Boolean = false,
     val deleted: Boolean = false
 ) {
     val status: String? get() = details?.trip?.status
@@ -178,18 +184,45 @@ class ItineraryViewModel @Inject constructor(
         }
     }
 
+    private var deleteJob: Job? = null
+
+    /**
+     * Starts the delete, but does not call the server yet.
+     *
+     * The delete this app can offer is not reversible: the API removes the row outright, with no
+     * archive and no restore, so once that call is made there is nothing left to undo. Rather than
+     * either skip undo entirely or claim a restore this API cannot do, the network call itself is
+     * delayed by [UNDO_WINDOW_MS]. [undoDelete] during that window cancels the call before it ever
+     * happens, which is the only honest kind of undo available here.
+     */
     fun delete() {
-        if (_uiState.value.busy) return
-        _uiState.update { it.copy(busy = true) }
-        viewModelScope.launch {
+        if (_uiState.value.busy || _uiState.value.deletePending) return
+        _uiState.update { it.copy(deletePending = true) }
+        deleteJob = viewModelScope.launch {
+            delay(UNDO_WINDOW_MS)
             when (tripRepository.delete(tripId)) {
-                is DataResult.Ok -> _uiState.update { it.copy(busy = false, deleted = true) }
+                is DataResult.Ok -> _uiState.update { it.copy(deletePending = false, deleted = true) }
                 is DataResult.Fail -> _uiState.update {
-                    it.copy(busy = false, message = ActionMessage("Could not delete this trip", MessageTone.BAD))
+                    it.copy(
+                        deletePending = false,
+                        message = ActionMessage("Could not delete this trip", MessageTone.BAD)
+                    )
                 }
             }
         }
     }
 
+    /** Cancels a pending delete before its grace window ends. A no-op once the window has passed. */
+    fun undoDelete() {
+        deleteJob?.cancel()
+        deleteJob = null
+        _uiState.update { it.copy(deletePending = false) }
+    }
+
     fun clearMessage() = _uiState.update { it.copy(message = null) }
+
+    private companion object {
+        /** How long Undo actually works for, before the delete call is made for real. */
+        const val UNDO_WINDOW_MS = 5000L
+    }
 }

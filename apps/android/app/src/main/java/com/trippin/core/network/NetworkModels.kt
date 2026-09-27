@@ -193,6 +193,35 @@ data class GeoPointDto(
     val longitude: Double = 0.0
 )
 
+/**
+ * One destination the traveller can pick while typing, from GET /api/v1/places/autocomplete.
+ *
+ * Picking one is what replaces a typed guess with a resolved place: the coordinates anchor the plan,
+ * and `currency` is the destination's own money, worked out by the server from the country rather than
+ * guessed on the phone. Before this the planner created every trip in INR whatever the destination.
+ *
+ * `currency` is null when the server does not know the country's tender. Null means ask, never assume:
+ * the form keeps whatever the traveller chose instead of substituting a default.
+ */
+@Serializable
+data class DestinationSuggestionDto(
+    val id: String = "",
+    val name: String = "",
+    val region: String? = null,
+    val country: String? = null,
+    val countryCode: String? = null,
+    val currency: String? = null,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    /** The single line to show in the list, already assembled by the server. */
+    val label: String = ""
+)
+
+@Serializable
+data class AutocompleteResponseDto(
+    val suggestions: List<DestinationSuggestionDto> = emptyList()
+)
+
 @Serializable
 data class ReplanRequestDto(
     val intent: String
@@ -298,16 +327,21 @@ data class RequestMagicLinkDto(
 /**
  * What POST /api/v1/auth/request-link answers with.
  *
- * `delivery` says how the link was delivered and this build renders it as it is: no mail provider is
- * configured on the server, so the answer is "console" and the link is in the log. The app states
- * that plainly instead of claiming an email was sent.
+ * `delivery` is "email" when the server handed the link to a mail provider, and "console" when no
+ * provider is configured and it only reached the server log. The app renders whichever it is, rather
+ * than claiming an email is on its way.
+ *
+ * `loginUrl` is absent whenever the link was emailed, and absent in production either way: the route
+ * needs no identity, so returning the raw token there would let anyone name an address and receive a
+ * working session for it. It therefore has to be nullable, or deserialising a production response
+ * fails on the missing field.
  */
 @Serializable
 data class RequestedMagicLinkDto(
     val email: String,
     val expiresAt: String,
     val delivery: String,
-    val loginUrl: String
+    val loginUrl: String? = null
 )
 
 @Serializable

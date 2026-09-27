@@ -11,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.PlanDaySkeleton
 import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
 import com.trippin.core.design.TrippinTopBar
@@ -40,7 +40,7 @@ fun TodayScreen(
         }
     ) { padding ->
         if (state.loading) {
-            LoadingBlock("Loading today", Modifier.fillMaxSize().padding(padding))
+            PlanDaySkeleton(modifier = Modifier.fillMaxSize().padding(padding), label = "Loading today")
         } else {
             PullToRefreshBox(
                 isRefreshing = state.refreshing,

@@ -101,10 +101,10 @@ object TrippinType {
     /** A section heading inside a screen: Group, Today, Money. */
     val Heading = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 17.sp,
         lineHeight = 22.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     )
 
     /** Sentences a person reads: a description, an address, a reason. */
@@ -116,22 +116,42 @@ object TrippinType {
         letterSpacing = 0.sp
     )
 
-    /** The name of a thing: a field label, a chip, a button, a tab. */
+    /**
+     * The name of a thing: a field label, a chip, a button, a tab.
+     *
+     * Tracking was 0.8sp. Wide tracking on a 13sp label reads as machine-set rather than typeset, and it
+     * was on nearly every string in the app, so it is now effectively none. Sentence case, not upper:
+     * upper case is [Eyebrow]'s job and has to be chosen.
+     */
     val Label = TextStyle(
         fontFamily = TrippinBody,
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
         lineHeight = 17.sp,
-        letterSpacing = 0.8.sp
+        letterSpacing = 0.1.sp
     )
 
     /** Metadata only: a source, a count, a time. The floor, never below. */
     val Caption = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 1.0.sp
+        letterSpacing = 0.1.sp
+    )
+
+    /**
+     * The one place upper case belongs: a short label over a group of cards ("Next up", "Earlier").
+     *
+     * It exists so upper case is a deliberate choice for a handful of strings, rather than what every
+     * label got by default. Never a sentence, never more than three words.
+     */
+    val Eyebrow = TextStyle(
+        fontFamily = TrippinBody,
+        fontWeight = FontWeight.Bold,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.8.sp
     )
 
     /**
