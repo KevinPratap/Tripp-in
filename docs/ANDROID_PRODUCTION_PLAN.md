@@ -297,21 +297,40 @@ are coming, rather than a centred spinner over the words "Loading your trips". T
 device has animations off, read from `ANIMATOR_DURATION_SCALE`. The app shell's startup and the map
 keep spinners, having no content shape to stand in for.
 
+**Add to calendar.** The web app has exported a trip as an ICS file for a while; the phone could not
+put a trip in a calendar at all. Two entry points now: the whole trip as one all-day event from the
+plan's overflow menu, and a calendar icon on each stop that adds just that stop at its own time. Both
+go through `ACTION_INSERT` to the device's own calendar app rather than this app asking for calendar
+write access itself. The event construction is plain Kotlin, apart from the Intent that carries it, so
+the decisions that could be wrong (an all-day end is exclusive, a stop that reads as ending before it
+starts is crossing midnight, a draft says it is a draft) are tested without a device.
+
+**Recent destinations.** A traveller who plans the same handful of places used to start every trip
+from a blank field. The destination field now offers the last eight places picked, the moment it
+gains focus while empty, through the same Room-backed pattern already used for saved places.
+
+**Undo on delete, checked against what the API actually does first.** `DELETE /trips/:id` is a real
+row delete with no archive and no restore, so an undo that fires the call immediately and hopes to
+reverse it would promise something the server cannot do. Confirming delete now opens a five second
+window before the network call is made at all, with a banner offering Undo for exactly that window;
+once the window passes and the delete goes through for real, the banner is already gone. The
+confirmation dialog's copy says plainly that undo works for a few seconds and no longer after that.
+
 ### Counts
 
-
 - Backend: 135 tests across 14 suites, up from 86. Backend and web builds clean.
-- Android: 46 unit tests, up from zero. The app had no `test/` directory at all.
+- Android: 72 unit tests, up from zero. The app had no `test/` directory at all.
 
 ### Not started
 
 The screen rebuilds on the new tiers (phase 4) and release hardening (phase 5): R8 with verified keep
 rules, signing from environment variables, a baseline profile, crash reporting, and the accessibility
-pass. Still open in the convenience layer: a notification when a plan is ready, deep links,
-add-to-calendar, undo on delete, recent destinations, swipe actions, and a search surface that makes
-saved places reachable. Share, the maps hand-off and haptics do not belong on this list: section 5
-above corrects an earlier claim that they were missing. The rate limiter's move to Redis, listed
-here in an earlier version of this section, is dropped: see the correction above.
+pass. Still open in the convenience layer: a notification when a plan is ready, deep links, swipe
+actions, and a search surface that makes saved places reachable. Share, the maps hand-off and haptics
+do not belong on this list: section 5 above corrects an earlier claim that they were missing, and
+add-to-calendar, recent destinations and undo on delete are done, described just above. The rate
+limiter's move to Redis, listed here in an earlier version of this section, is dropped: see the
+correction above.
 
 Phase 4 is where the design direction wants a decision from Kevin: the mock at
 https://claude.ai/artifact/QEPKAgKcWsZLBpgArc8H5h shows the current Trips screen beside the proposed
@@ -325,4 +344,7 @@ primary button keeps its hard shadow.
 - Resend delivery. `api.resend.com` is denied here, so the transport is tested against a fake and has
   never sent a real email.
 - Anything on a device. No emulator or device exists in this container, so nothing here has been seen
-  running. CI compiles, tests and lints; it does not look at the screen.
+  running. CI compiles, tests and lints; it does not look at the screen. That specifically includes the
+  calendar Intents (ACTION_INSERT to a calendar app that may or may not be installed), the undo banner's
+  timing and animation, and the Room migration to v2 (fallbackToDestructiveMigration is exercised by
+  reasoning about Room's own documented behaviour, not by installing an old version and upgrading it).
