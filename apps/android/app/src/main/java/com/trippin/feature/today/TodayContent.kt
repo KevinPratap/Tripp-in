@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
@@ -53,7 +54,8 @@ fun TodayContent(
     onToggleVisited: (String) -> Unit,
     onOpenMap: () -> Unit,
     onOpenStop: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onExploreAround: (ActivityDto) -> Unit = {}
 ) {
     val colors = TrippinTheme.colors
     val today = LocalDate.now()
@@ -114,6 +116,18 @@ fun TodayContent(
                     }
                 }
                 PhotoCredit(photo)
+            }
+        }
+        val anchor = (nowStop ?: nextStop(activities))?.takeIf { it.place?.location?.let { p -> p.latitude != 0.0 || p.longitude != 0.0 } == true }
+        if (anchor != null) {
+            item {
+                com.trippin.core.design.TrippinOutlineButton(
+                    text = "What is around ${anchor.title}",
+                    onClick = { onExploreAround(anchor) },
+                    leadingIcon = Icons.Default.Explore,
+                    contentColor = colors.ink,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
         items(activities.size) { i ->

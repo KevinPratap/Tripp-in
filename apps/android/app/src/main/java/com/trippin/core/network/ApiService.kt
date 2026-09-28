@@ -127,4 +127,14 @@ interface ApiService {
 
     @POST("api/v1/trips/{id}/vote")
     suspend fun vote(@Path("id") tripId: String, @Body body: VoteRequestDto): TripCollabDto
+
+    @GET("api/v1/explore/route")
+    suspend fun exploreRoute(@Query("points") points: String): ExploreRouteDto
+
+    @GET("api/v1/explore/nearby")
+    suspend fun exploreNearby(
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+        @Query("radius") radius: Int
+    ): NearbyPlacesDto
 }

@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,6 +64,8 @@ import java.util.Locale
 @Composable
 fun StopScreen(
     onBack: () -> Unit,
+    /** Opens what else is around this stop: its coordinates, its title and its id, for swapping. */
+    onFindNearby: (Double, Double, String, String) -> Unit = { _, _, _, _ -> },
     viewModel: StopViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -174,6 +178,28 @@ private fun StopContent(
                         color = colors.inkMuted,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
+                }
+
+                val here = activity.place?.location?.takeIf { it.latitude != 0.0 || it.longitude != 0.0 }
+                if (here != null) {
+                    com.trippin.core.design.TrippinCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onFindNearby(here.latitude, here.longitude, activity.title, activity.id) }
+                    ) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Explore, null, tint = colors.accent)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Not feeling it?", style = TrippinType.Heading, color = colors.ink)
+                                Text(
+                                    "See every cafe, sight and park within walking distance, and swap one in.",
+                                    style = TrippinType.Body,
+                                    color = colors.inkMuted
+                                )
+                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = colors.inkMuted)
+                        }
+                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

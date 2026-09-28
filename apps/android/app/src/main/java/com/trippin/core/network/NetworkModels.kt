@@ -505,3 +505,41 @@ data class VoteRequestDto(
     val vote: Int,
     val comment: String? = null
 )
+
+/**
+ * A named place from OpenStreetMap, from GET /api/v1/explore/nearby or /route. Every field is as OSM
+ * lists it; `openingHours` is the raw OSM tag and absent when OSM has none.
+ */
+@Serializable
+data class ExplorePlaceDto(
+    val id: String,
+    val name: String,
+    val kind: String,
+    val latitude: Double,
+    val longitude: Double,
+    val distanceMeters: Int = 0,
+    val openingHours: String? = null,
+    val cuisine: String? = null,
+    val website: String? = null,
+    /** Set only for places along a route: which walk it is beside (0 is stop 1 to stop 2). */
+    val legIndex: Int? = null,
+    val offRouteMeters: Int? = null
+)
+
+/** One walk between two stops. `source` is "OSRM" for a street route, "straight" when routing was down. */
+@Serializable
+data class RouteLegDto(
+    val coordinates: List<List<Double>> = emptyList(),
+    val distanceMeters: Int = 0,
+    val durationMinutes: Int? = null,
+    val source: String = "straight"
+)
+
+@Serializable
+data class ExploreRouteDto(
+    val legs: List<RouteLegDto> = emptyList(),
+    val along: List<ExplorePlaceDto> = emptyList()
+)
+
+@Serializable
+data class NearbyPlacesDto(val places: List<ExplorePlaceDto> = emptyList())

@@ -61,6 +61,7 @@ import com.trippin.feature.history.HistoryScreen
 import com.trippin.feature.home.HomeScreen
 import com.trippin.feature.intro.IntroScreen
 import com.trippin.feature.itinerary.ItineraryScreen
+import com.trippin.feature.explore.ExploreScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.planner.PlannerScreen
 import com.trippin.feature.profile.ProfileScreen
@@ -259,12 +260,30 @@ private fun SignedInShell(
                         tripId = tripId,
                         onBack = { navController.popBackStack() },
                         onOpenMap = { navController.navigate(MapView(tripId)) },
-                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) }
+                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) },
+                        onExploreAround = { a ->
+                            a.place?.location?.let { p ->
+                                navController.navigate(Explore(p.latitude, p.longitude, a.title, tripId, a.id))
+                            }
+                        }
                     )
                 }
 
-                composable<Stop> {
-                    StopScreen(onBack = { navController.popBackStack() })
+                composable<Stop> { entry ->
+                    val tripId = entry.toRoute<Stop>().tripId
+                    StopScreen(
+                        onBack = { navController.popBackStack() },
+                        onFindNearby = { lat, lng, title, activityId ->
+                            navController.navigate(Explore(lat, lng, title, tripId, activityId))
+                        }
+                    )
+                }
+
+                composable<Explore> {
+                    ExploreScreen(
+                        onBack = { navController.popBackStack() },
+                        onSwapped = { navController.popBackStack() }
+                    )
                 }
 
                 composable<Budget> {
@@ -276,9 +295,13 @@ private fun SignedInShell(
                 }
 
                 composable<MapView> { entry ->
+                    val tripId = entry.toRoute<MapView>().tripId
                     MapScreen(
-                        tripId = entry.toRoute<MapView>().tripId,
-                        onBack = { navController.popBackStack() }
+                        tripId = tripId,
+                        onBack = { navController.popBackStack() },
+                        onExploreAround = { point, title ->
+                            navController.navigate(Explore(point.latitude, point.longitude, title))
+                        }
                     )
                 }
             }

@@ -121,6 +121,9 @@ dependencies {
     // Images
     implementation(libs.coil.compose)
 
+    // Maps
+    implementation(libs.maplibre.android)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

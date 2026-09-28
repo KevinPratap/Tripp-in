@@ -23,6 +23,7 @@ fun TodayScreen(
     onBack: () -> Unit,
     onOpenMap: (String) -> Unit,
     onOpenStop: (String) -> Unit,
+    onExploreAround: (com.trippin.core.network.ActivityDto) -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -54,7 +55,8 @@ fun TodayScreen(
                     onToggleVisited = viewModel::toggleVisited,
                     onOpenMap = { onOpenMap(tripId) },
                     onOpenStop = onOpenStop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onExploreAround = onExploreAround
                 )
             }
         }

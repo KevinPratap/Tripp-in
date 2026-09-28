@@ -55,3 +55,17 @@ data class MapView(val tripId: String) : Destination
 /** Every saved version of a trip's plan. */
 @Serializable
 data class History(val tripId: String) : Destination
+
+/**
+ * Everything to do within walking distance of a point. Opened from a stop (with [tripId] and
+ * [activityId], so a place found here can be swapped into the plan) or from the traveller's own
+ * location (without them).
+ */
+@Serializable
+data class Explore(
+    val lat: Double,
+    val lng: Double,
+    val title: String,
+    val tripId: String? = null,
+    val activityId: String? = null
+) : Destination
