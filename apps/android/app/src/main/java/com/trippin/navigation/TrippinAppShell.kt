@@ -1,5 +1,12 @@
 package com.trippin.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,23 +40,31 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.trippin.core.design.LoadingBlock
+import com.trippin.core.design.TrippinMotion
 import com.trippin.core.design.TrippinTheme
+import com.trippin.core.design.rememberAnimationsEnabled
 import com.trippin.core.design.TrippinType
+import com.trippin.core.common.MagicLink
 import com.trippin.core.common.shareTokenFromPath
 import com.trippin.core.design.clickableTab
 import com.trippin.feature.auth.SignInScreen
+import com.trippin.feature.budget.BudgetScreen
 import com.trippin.feature.group.GroupScreen
+import com.trippin.feature.history.HistoryScreen
 import com.trippin.feature.home.HomeScreen
+import com.trippin.feature.intro.IntroScreen
 import com.trippin.feature.itinerary.ItineraryScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.planner.PlannerScreen
 import com.trippin.feature.profile.ProfileScreen
+import com.trippin.feature.stop.StopScreen
 import com.trippin.feature.today.TodayScreen
 import com.trippin.feature.trips.TripsScreen
 import com.trippin.feature.triphub.TripHubScreen
@@ -57,6 +74,8 @@ fun TrippinAppShell(
     /** The path of the link the app was opened or resumed with ("/t/<token>"), or null for a plain launch. */
     pendingSharePath: String? = null,
     onSharePathConsumed: () -> Unit = {},
+    pendingMagicLink: MagicLink? = null,
+    onMagicLinkConsumed: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -67,9 +86,29 @@ fun TrippinAppShell(
         }
         // A shared link opened while signed out still needs an account first: the link is not lost,
         // just held until SignedInShell exists to act on it.
-        is AuthState.SignedOut -> SignInScreen(onSignedIn = {})
+        is AuthState.SignedOut -> {
+            val introSeen by viewModel.introSeen.collectAsStateWithLifecycle()
+            // A tapped sign-in link goes straight to signing in: whoever tapped it has started already.
+            // Remembered, so the intro cannot flash back while the "seen" flag is still being saved.
+            var cameFromLink by remember { mutableStateOf(false) }
+            LaunchedEffect(pendingMagicLink) { if (pendingMagicLink != null) cameFromLink = true }
+            when {
+                cameFromLink || pendingMagicLink != null || introSeen == true -> SignInScreen(
+                    onSignedIn = {},
+                    magicLink = pendingMagicLink,
+                    onMagicLinkConsumed = {
+                        onMagicLinkConsumed()
+                        viewModel.finishIntro()
+                    }
+                )
+                introSeen == false -> IntroScreen(onDone = viewModel::finishIntro)
+                else -> Box(Modifier.fillMaxSize().background(TrippinTheme.colors.paper))
+            }
+        }
         is AuthState.SignedIn -> {
             LaunchedEffect(state.account.id) { viewModel.revalidate() }
+            // Already signed in: a sign-in link has nothing left to do.
+            LaunchedEffect(pendingMagicLink) { if (pendingMagicLink != null) onMagicLinkConsumed() }
             SignedInShell(viewModel, pendingSharePath, onSharePathConsumed)
         }
     }
@@ -114,9 +153,14 @@ private fun SignedInShell(
 
     Column(Modifier.fillMaxSize().background(TrippinTheme.colors.paper)) {
         Box(Modifier.weight(1f)) {
+            val animate = rememberAnimationsEnabled()
             NavHost(
                 navController = navController,
-                startDestination = Home
+                startDestination = Home,
+                enterTransition = { screenEnter(animate, forward = true, betweenTabs = isTabSwitch()) },
+                exitTransition = { screenExit(animate, forward = true, betweenTabs = isTabSwitch()) },
+                popEnterTransition = { screenEnter(animate, forward = false, betweenTabs = isTabSwitch()) },
+                popExitTransition = { screenExit(animate, forward = false, betweenTabs = isTabSwitch()) }
             ) {
                 composable<Home> {
                     HomeScreen(
@@ -158,7 +202,9 @@ private fun SignedInShell(
                         onOpenPlan = { navController.navigate(Plan(it)) },
                         onOpenToday = { navController.navigate(Today(it)) },
                         onOpenMap = { navController.navigate(MapView(it)) },
-                        onOpenGroup = { navController.navigate(Group(it)) }
+                        onOpenGroup = { navController.navigate(Group(it)) },
+                        onOpenBudget = { navController.navigate(Budget(it)) },
+                        onOpenHistory = { navController.navigate(History(it)) }
                     )
                 }
 
@@ -168,7 +214,8 @@ private fun SignedInShell(
                     ItineraryScreen(
                         tripId = tripId,
                         onBack = { navController.popBackStack() },
-                        onOpenMap = { navController.navigate(MapView(it)) }
+                        onOpenMap = { navController.navigate(MapView(it)) },
+                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) }
                     )
                 }
 
@@ -196,8 +243,21 @@ private fun SignedInShell(
                     TodayScreen(
                         tripId = tripId,
                         onBack = { navController.popBackStack() },
-                        onOpenMap = { navController.navigate(MapView(tripId)) }
+                        onOpenMap = { navController.navigate(MapView(tripId)) },
+                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) }
                     )
+                }
+
+                composable<Stop> {
+                    StopScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable<Budget> {
+                    BudgetScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable<History> {
+                    HistoryScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable<MapView> { entry ->
@@ -292,4 +352,25 @@ private fun androidx.navigation.NavDestination?.isTab(tab: ShellTab): Boolean {
             ShellTab.YOU -> node.hasRoute(You::class)
         }
     }
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
+    ShellTab.entries.any { initialState.destination.isTab(it) } && ShellTab.entries.any { targetState.destination.isTab(it) }
+
+/**
+ * Going deeper slides the new screen in a short way from the right while it fades up; going back
+ * reverses it. Between tabs there is no direction, so it is a plain crossfade. All on the shared curve.
+ */
+private fun screenEnter(animate: Boolean, forward: Boolean, betweenTabs: Boolean): EnterTransition = when {
+    !animate -> EnterTransition.None
+    betweenTabs -> fadeIn(TrippinMotion.fast())
+    else -> fadeIn(TrippinMotion.medium()) +
+        slideInHorizontally(TrippinMotion.medium()) { width -> if (forward) width / 6 else -width / 6 }
+}
+
+private fun screenExit(animate: Boolean, forward: Boolean, betweenTabs: Boolean): ExitTransition = when {
+    !animate -> ExitTransition.None
+    betweenTabs -> fadeOut(TrippinMotion.fast())
+    else -> fadeOut(TrippinMotion.fast()) +
+        slideOutHorizontally(TrippinMotion.medium()) { width -> if (forward) -width / 10 else width / 6 }
 }

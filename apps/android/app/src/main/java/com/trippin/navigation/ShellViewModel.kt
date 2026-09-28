@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.trippin.core.common.DataResult
 import com.trippin.core.repository.AuthRepository
 import com.trippin.core.datastore.CurrentTripStore
+import com.trippin.core.datastore.SettingsManager
 import com.trippin.core.datastore.SignedInAccount
 import com.trippin.core.repository.TripRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,8 +29,18 @@ sealed interface AuthState {
 class ShellViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val currentTripStore: CurrentTripStore,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val settingsManager: SettingsManager
 ) : ViewModel() {
+
+    /** Null until the setting is read, so the intro never flashes for someone who has seen it. */
+    val introSeen: StateFlow<Boolean?> = settingsManager.introSeen
+        .map<Boolean, Boolean?> { it }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun finishIntro() {
+        viewModelScope.launch { settingsManager.markIntroSeen() }
+    }
 
     val authState: StateFlow<AuthState> = authRepository.account
         .map { if (it != null) AuthState.SignedIn(it) else AuthState.SignedOut }

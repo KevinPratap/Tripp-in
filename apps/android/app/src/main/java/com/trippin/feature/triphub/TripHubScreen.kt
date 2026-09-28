@@ -25,8 +25,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.CircularProgressIndicator
@@ -80,6 +82,8 @@ fun TripHubScreen(
     onOpenToday: (String) -> Unit,
     onOpenMap: (String) -> Unit,
     onOpenGroup: (String) -> Unit,
+    onOpenBudget: (String) -> Unit,
+    onOpenHistory: (String) -> Unit,
     viewModel: TripHubViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -127,7 +131,10 @@ fun TripHubScreen(
                     onOpenPlan = { onOpenPlan(tripId) },
                     onOpenToday = { onOpenToday(tripId) },
                     onOpenMap = { onOpenMap(tripId) },
-                    onOpenGroup = { onOpenGroup(tripId) }
+                    onOpenGroup = { onOpenGroup(tripId) },
+                    onOpenBudget = { onOpenBudget(tripId) },
+                    onOpenHistory = { onOpenHistory(tripId) },
+                    onOpenSharing = viewModel::openShareSheet
                 )
             }
             val live = isLive(details, LocalDate.now())
@@ -147,6 +154,16 @@ fun TripHubScreen(
         }
     }
 
+    if (state.shareSheetOpen) {
+        ShareSheet(
+            token = state.details?.trip?.shareToken,
+            busy = state.sharing || state.revoking,
+            onSend = { viewModel.share() },
+            onStop = viewModel::stopSharing,
+            onDismiss = viewModel::closeShareSheet
+        )
+    }
+
     state.message?.let { msg ->
         LaunchedEffect(msg) {
             android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
@@ -164,7 +181,10 @@ private fun HubBody(
     onOpenPlan: () -> Unit,
     onOpenToday: () -> Unit,
     onOpenMap: () -> Unit,
-    onOpenGroup: () -> Unit
+    onOpenGroup: () -> Unit,
+    onOpenBudget: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenSharing: () -> Unit
 ) {
     val colors = TrippinTheme.colors
     val trip = details.trip
@@ -237,13 +257,22 @@ private fun HubBody(
                         HubDivider()
                         HubRow(Icons.Default.Map, "Map", "Every stop on a map", onOpenMap)
                         HubDivider()
+                        HubRow(Icons.Default.Payments, "Budget", "What the group spent, and who owes whom", onOpenBudget)
+                        HubDivider()
                         HubRow(Icons.Default.Group, "Group", "$travellers ${if (travellers == 1) "traveller" else "travellers"} and what each wants", onOpenGroup)
+                        HubDivider()
+                        HubRow(
+                            Icons.Default.History,
+                            "Plan history",
+                            details.itinerary?.version?.let { v -> if (v <= 1) "The first version of the plan" else "Version $v, with every earlier one kept" } ?: "Every change to the plan, kept",
+                            onOpenHistory
+                        )
                         HubDivider()
                         HubRow(
                             Icons.Default.Link,
                             "Sharing",
-                            if (trip.shareToken != null) "Link is on. Anyone with it can view." else "Send a view-only link",
-                            onShare
+                            if (trip.shareToken != null) "Link is on. Anyone with it can view." else "Off. Send a view-only link.",
+                            onOpenSharing
                         )
                     }
                 }
@@ -338,4 +367,69 @@ private fun statusPill(details: TripDetailsDto): Pair<String, PillTone>? {
         "DRAFT" -> "Draft plan" to PillTone.WARN
         else -> null
     }
+}
+
+@Composable
+private fun ShareSheet(
+    token: String?,
+    busy: Boolean,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = TrippinTheme.colors
+    val context = LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val url = token?.let(::shareUrlFor)
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (url != null) "Sharing is on" else "Share this trip", style = TrippinType.Title, color = colors.ink) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    if (url != null) {
+                        "Anyone with this link can see the plan. They cannot change it."
+                    } else {
+                        "Make a view-only link. Anyone you send it to can see the plan, and you can turn it off at any time."
+                    },
+                    style = TrippinType.Body,
+                    color = colors.inkMuted
+                )
+                if (url != null) {
+                    TrippinCard(background = colors.panelAlt) {
+                        Text(url, style = TrippinType.Caption, color = colors.ink, modifier = Modifier.padding(12.dp))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        com.trippin.core.design.TrippinOutlineButton(
+                            text = "Copy",
+                            onClick = {
+                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(url))
+                                android.widget.Toast.makeText(context, "Link copied", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            contentColor = colors.ink,
+                            modifier = Modifier.weight(1f)
+                        )
+                        com.trippin.core.design.TrippinOutlineButton(
+                            text = "Stop sharing",
+                            onClick = onStop,
+                            enabled = !busy,
+                            contentColor = colors.danger,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onSend, enabled = !busy) {
+                Text(if (url != null) "Send link" else "Make and send link", style = TrippinType.Label, color = colors.accent)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Close", style = TrippinType.Label, color = colors.ink)
+            }
+        },
+        containerColor = colors.panel
+    )
 }

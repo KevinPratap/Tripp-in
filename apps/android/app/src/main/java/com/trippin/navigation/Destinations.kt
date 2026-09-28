@@ -41,5 +41,17 @@ data class Planner(val destination: String = "") : Destination
 @Serializable
 data class Today(val tripId: String) : Destination
 
+/** One stop on a trip's plan, full page: when, why, where each fact came from, and how to get there. */
+@Serializable
+data class Stop(val tripId: String, val activityId: String) : Destination
+
+/** What the group has spent on a trip and who owes whom. */
+@Serializable
+data class Budget(val tripId: String) : Destination
+
 @Serializable
 data class MapView(val tripId: String) : Destination
+
+/** Every saved version of a trip's plan. */
+@Serializable
+data class History(val tripId: String) : Destination

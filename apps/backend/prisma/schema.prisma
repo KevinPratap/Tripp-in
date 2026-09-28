@@ -82,6 +82,58 @@ model TripShare {
   @@map("trip_shares")
 }
 
+/// Money a traveller actually spent on a trip, as they logged it. Kept in the database rather than a
+/// cache because a spending log that expires is worse than none.
+model TripExpense {
+  id           String   @id @default(uuid())
+  tripId       String   @map("trip_id")
+  title        String
+  amount       Float
+  currency     String
+  paidBy       String   @map("paid_by")
+  splitBetween String[] @map("split_between")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("trip_expenses")
+}
+
+/// One traveller's keep (1) or skip (-1) on one stop. One vote per name per stop; voting again changes it.
+/// Keyed by the activity id rather than related to the activity row, because a replan replaces those rows
+/// and a vote on a stop that is gone should simply stop counting.
+model ActivityVote {
+  id         String   @id @default(uuid())
+  tripId     String   @map("trip_id")
+  activityId String   @map("activity_id")
+  voterName  String   @map("voter_name")
+  vote       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, voterName])
+  @@index([tripId])
+  @@map("activity_votes")
+}
+
+/// Something a traveller said about one stop, alongside their vote.
+model ActivityComment {
+  id         String   @id @default(uuid())
+  tripId     String   @map("trip_id")
+  activityId String   @map("activity_id")
+  voterName  String   @map("voter_name")
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("activity_comments")
+}
+
 model UserProfile {
   id          String   @id @default(uuid())
   userId      String   @unique @map("user_id")
@@ -169,6 +221,9 @@ model Trip {
   aiRequests       AIRequest[]
   tripEvents       TripEvent[]
   shares           TripShare[]
+  expenses         TripExpense[]
+  activityVotes    ActivityVote[]
+  activityComments ActivityComment[]
 
   @@map("trips")
 }

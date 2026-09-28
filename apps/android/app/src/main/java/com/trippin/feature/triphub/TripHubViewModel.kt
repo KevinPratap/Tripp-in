@@ -24,6 +24,8 @@ data class TripHubUiState(
     val loadError: String? = null,
     val sharing: Boolean = false,
     val shareUrl: String? = null,
+    val shareSheetOpen: Boolean = false,
+    val revoking: Boolean = false,
     val message: String? = null
 )
 
@@ -72,13 +74,33 @@ class TripHubViewModel @Inject constructor(
         _uiState.update { it.copy(sharing = true) }
         viewModelScope.launch {
             when (val result = groupRepository.createShareLink(tripId)) {
-                is DataResult.Ok -> _uiState.update { it.copy(sharing = false, shareUrl = result.value.url) }
+                is DataResult.Ok -> {
+                    _uiState.update { it.copy(sharing = false, shareUrl = result.value.url) }
+                    tripRepository.refreshTripDetails(tripId)
+                }
                 is DataResult.Fail -> _uiState.update { it.copy(sharing = false, message = "Could not make a share link. Try again when you are online.") }
             }
         }
     }
 
     fun consumeShareUrl() = _uiState.update { it.copy(shareUrl = null) }
+
+    fun openShareSheet() = _uiState.update { it.copy(shareSheetOpen = true) }
+    fun closeShareSheet() = _uiState.update { it.copy(shareSheetOpen = false) }
+
+    /** Turns sharing off: every link out there stops opening the trip. */
+    fun stopSharing() {
+        _uiState.update { it.copy(revoking = true) }
+        viewModelScope.launch {
+            when (val result = groupRepository.revokeShareLinks(tripId)) {
+                is DataResult.Ok -> {
+                    tripRepository.refreshTripDetails(tripId)
+                    _uiState.update { it.copy(revoking = false, shareSheetOpen = false, message = "Sharing is off. Old links no longer open the trip.") }
+                }
+                is DataResult.Fail -> _uiState.update { it.copy(revoking = false, message = result.error.message) }
+            }
+        }
+    }
     fun clearMessage() = _uiState.update { it.copy(message = null) }
 }
 

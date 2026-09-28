@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.trippin.core.common.MagicLink
+import com.trippin.core.common.magicLinkFrom
 import com.trippin.core.datastore.SettingsManager
 import com.trippin.core.design.ThemeMode
 import com.trippin.core.design.TrippinTheme
@@ -31,10 +33,19 @@ class MainActivity : ComponentActivity() {
      */
     private var pendingSharePath by mutableStateOf<String?>(null)
 
+    /** A tapped sign-in link, held until the sign-in screen uses it. */
+    private var pendingMagicLink by mutableStateOf<MagicLink?>(null)
+
+    private fun capture(intent: Intent?) {
+        val data = intent?.data ?: return
+        val link = magicLinkFrom(data.path, data.getQueryParameter("token"), data.getQueryParameter("email"))
+        if (link != null) pendingMagicLink = link else pendingSharePath = data.path
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        pendingSharePath = intent?.data?.path
+        capture(intent)
         enableEdgeToEdge()
         setContent {
             val mode by settingsManager.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
@@ -46,7 +57,9 @@ class MainActivity : ComponentActivity() {
             TrippinTheme(darkTheme = dark) {
                 TrippinAppShell(
                     pendingSharePath = pendingSharePath,
-                    onSharePathConsumed = { pendingSharePath = null }
+                    onSharePathConsumed = { pendingSharePath = null },
+                    pendingMagicLink = pendingMagicLink,
+                    onMagicLinkConsumed = { pendingMagicLink = null }
                 )
             }
         }
@@ -54,6 +67,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        pendingSharePath = intent.data?.path
+        capture(intent)
     }
 }

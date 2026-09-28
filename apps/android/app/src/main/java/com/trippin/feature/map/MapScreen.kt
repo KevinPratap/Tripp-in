@@ -66,8 +66,8 @@ fun MapScreen(
     TrippinScaffold(
         topBar = {
             TrippinTopBar(
-                title = destinationName?.let { "Route in $it" } ?: "Route",
-                subtitle = "Every stop in order, with real coordinates",
+                title = "Map",
+                subtitle = destinationName?.substringBefore(',')?.let { "$it, stop by stop" } ?: "Stop by stop",
                 onBack = onBack
             )
         }
@@ -96,6 +96,20 @@ fun MapScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
+                            // Each pin carries the stop's own number from the list below, even when a stop
+                            // without coordinates is missing from the sketch.
+                            val numbered = stops.mapIndexedNotNull { i, a ->
+                                a.place?.location?.takeIf { it.hasCoordinates() }?.let { (i + 1) to it }
+                            }
+                            if (numbered.isNotEmpty()) {
+                                item {
+                                    RouteSketch(
+                                        points = numbered.map { it.second },
+                                        labels = numbered.map { "${it.first}" },
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    )
+                                }
+                            }
                             items(stops.size) { i -> RouteRow(i + 1, stops[i], last = i == stops.lastIndex) }
                         }
                         Box(Modifier.background(colors.paper).padding(16.dp)) {
@@ -123,7 +137,7 @@ private fun RouteRow(index: Int, activity: ActivityDto, last: Boolean) {
                 Modifier.size(28.dp).background(colors.accent, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(String.format(Locale.US, "%02d", index), style = TrippinType.Caption, color = colors.onAccent)
+                Text("$index", style = TrippinType.Label, color = colors.onAccent)
             }
             if (!last) {
                 Box(Modifier.width(2.dp).height(40.dp).background(colors.line))
@@ -133,16 +147,9 @@ private fun RouteRow(index: Int, activity: ActivityDto, last: Boolean) {
         TrippinCard(modifier = Modifier.padding(bottom = 8.dp)) {
             Column(Modifier.padding(12.dp)) {
                 Text(activity.title, style = TrippinType.Label, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${activity.startTime} - ${activity.endTime}", style = TrippinType.Caption, color = colors.inkMuted)
-                val loc = activity.place?.location
-                if (loc.hasCoordinates()) {
-                    Text(
-                        String.format(Locale.US, "%.5f, %.5f", loc!!.latitude, loc.longitude),
-                        style = TrippinType.Caption,
-                        color = colors.inkMuted
-                    )
-                } else {
-                    Text("No coordinates in the map data", style = TrippinType.Caption, color = colors.inkMuted)
+                Text("${activity.startTime.take(5)} to ${activity.endTime.take(5)}", style = TrippinType.Caption, color = colors.inkMuted)
+                if (!activity.place?.location.hasCoordinates()) {
+                    Text("Not on the sketch: no coordinates in the map data", style = TrippinType.Caption, color = colors.inkMuted)
                 }
             }
         }

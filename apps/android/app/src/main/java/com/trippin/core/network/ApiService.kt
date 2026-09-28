@@ -102,4 +102,29 @@ interface ApiService {
      */
     @GET("api/v1/t/{token}")
     suspend fun resolveShareToken(@Path("token") token: String): TripDetailsDto
+
+    /** Stops every live share link for a trip. The owner only. */
+    @DELETE("api/v1/trips/{id}/share")
+    suspend fun revokeShareLinks(@Path("id") tripId: String): RevokeSharesDto
+
+    /** The trip's spending log with totals per currency and who owes whom. */
+    @GET("api/v1/trips/{id}/expenses")
+    suspend fun getExpenses(@Path("id") tripId: String): ExpenseOverviewDto
+
+    @POST("api/v1/trips/{id}/expenses")
+    suspend fun addExpense(@Path("id") tripId: String, @Body body: AddExpenseRequestDto): ExpenseOverviewDto
+
+    @DELETE("api/v1/trips/{id}/expenses/{expenseId}")
+    suspend fun deleteExpense(@Path("id") tripId: String, @Path("expenseId") expenseId: String): ExpenseOverviewDto
+
+    /** Every saved version of the plan, newest first. */
+    @GET("api/v1/trips/{id}/versions")
+    suspend fun getVersions(@Path("id") tripId: String): TripVersionsDto
+
+    /** The group's votes and comments on each stop. */
+    @GET("api/v1/trips/{id}/collab")
+    suspend fun getCollab(@Path("id") tripId: String): TripCollabDto
+
+    @POST("api/v1/trips/{id}/vote")
+    suspend fun vote(@Path("id") tripId: String, @Body body: VoteRequestDto): TripCollabDto
 }

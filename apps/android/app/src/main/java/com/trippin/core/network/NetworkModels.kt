@@ -399,3 +399,109 @@ data class SavedTripSummaryDto(
 data class MyTripsDto(
     val trips: List<SavedTripSummaryDto> = emptyList()
 )
+
+@Serializable
+data class RevokeSharesDto(
+    val revoked: Int = 0
+)
+
+/** One amount a traveller logged. Amounts are only ever added up within one currency. */
+@Serializable
+data class ExpenseDto(
+    val id: String,
+    val title: String,
+    val amount: Double,
+    val currency: String = "",
+    val paidBy: String,
+    val splitBetween: List<String> = emptyList(),
+    val createdAt: String = ""
+)
+
+@Serializable
+data class DebtSettlementDto(
+    val from: String,
+    val to: String,
+    val amount: Double,
+    val currency: String = ""
+)
+
+@Serializable
+data class CurrencyTotalDto(
+    val currency: String,
+    val amount: Double
+)
+
+@Serializable
+data class ExpenseOverviewDto(
+    val tripId: String = "",
+    val expenses: List<ExpenseDto> = emptyList(),
+    /** The total in [currency] only, never a sum across currencies. */
+    val totalSpent: Double = 0.0,
+    val currency: String = "",
+    val settlements: List<DebtSettlementDto> = emptyList(),
+    val totalsByCurrency: List<CurrencyTotalDto> = emptyList(),
+    val mixedCurrencies: Boolean = false
+)
+
+@Serializable
+data class AddExpenseRequestDto(
+    val title: String,
+    val amount: Double,
+    val currency: String? = null,
+    val paidBy: String,
+    val splitBetween: List<String> = emptyList()
+)
+
+/** One saved version of a trip's plan, newest first in [TripVersionsDto.versions]. */
+@Serializable
+data class ItineraryVersionDto(
+    val version: Int,
+    val status: String = "",
+    val isLocked: Boolean = false,
+    val createdAt: String = "",
+    val title: String? = null,
+    val summary: String? = null,
+    val activitiesCount: Int = 0,
+    val isCurrent: Boolean = false
+)
+
+@Serializable
+data class TripVersionsDto(
+    val tripId: String = "",
+    val destination: String = "",
+    val currentVersion: Int = 1,
+    val versions: List<ItineraryVersionDto> = emptyList()
+)
+
+@Serializable
+data class ActivityCommentDto(
+    val id: String = "",
+    val voterName: String = "",
+    val text: String = "",
+    val createdAt: String = ""
+)
+
+/** How the group feels about one stop: counts, who voted which way, and anything they said. */
+@Serializable
+data class ActivityCollabDto(
+    val activityId: String = "",
+    val upvotes: Int = 0,
+    val downvotes: Int = 0,
+    val voters: Map<String, Int> = emptyMap(),
+    val comments: List<ActivityCommentDto> = emptyList()
+)
+
+@Serializable
+data class TripCollabDto(
+    val tripId: String = "",
+    val isLocked: Boolean = false,
+    val activities: Map<String, ActivityCollabDto> = emptyMap()
+)
+
+@Serializable
+data class VoteRequestDto(
+    val activityId: String,
+    val voterName: String,
+    val vote: Int,
+    val comment: String? = null
+)
