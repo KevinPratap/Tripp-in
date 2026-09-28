@@ -110,6 +110,19 @@ jobs:
           path: apps/android/app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
 
+      # An installable build on every push, for testing on a phone before a signed release exists.
+      - name: Build Debug APK
+        working-directory: apps/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: trippin-debug-apk
+          path: apps/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
   android-release:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
