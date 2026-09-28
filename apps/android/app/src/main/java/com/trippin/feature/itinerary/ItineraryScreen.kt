@@ -53,12 +53,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trippin.core.design.PlanDaySkeleton
 import com.trippin.core.design.MessageState
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.StatusPill
+import com.trippin.core.design.PhotoCredit
 import com.trippin.core.design.TrippinButton
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinChoiceChip
@@ -297,9 +299,11 @@ private fun UndoDeleteBanner(onUndo: () -> Unit, modifier: Modifier = Modifier) 
 @Composable
 private fun BuildStatePane(state: ItineraryUiState, onDismiss: () -> Unit) {
     val colors = TrippinTheme.colors
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (state.buildFailed) {
+    val trip = state.details?.trip
+    val place = trip?.destination?.substringBefore(',')?.trim()?.takeIf { it.isNotEmpty() }
+    if (state.buildFailed) {
+        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("The plan could not be built", style = TrippinType.Title, color = colors.danger)
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -310,22 +314,62 @@ private fun BuildStatePane(state: ItineraryUiState, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(20.dp))
                 TrippinButton("Back to the trip", onDismiss, Modifier.width(220.dp))
-            } else {
-                androidx.compose.material3.CircularProgressIndicator(color = colors.accent)
-                Spacer(Modifier.height(20.dp))
-                Text("Building your plan", style = TrippinType.Title, color = colors.ink)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    state.generationStage ?: "Checking opening hours and travel times between every stop.",
-                    style = TrippinType.Body,
-                    color = colors.inkMuted,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                state.generationProgress?.let { pct ->
-                    Spacer(Modifier.height(12.dp))
-                    Text("$pct%", style = TrippinType.Numeric, color = colors.accent)
-                }
             }
+        }
+        return
+    }
+
+    val target = (state.generationProgress ?: 0).coerceIn(0, 100) / 100f
+    val progress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = target,
+        animationSpec = com.trippin.core.design.TrippinMotion.slow(),
+        label = "build progress"
+    )
+    Column(Modifier.fillMaxSize()) {
+        com.trippin.core.design.PlaceBackdrop(
+            photoUrl = trip?.heroImageUrl,
+            contentDescription = place?.let { "Photo of $it" },
+            modifier = Modifier.fillMaxWidth().height(220.dp)
+        ) {
+            Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
+                Text("BUILDING YOUR PLAN", style = TrippinType.Eyebrow, color = com.trippin.core.design.HeaderCreamMuted)
+                Text(
+                    place ?: "Your trip",
+                    style = TrippinType.Display.copy(fontSize = 44.sp, lineHeight = 46.sp),
+                    color = com.trippin.core.design.HeaderCream
+                )
+            }
+            PhotoCredit(trip?.heroImageUrl)
+        }
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (state.generationProgress != null) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    color = colors.accent,
+                    trackColor = colors.panelAlt,
+                    drawStopIndicator = {}
+                )
+                Text("${state.generationProgress}% done", style = TrippinType.NumericSmall, color = colors.inkMuted)
+            } else {
+                androidx.compose.material3.LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    color = colors.accent,
+                    trackColor = colors.panelAlt
+                )
+            }
+            androidx.compose.animation.Crossfade(
+                targetState = state.generationStage ?: "Checking opening hours and travel times between every stop.",
+                animationSpec = com.trippin.core.design.TrippinMotion.medium(),
+                label = "build stage"
+            ) { stage ->
+                Text(stage, style = TrippinType.Heading, color = colors.ink)
+            }
+            Text(
+                "Every stop is checked against its real opening hours, and every hop between stops against real travel times. It keeps building if you leave this screen.",
+                style = TrippinType.Body,
+                color = colors.inkMuted
+            )
         }
     }
 }
