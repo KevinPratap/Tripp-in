@@ -182,7 +182,8 @@ data class PlannerUiState(
 class PlannerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val tripRepository: TripRepository,
-    private val placesRepository: PlacesRepository
+    private val placesRepository: PlacesRepository,
+    private val planReadyWatcher: com.trippin.core.notify.PlanReadyWatcher
 ) : ViewModel() {
 
     private companion object {
@@ -299,6 +300,7 @@ class PlannerViewModel @Inject constructor(
             when (created) {
                 is DataResult.Ok -> {
                     tripRepository.triggerGeneration(created.value.tripId)
+                    planReadyWatcher.watch(created.value.tripId, state.destination.trim())
                     _uiState.update { it.copy(submitting = false, createdTripId = created.value.tripId) }
                 }
                 is DataResult.Fail -> _uiState.update {

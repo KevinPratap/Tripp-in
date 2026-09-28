@@ -76,6 +76,9 @@ fun TrippinAppShell(
     onSharePathConsumed: () -> Unit = {},
     pendingMagicLink: MagicLink? = null,
     onMagicLinkConsumed: () -> Unit = {},
+    /** A trip to open directly, from the plan-ready notification. */
+    pendingTripId: String? = null,
+    onTripIdConsumed: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
@@ -109,7 +112,7 @@ fun TrippinAppShell(
             LaunchedEffect(state.account.id) { viewModel.revalidate() }
             // Already signed in: a sign-in link has nothing left to do.
             LaunchedEffect(pendingMagicLink) { if (pendingMagicLink != null) onMagicLinkConsumed() }
-            SignedInShell(viewModel, pendingSharePath, onSharePathConsumed)
+            SignedInShell(viewModel, pendingSharePath, onSharePathConsumed, pendingTripId, onTripIdConsumed)
         }
     }
 }
@@ -124,7 +127,9 @@ private enum class ShellTab(val label: String, val icon: ImageVector) {
 private fun SignedInShell(
     viewModel: ShellViewModel,
     pendingSharePath: String?,
-    onSharePathConsumed: () -> Unit
+    onSharePathConsumed: () -> Unit,
+    pendingTripId: String?,
+    onTripIdConsumed: () -> Unit
 ) {
     val navController = rememberNavController()
     val resolvedShareTripId by viewModel.resolvedShareTripId.collectAsStateWithLifecycle()
@@ -149,6 +154,15 @@ private fun SignedInShell(
     val openTrip: (String) -> Unit = { id ->
         viewModel.openTrip(id)
         navController.navigate(TripHub(id)) { launchSingleTop = true }
+    }
+
+    LaunchedEffect(pendingTripId) {
+        pendingTripId?.let { id ->
+            onTripIdConsumed()
+            viewModel.openTrip(id)
+            navController.navigate(TripHub(id)) { launchSingleTop = true }
+            navController.navigate(Plan(id)) { launchSingleTop = true }
+        }
     }
 
     Column(Modifier.fillMaxSize().background(TrippinTheme.colors.paper)) {

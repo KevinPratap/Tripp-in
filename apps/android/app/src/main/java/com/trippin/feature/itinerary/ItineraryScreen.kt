@@ -370,7 +370,48 @@ private fun BuildStatePane(state: ItineraryUiState, onDismiss: () -> Unit) {
                 style = TrippinType.Body,
                 color = colors.inkMuted
             )
+            NotifyWhenReady()
         }
+    }
+}
+
+/**
+ * Offers to send a notification when the plan is done. Android 13 and later ask the traveller first,
+ * so this asks only when they tap, never on its own. Earlier versions allow it already.
+ */
+@Composable
+private fun NotifyWhenReady() {
+    if (android.os.Build.VERSION.SDK_INT < 33) return
+    val context = LocalContext.current
+    val permission = android.Manifest.permission.POST_NOTIFICATIONS
+    var granted by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(context, permission) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var asked by remember { mutableStateOf(false) }
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted = it; asked = true }
+    if (granted) {
+        Text(
+            "You will get a notification when it is ready, if you are not in the app.",
+            style = TrippinType.Caption,
+            color = TrippinTheme.colors.inkMuted
+        )
+    } else if (asked) {
+        Text(
+            "Notifications are off for Tripp'in. You can turn them on in the phone's settings.",
+            style = TrippinType.Caption,
+            color = TrippinTheme.colors.inkMuted
+        )
+    } else {
+        com.trippin.core.design.TrippinOutlineButton(
+            "Notify me when it is ready",
+            { launcher.launch(permission) },
+            Modifier.fillMaxWidth()
+        )
     }
 }
 

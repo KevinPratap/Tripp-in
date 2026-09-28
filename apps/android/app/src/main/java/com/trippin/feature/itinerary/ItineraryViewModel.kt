@@ -52,7 +52,8 @@ data class ItineraryUiState(
 @HiltViewModel
 class ItineraryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val planReadyWatcher: com.trippin.core.notify.PlanReadyWatcher
 ) : ViewModel() {
 
     val tripId: String = savedStateHandle.toRoute<Plan>().tripId
@@ -98,6 +99,8 @@ class ItineraryViewModel @Inject constructor(
     private fun manageGenerationPolling() {
         val building = _uiState.value.isBuilding
         if (building && pollingJob?.isActive != true) {
+            // Outlives this screen, so leaving mid-build still ends in a notification.
+            planReadyWatcher.watch(tripId, _uiState.value.details?.trip?.destination)
             pollingJob = viewModelScope.launch {
                 while (isActive && _uiState.value.isBuilding) {
                     delay(2500)

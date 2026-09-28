@@ -15,6 +15,7 @@ import com.trippin.core.common.magicLinkFrom
 import com.trippin.core.datastore.SettingsManager
 import com.trippin.core.design.ThemeMode
 import com.trippin.core.design.TrippinTheme
+import com.trippin.core.notify.PlanReadyWatcher
 import com.trippin.navigation.TrippinAppShell
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -36,7 +37,11 @@ class MainActivity : ComponentActivity() {
     /** A tapped sign-in link, held until the sign-in screen uses it. */
     private var pendingMagicLink by mutableStateOf<MagicLink?>(null)
 
+    /** A trip to open straight away, from tapping the plan-ready notification. */
+    private var pendingTripId by mutableStateOf<String?>(null)
+
     private fun capture(intent: Intent?) {
+        intent?.getStringExtra(PlanReadyWatcher.EXTRA_TRIP_ID)?.let { pendingTripId = it; return }
         val data = intent?.data ?: return
         val link = magicLinkFrom(data.path, data.getQueryParameter("token"), data.getQueryParameter("email"))
         if (link != null) pendingMagicLink = link else pendingSharePath = data.path
@@ -59,7 +64,9 @@ class MainActivity : ComponentActivity() {
                     pendingSharePath = pendingSharePath,
                     onSharePathConsumed = { pendingSharePath = null },
                     pendingMagicLink = pendingMagicLink,
-                    onMagicLinkConsumed = { pendingMagicLink = null }
+                    onMagicLinkConsumed = { pendingMagicLink = null },
+                    pendingTripId = pendingTripId,
+                    onTripIdConsumed = { pendingTripId = null }
                 )
             }
         }

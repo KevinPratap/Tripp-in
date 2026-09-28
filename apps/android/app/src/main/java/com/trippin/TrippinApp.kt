@@ -5,12 +5,18 @@ import android.content.pm.ApplicationInfo
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.util.DebugLogger
+import com.trippin.core.notify.AppVisibility
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 @HiltAndroidApp
 class TrippinApp : Application(), ImageLoaderFactory {
+
+    override fun onCreate() {
+        super.onCreate()
+        AppVisibility.register(this)
+    }
 
     /**
      * Coil's own image client, deliberately separate from the API client.
