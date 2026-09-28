@@ -22,7 +22,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import com.trippin.core.design.HeaderCream
+import com.trippin.core.design.HeaderCreamMuted
 import com.trippin.core.design.MessageState
+import com.trippin.core.design.PhotoCredit
+import com.trippin.core.design.PlaceBackdrop
+import androidx.compose.foundation.layout.Box
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinTheme
 import com.trippin.core.design.TrippinType
@@ -79,22 +86,34 @@ fun TodayContent(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            TrippinCard {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Today", style = TrippinType.Title, color = colors.ink)
-                    val formattedDate = runCatching {
-                        LocalDate.parse(todaysDay.date.take(10)).format(todayHeaderFormat)
-                    }.getOrDefault(todaysDay.date)
-                    Text(formattedDate, style = TrippinType.Caption, color = colors.inkMuted)
-                    if (nowStop != null) {
-                        Spacer(Modifier.height(10.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PlayCircle, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+            val formattedDate = runCatching {
+                LocalDate.parse(todaysDay.date.take(10)).format(todayHeaderFormat)
+            }.getOrDefault(todaysDay.date)
+            val next = nextStop(activities)
+            val photo = details.trip.heroImageUrl
+            PlaceBackdrop(
+                photoUrl = photo,
+                contentDescription = destinationName?.let { "Photo of $it" },
+                modifier = Modifier.fillMaxWidth().height(200.dp).clip(TrippinTheme.shapes.card)
+            ) {
+                Column(Modifier.align(Alignment.BottomStart).padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "TODAY · DAY ${todaysDay.dayIndex}",
+                        style = TrippinType.Eyebrow,
+                        color = HeaderCreamMuted
+                    )
+                    Text(formattedDate, style = TrippinType.Display, color = HeaderCream)
+                    when {
+                        nowStop != null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(8.dp).background(colors.accent, CircleShape))
                             Spacer(Modifier.width(8.dp))
-                            Text("Now: ${nowStop.title}", style = TrippinType.Label, color = colors.ink)
+                            Text("Now: ${nowStop.title}, until ${nowStop.endTime.take(5)}", style = TrippinType.Label, color = HeaderCream)
                         }
+                        next != null -> Text("Next: ${next.title} at ${next.startTime.take(5)}", style = TrippinType.Label, color = HeaderCream)
+                        activities.isNotEmpty() -> Text("That is everything planned for today.", style = TrippinType.Label, color = HeaderCream)
                     }
                 }
+                PhotoCredit(photo)
             }
         }
         items(activities.size) { i ->
@@ -114,6 +133,14 @@ fun TodayContent(
 
 private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
 private val todayHeaderFormat = DateTimeFormatter.ofPattern("EEEE, d MMM", Locale.US)
+
+/** The first stop that has not started yet, if any. */
+private fun nextStop(activities: List<ActivityDto>): ActivityDto? {
+    val now = LocalTime.now()
+    return activities.firstOrNull { act ->
+        runCatching { LocalTime.parse(act.startTime.take(5), timeFormat) }.getOrNull()?.isAfter(now) == true
+    }
+}
 
 /** The stop whose window contains the current time, if any. */
 private fun currentStop(activities: List<ActivityDto>): ActivityDto? {
