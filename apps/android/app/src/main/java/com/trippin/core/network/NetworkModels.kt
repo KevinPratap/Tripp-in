@@ -391,7 +391,8 @@ data class SavedTripSummaryDto(
     val stopCount: Int = 0,
     val currency: String? = null,
     val totalEstimatedCost: Double? = null,
-    val shareToken: String? = null
+    val shareToken: String? = null,
+    val heroImageUrl: String? = null
 )
 
 @Serializable
