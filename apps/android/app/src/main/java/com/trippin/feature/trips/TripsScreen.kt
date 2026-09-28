@@ -1,6 +1,8 @@
 package com.trippin.feature.trips
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,7 +116,7 @@ fun TripsScreen(
         ) {
             if (state.loading) {
                 CardListSkeleton(label = "Loading your trips")
-            } else if (state.myTrips.isEmpty() && state.home == null) {
+            } else if (state.visibleTrips.isEmpty() && state.home == null) {
                 MessageState(
                     icon = Icons.Default.CardTravel,
                     title = "No trips yet",
@@ -130,13 +132,24 @@ fun TripsScreen(
                 ) {
                     item { StartTripCard(onClick = { onStartPlanner(null) }) }
 
-                    if (state.myTrips.isNotEmpty()) {
+                    if (state.visibleTrips.isNotEmpty()) {
                         item { SectionLabel("Your trips", Modifier.padding(top = 4.dp)) }
-                        items(state.myTrips, key = { it.id }) { trip ->
-                            TripCard(
-                                trip = trip,
-                                onOpen = { onOpenTrip(trip.id) },
-                                onOpenToday = { onOpenToday(trip.id) }
+                        items(state.visibleTrips, key = { it.id }) { trip ->
+                            SwipeToDelete(onDelete = { viewModel.delete(trip) }) {
+                                TripCard(
+                                    trip = trip,
+                                    onOpen = { onOpenTrip(trip.id) },
+                                    onOpenToday = { onOpenToday(trip.id) }
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                "Swipe a trip left to delete it.",
+                                style = TrippinType.Caption,
+                                color = colors.inkMuted,
+                                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
@@ -158,6 +171,75 @@ fun TripsScreen(
 
     if (joinState.open) {
         JoinDialog(state = joinState, viewModel = viewModel)
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearMessage()
+        }
+    }
+
+    if (state.pendingDelete != null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            Row(
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .clip(TrippinTheme.shapes.card)
+                    .background(colors.ink)
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${state.pendingDelete?.destinationName?.substringBefore(',') ?: "Trip"} deleted",
+                    style = TrippinType.Body,
+                    color = colors.paper,
+                    modifier = Modifier.weight(1f).padding(vertical = 14.dp)
+                )
+                androidx.compose.material3.TextButton(onClick = viewModel::undoDelete, modifier = Modifier.heightIn(min = 44.dp)) {
+                    Text("Undo", style = TrippinType.Label, color = colors.accent)
+                }
+            }
+        }
+    }
+}
+
+/** Swipe from right to left to delete. The red strip underneath says what letting go will do. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit) {
+    val colors = TrippinTheme.colors
+    val haptic = com.trippin.core.design.rememberCommitHaptic()
+    val dismissState = androidx.compose.material3.rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == androidx.compose.material3.SwipeToDismissBoxValue.EndToStart) {
+                haptic()
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+    androidx.compose.material3.SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                Modifier.fillMaxSize().clip(TrippinTheme.shapes.card).background(colors.danger).padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(androidx.compose.material.icons.Icons.Default.Delete, contentDescription = null, tint = colors.onAccent)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Delete", style = TrippinType.Label, color = colors.onAccent)
+                }
+            }
+        }
+    ) {
+        content()
     }
 }
 

@@ -7,6 +7,9 @@ import com.trippin.core.network.CreateTravellerRequestDto
 import com.trippin.core.network.JoinTripRequestDto
 import com.trippin.core.network.JoinTripResponseDto
 import com.trippin.core.network.ShareLinkDto
+import com.trippin.core.network.TripCollabDto
+import com.trippin.core.network.TripVersionsDto
+import com.trippin.core.network.VoteRequestDto
 import com.trippin.core.network.TravellerDto
 import com.trippin.core.network.UpdateTravellerRequestDto
 import javax.inject.Inject
@@ -42,4 +45,14 @@ class GroupRepository @Inject constructor(
     /** Stops every live link to the trip. Anyone holding an old link can no longer open it. */
     suspend fun revokeShareLinks(tripId: String): DataResult<Int> =
         runNetwork { api.revokeShareLinks(tripId).revoked }
+
+    suspend fun getCollab(tripId: String): DataResult<TripCollabDto> =
+        runNetwork { api.getCollab(tripId) }
+
+    suspend fun vote(tripId: String, body: VoteRequestDto): DataResult<TripCollabDto> =
+        runNetwork { api.vote(tripId, body) }
+
+    /** Every saved version of the plan, newest first. */
+    suspend fun getVersions(tripId: String): DataResult<TripVersionsDto> =
+        runNetwork { api.getVersions(tripId) }
 }

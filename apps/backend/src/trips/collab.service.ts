@@ -58,8 +58,6 @@ export interface ExpenseOverview {
 @Injectable()
 export class CollabService {
   private readonly logger = new Logger(CollabService.name);
-  // In-memory fallback if Redis is offline
-  private readonly inMemoryCollab = new Map<string, Record<string, ActivityCollabData>>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -75,13 +73,32 @@ export class CollabService {
     const isLocked = Boolean(trip?.isLocked);
     const lockedAt = trip?.lockedAt ? trip.lockedAt.toISOString() : undefined;
 
-    const cacheKey = `trip:collab:${tripId}`;
-    const cached = await this.redis.get<Record<string, ActivityCollabData>>(cacheKey);
-    if (cached) {
-      return { tripId, isLocked, lockedAt, activities: cached };
+    await this.importLegacyCollab(tripId);
+    const [votes, comments] = await Promise.all([
+      this.prisma.activityVote.findMany({ where: { tripId } }),
+      this.prisma.activityComment.findMany({ where: { tripId }, orderBy: { createdAt: 'asc' } })
+    ]);
+
+    const activities: Record<string, ActivityCollabData> = {};
+    const entry = (activityId: string): ActivityCollabData =>
+      (activities[activityId] ??= { activityId, upvotes: 0, downvotes: 0, voters: {}, comments: [] });
+
+    for (const v of votes) {
+      const act = entry(v.activityId);
+      act.voters[v.voterName] = v.vote;
+      if (v.vote === 1) act.upvotes++;
+      if (v.vote === -1) act.downvotes++;
     }
-    const mem = this.inMemoryCollab.get(tripId) || {};
-    return { tripId, isLocked, lockedAt, activities: mem };
+    for (const c of comments) {
+      entry(c.activityId).comments.push({
+        id: c.id,
+        voterName: c.voterName,
+        text: c.text,
+        createdAt: c.createdAt.toISOString()
+      });
+    }
+
+    return { tripId, isLocked, lockedAt, activities };
   }
 
   async vote(
@@ -111,52 +128,66 @@ export class CollabService {
       throw new NotFoundException(`Activity ${activityId} is not part of trip ${tripId}`);
     }
 
-    const data = await this.getCollabData(tripId);
-    const activities = data.activities;
+    await this.importLegacyCollab(tripId);
 
-    if (!activities[activityId]) {
-      activities[activityId] = {
-        activityId,
-        upvotes: 0,
-        downvotes: 0,
-        voters: {},
-        comments: []
-      };
-    }
-
-    const act = activities[activityId];
-    const prevVote = act.voters[voterName] || 0;
-
-    // Remove previous vote impact
-    if (prevVote === 1) act.upvotes = Math.max(0, act.upvotes - 1);
-    if (prevVote === -1) act.downvotes = Math.max(0, act.downvotes - 1);
-
-    // Apply new vote if different
-    if (prevVote !== vote) {
-      act.voters[voterName] = vote;
-      if (vote === 1) act.upvotes++;
-      if (vote === -1) act.downvotes++;
+    const key = { activityId_voterName: { activityId, voterName } };
+    const previous = await this.prisma.activityVote.findUnique({ where: key });
+    if (previous && previous.vote === vote) {
+      // The same vote pressed again takes it back.
+      await this.prisma.activityVote.delete({ where: key });
     } else {
-      // Toggle off if same vote pressed again
-      delete act.voters[voterName];
-    }
-
-    // Add optional comment / swap suggestion
-    if (comment && comment.trim().length > 0) {
-      act.comments.push({
-        id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        voterName,
-        text: comment.trim(),
-        createdAt: new Date().toISOString()
+      await this.prisma.activityVote.upsert({
+        where: key,
+        create: { tripId, activityId, voterName, vote },
+        update: { vote }
       });
     }
 
-    // Persist in Redis and in-memory
-    const cacheKey = `trip:collab:${tripId}`;
-    await this.redis.set(cacheKey, activities, 86400 * 30); // 30 days retention
-    this.inMemoryCollab.set(tripId, activities);
+    if (comment && comment.trim().length > 0) {
+      await this.prisma.activityComment.create({
+        data: { tripId, activityId, voterName, text: comment.trim() }
+      });
+    }
 
-    return { tripId, activities };
+    return this.getCollabData(tripId);
+  }
+
+  /**
+   * Votes and comments used to live only in Redis with a 30 day expiry. The first read of a trip's
+   * collaboration state copies whatever is still there into the database, then drops the cache key.
+   */
+  private async importLegacyCollab(tripId: string): Promise<void> {
+    const cacheKey = `trip:collab:${tripId}`;
+    let legacy: Record<string, ActivityCollabData> | null = null;
+    try {
+      legacy = await this.redis.get<Record<string, ActivityCollabData>>(cacheKey);
+    } catch {
+      return;
+    }
+    if (!legacy || typeof legacy !== 'object') return;
+
+    const votes: Array<{ tripId: string; activityId: string; voterName: string; vote: number }> = [];
+    const comments: Array<{ tripId: string; activityId: string; voterName: string; text: string; createdAt: Date }> = [];
+    for (const [activityId, act] of Object.entries(legacy)) {
+      for (const [voterName, vote] of Object.entries(act?.voters ?? {})) {
+        if (vote === 1 || vote === -1) votes.push({ tripId, activityId, voterName, vote });
+      }
+      for (const c of act?.comments ?? []) {
+        if (c?.text) {
+          comments.push({
+            tripId,
+            activityId,
+            voterName: String(c.voterName || 'Companion'),
+            text: String(c.text),
+            createdAt: c.createdAt ? new Date(c.createdAt) : new Date()
+          });
+        }
+      }
+    }
+    if (votes.length > 0) await this.prisma.activityVote.createMany({ data: votes, skipDuplicates: true });
+    if (comments.length > 0) await this.prisma.activityComment.createMany({ data: comments });
+    await this.redis.del(cacheKey).catch(() => undefined);
+    this.logger.log(`Moved ${votes.length} vote(s) and ${comments.length} comment(s) for trip ${tripId} into the database`);
   }
 
   async generateIcs(tripId: string): Promise<string> {

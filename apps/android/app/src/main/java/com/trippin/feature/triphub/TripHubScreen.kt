@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Payments
@@ -82,6 +83,7 @@ fun TripHubScreen(
     onOpenMap: (String) -> Unit,
     onOpenGroup: (String) -> Unit,
     onOpenBudget: (String) -> Unit,
+    onOpenHistory: (String) -> Unit,
     viewModel: TripHubViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -131,6 +133,7 @@ fun TripHubScreen(
                     onOpenMap = { onOpenMap(tripId) },
                     onOpenGroup = { onOpenGroup(tripId) },
                     onOpenBudget = { onOpenBudget(tripId) },
+                    onOpenHistory = { onOpenHistory(tripId) },
                     onOpenSharing = viewModel::openShareSheet
                 )
             }
@@ -180,6 +183,7 @@ private fun HubBody(
     onOpenMap: () -> Unit,
     onOpenGroup: () -> Unit,
     onOpenBudget: () -> Unit,
+    onOpenHistory: () -> Unit,
     onOpenSharing: () -> Unit
 ) {
     val colors = TrippinTheme.colors
@@ -256,6 +260,13 @@ private fun HubBody(
                         HubRow(Icons.Default.Payments, "Budget", "What the group spent, and who owes whom", onOpenBudget)
                         HubDivider()
                         HubRow(Icons.Default.Group, "Group", "$travellers ${if (travellers == 1) "traveller" else "travellers"} and what each wants", onOpenGroup)
+                        HubDivider()
+                        HubRow(
+                            Icons.Default.History,
+                            "Plan history",
+                            details.itinerary?.version?.let { v -> if (v <= 1) "The first version of the plan" else "Version $v, with every earlier one kept" } ?: "Every change to the plan, kept",
+                            onOpenHistory
+                        )
                         HubDivider()
                         HubRow(
                             Icons.Default.Link,

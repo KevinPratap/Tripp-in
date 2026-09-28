@@ -116,4 +116,15 @@ interface ApiService {
 
     @DELETE("api/v1/trips/{id}/expenses/{expenseId}")
     suspend fun deleteExpense(@Path("id") tripId: String, @Path("expenseId") expenseId: String): ExpenseOverviewDto
+
+    /** Every saved version of the plan, newest first. */
+    @GET("api/v1/trips/{id}/versions")
+    suspend fun getVersions(@Path("id") tripId: String): TripVersionsDto
+
+    /** The group's votes and comments on each stop. */
+    @GET("api/v1/trips/{id}/collab")
+    suspend fun getCollab(@Path("id") tripId: String): TripCollabDto
+
+    @POST("api/v1/trips/{id}/vote")
+    suspend fun vote(@Path("id") tripId: String, @Body body: VoteRequestDto): TripCollabDto
 }

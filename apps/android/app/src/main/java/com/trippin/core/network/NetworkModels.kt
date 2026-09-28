@@ -451,3 +451,57 @@ data class AddExpenseRequestDto(
     val paidBy: String,
     val splitBetween: List<String> = emptyList()
 )
+
+/** One saved version of a trip's plan, newest first in [TripVersionsDto.versions]. */
+@Serializable
+data class ItineraryVersionDto(
+    val version: Int,
+    val status: String = "",
+    val isLocked: Boolean = false,
+    val createdAt: String = "",
+    val title: String? = null,
+    val summary: String? = null,
+    val activitiesCount: Int = 0,
+    val isCurrent: Boolean = false
+)
+
+@Serializable
+data class TripVersionsDto(
+    val tripId: String = "",
+    val destination: String = "",
+    val currentVersion: Int = 1,
+    val versions: List<ItineraryVersionDto> = emptyList()
+)
+
+@Serializable
+data class ActivityCommentDto(
+    val id: String = "",
+    val voterName: String = "",
+    val text: String = "",
+    val createdAt: String = ""
+)
+
+/** How the group feels about one stop: counts, who voted which way, and anything they said. */
+@Serializable
+data class ActivityCollabDto(
+    val activityId: String = "",
+    val upvotes: Int = 0,
+    val downvotes: Int = 0,
+    val voters: Map<String, Int> = emptyMap(),
+    val comments: List<ActivityCommentDto> = emptyList()
+)
+
+@Serializable
+data class TripCollabDto(
+    val tripId: String = "",
+    val isLocked: Boolean = false,
+    val activities: Map<String, ActivityCollabDto> = emptyMap()
+)
+
+@Serializable
+data class VoteRequestDto(
+    val activityId: String,
+    val voterName: String,
+    val vote: Int,
+    val comment: String? = null
+)

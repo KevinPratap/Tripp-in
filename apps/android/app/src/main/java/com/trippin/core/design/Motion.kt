@@ -5,6 +5,11 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import android.provider.Settings
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.IntOffset
 
 /**
@@ -32,4 +37,19 @@ object TrippinMotion {
         dampingRatio = 0.9f,
         stiffness = 320f
     )
+}
+
+/**
+ * True when the device is playing animations. "Remove animations" in the accessibility settings sets
+ * the animator scale to zero, and every transition in the app turns into a plain cut when it does.
+ */
+@Composable
+fun rememberAnimationsEnabled(): Boolean {
+    if (LocalInspectionMode.current) return false
+    val context = LocalContext.current
+    return remember(context) {
+        runCatching {
+            Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
+        }.getOrDefault(true)
+    }
 }

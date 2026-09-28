@@ -51,3 +51,7 @@ data class Budget(val tripId: String) : Destination
 
 @Serializable
 data class MapView(val tripId: String) : Destination
+
+/** Every saved version of a trip's plan. */
+@Serializable
+data class History(val tripId: String) : Destination

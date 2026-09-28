@@ -81,17 +81,19 @@ fun StopScreen(
                 onAction = onBack
             )
         }
-        else -> StopContent(placement, state.visited, onBack, viewModel::toggleVisited)
+        else -> StopContent(placement, state, onBack, viewModel::toggleVisited, viewModel::vote)
     }
 }
 
 @Composable
 private fun StopContent(
     placement: StopPlacement,
-    visited: Boolean,
+    state: StopUiState,
     onBack: () -> Unit,
-    onToggleVisited: () -> Unit
+    onToggleVisited: () -> Unit,
+    onVote: (Int) -> Unit
 ) {
+    val visited = state.visited
     val colors = TrippinTheme.colors
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -132,6 +134,8 @@ private fun StopContent(
                         Text(activity.reason, style = TrippinType.Body, color = colors.ink)
                     }
                 }
+
+                GroupVotes(state, activity.support, onVote)
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SectionLabel("Facts and where they came from", Modifier.padding(horizontal = 4.dp))
@@ -285,3 +289,81 @@ private fun readableType(type: String): String? =
         ?.replace('_', ' ')
         ?.lowercase(Locale.US)
         ?.replaceFirstChar { it.titlecase(Locale.US) }
+
+/**
+ * What the group thinks of this stop. The tally names who voted which way, so "2 keep, 1 skip" is
+ * never a mystery, and the buttons show this phone's own vote. Pressing your vote again takes it back.
+ */
+@Composable
+private fun GroupVotes(state: StopUiState, support: com.trippin.core.network.StopSupportDto?, onVote: (Int) -> Unit) {
+    val colors = TrippinTheme.colors
+    val votes = state.votes
+    val keepers = votes?.voters?.filterValues { it == 1 }?.keys.orEmpty().sorted()
+    val skippers = votes?.voters?.filterValues { it == -1 }?.keys.orEmpty().sorted()
+    val mine = state.myVote
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionLabel("The group", Modifier.padding(horizontal = 4.dp))
+        TrippinCard(tier = com.trippin.core.design.SurfaceTier.RAISED) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (support != null && support.total > 0) {
+                    val against = support.against
+                    Text(
+                        "Matches the interests of ${support.want} of ${support.total} ${if (support.total == 1) "traveller" else "travellers"}." +
+                            when (against.size) {
+                                0 -> ""
+                                1 -> " ${against[0]} listed something here as a dislike."
+                                else -> " ${against.dropLast(1).joinToString(", ")} and ${against.last()} listed something here as a dislike."
+                            },
+                        style = TrippinType.Body,
+                        color = colors.ink
+                    )
+                }
+                when {
+                    !state.votesLoaded -> Text("Loading votes", style = TrippinType.Caption, color = colors.inkMuted)
+                    keepers.isEmpty() && skippers.isEmpty() -> Text("No votes yet. Say whether you want to keep it.", style = TrippinType.Body, color = colors.inkMuted)
+                    else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (keepers.isNotEmpty()) Text("Keep: ${keepers.joinToString(", ")}", style = TrippinType.Label, color = colors.good)
+                        if (skippers.isNotEmpty()) Text("Skip: ${skippers.joinToString(", ")}", style = TrippinType.Label, color = colors.danger)
+                    }
+                }
+                if (state.voterName != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        VoteButton("Keep it", selected = mine == 1, enabled = !state.voting, modifier = Modifier.weight(1f)) { onVote(1) }
+                        VoteButton("Skip it", selected = mine == -1, enabled = !state.voting, modifier = Modifier.weight(1f)) { onVote(-1) }
+                    }
+                    Text(
+                        if (mine != null) "Voting as ${state.voterName}. Tap your vote again to take it back." else "Voting as ${state.voterName}.",
+                        style = TrippinType.Caption,
+                        color = colors.inkMuted
+                    )
+                }
+                state.voteError?.let { Text(it, style = TrippinType.Caption, color = colors.danger) }
+                votes?.comments?.takeIf { it.isNotEmpty() }?.let { comments ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        comments.takeLast(5).forEach { c ->
+                            Text("${c.voterName}: ${c.text}", style = TrippinType.Body, color = colors.ink)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VoteButton(text: String, selected: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val colors = TrippinTheme.colors
+    com.trippin.core.design.TrippinSurface(
+        modifier = modifier,
+        shape = TrippinTheme.shapes.button,
+        background = if (selected) colors.ink else colors.panel,
+        borderColor = if (selected) colors.ink else colors.controlEdge,
+        enabled = enabled,
+        onClick = onClick
+    ) {
+        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.Center) {
+            Text(text, style = TrippinType.Label, color = if (selected) colors.paper else colors.ink)
+        }
+    }
+}

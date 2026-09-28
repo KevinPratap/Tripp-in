@@ -29,9 +29,12 @@ describe('Phase 5: Decision Locking (Trips, Itineraries & Collab)', () => {
       }
     };
 
+    mockPrisma.activityVote = { findMany: jest.fn().mockResolvedValue([]) };
+    mockPrisma.activityComment = { findMany: jest.fn().mockResolvedValue([]) };
     mockRedis = {
       get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue('OK')
+      set: jest.fn().mockResolvedValue('OK'),
+      del: jest.fn().mockResolvedValue(undefined)
     };
 
     const mockAIPlanner: any = {};
