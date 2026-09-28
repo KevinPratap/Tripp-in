@@ -85,7 +85,7 @@ fun StopScreen(
                 onAction = onBack
             )
         }
-        else -> StopContent(placement, state, onBack, viewModel::toggleVisited, viewModel::vote)
+        else -> StopContent(placement, state, onBack, viewModel::toggleVisited, viewModel::vote, onFindNearby)
     }
 }
 
@@ -95,7 +95,8 @@ private fun StopContent(
     state: StopUiState,
     onBack: () -> Unit,
     onToggleVisited: () -> Unit,
-    onVote: (Int) -> Unit
+    onVote: (Int) -> Unit,
+    onFindNearby: (Double, Double, String, String) -> Unit
 ) {
     val visited = state.visited
     val colors = TrippinTheme.colors
