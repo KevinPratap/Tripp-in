@@ -12,6 +12,7 @@ import { ItinerariesModule } from './itineraries/itineraries.module';
 import { DestinationsModule } from './destinations/destinations.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
+import { ExploreModule } from './explore/explore.module';
 import { MailModule } from './common/mail/mail.module';
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisService } from './common/redis/redis.service';
@@ -32,7 +33,8 @@ import { RedisService } from './common/redis/redis.service';
     ItinerariesModule,
     DestinationsModule,
     HealthModule,
-    AuthModule
+    AuthModule,
+    ExploreModule
   ],
   providers: [
     PrismaService,

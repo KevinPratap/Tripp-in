@@ -20,6 +20,7 @@ import {
   JoinTripDto
 } from '../../trips/dto/traveller.dto';
 import { AutocompleteQueryDto } from '../../places/dto/autocomplete-query.dto';
+import { NearbyQueryDto, RouteQueryDto } from '../../explore/dto/explore-query.dto';
 
 const DTO_FIELDS: Array<[any, string[]]> = [
   [VoteActivityDto, ['activityId', 'voterName', 'vote', 'comment']],
@@ -47,7 +48,9 @@ const DTO_FIELDS: Array<[any, string[]]> = [
   [CreateTravellerDto, ['name', 'budgetCap', 'interests', 'dislikes', 'pace']],
   [UpdateTravellerDto, ['name', 'budgetCap', 'interests', 'dislikes', 'pace']],
   [JoinTripDto, ['token', 'name', 'budgetCap', 'interests', 'dislikes', 'pace']],
-  [AutocompleteQueryDto, ['q', 'limit']]
+  [AutocompleteQueryDto, ['q', 'limit']],
+  [NearbyQueryDto, ['lat', 'lng', 'radius']],
+  [RouteQueryDto, ['points']]
 ];
 
 describe('Request DTO validation metadata', () => {
