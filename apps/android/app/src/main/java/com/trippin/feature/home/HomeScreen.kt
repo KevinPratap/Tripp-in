@@ -16,11 +16,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CardTravel
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -37,7 +38,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trippin.core.design.CardListSkeleton
 import com.trippin.core.design.HeaderCream
 import com.trippin.core.design.HeaderCreamMuted
-import com.trippin.core.design.MessageState
 import com.trippin.core.design.PhotoCredit
 import com.trippin.core.design.PillTone
 import com.trippin.core.design.PlaceBackdrop
@@ -68,6 +68,7 @@ fun HomeScreen(
     onOpenToday: (String) -> Unit,
     onOpenPlan: (String) -> Unit,
     onStartPlanner: () -> Unit,
+    onStartPlannerFor: (String) -> Unit = { onStartPlanner() },
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,13 +81,7 @@ fun HomeScreen(
     ) {
         when {
             state.loading -> CardListSkeleton(label = "Loading your trips", modifier = Modifier.statusBarsPadding())
-            !state.hasTrips -> MessageState(
-                icon = Icons.Default.CardTravel,
-                title = "Where to first?",
-                body = "Tell Tripp'in where and when. Every stop in the plan is checked against real opening hours and travel times.",
-                actionLabel = "Plan a trip",
-                onAction = onStartPlanner
-            )
+            !state.hasTrips -> FirstTrip(onStartPlanner, onStartPlannerFor)
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
@@ -316,3 +311,71 @@ private fun UpcomingRow(trip: SavedTripSummaryDto, today: LocalDate, onClick: ()
 /** "Lisbon, Portugal" reads as "Lisbon" where space is tight. */
 internal fun cityName(destination: String): String =
     destination.substringBefore(',').trim().ifBlank { destination.ifBlank { "Untitled trip" } }
+
+/** Cities to start from. Only a shortcut into the planner; nothing about them is claimed here. */
+private val starterCities = listOf("Lisbon", "Kyoto", "Mexico City", "Rome", "Seoul", "Istanbul")
+
+/** What someone with no trips yet sees: what the app does, in three steps, and a way to start. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun FirstTrip(onStartPlanner: () -> Unit, onStartFor: (String) -> Unit) {
+    val colors = TrippinTheme.colors
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        ) {
+            Text("TRIPP'IN", style = TrippinType.Eyebrow, color = colors.accent)
+            Spacer(Modifier.height(8.dp))
+            Text("Where to first?", style = TrippinType.Display.copy(fontSize = 48.sp, lineHeight = 50.sp), color = colors.ink)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Say where and when. Tripp'in builds the days and checks every stop before you go.",
+                style = TrippinType.Body,
+                color = colors.inkMuted
+            )
+            Spacer(Modifier.height(28.dp))
+            SectionLabel("How it works")
+            Spacer(Modifier.height(12.dp))
+            TrippinCard(tier = SurfaceTier.FLAT, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(vertical = 4.dp)) {
+                    Step("01", "Say where and when", "A city, your dates, who is coming and what you are into.")
+                    Step("02", "Every stop is checked", "Opening hours against the day you visit, travel times between each stop.")
+                    Step("03", "Travel from Today", "On the day, the app opens on what is happening now and what is next.")
+                }
+            }
+            Spacer(Modifier.height(28.dp))
+            SectionLabel("Start with a city")
+            Spacer(Modifier.height(12.dp))
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                starterCities.forEach { city ->
+                    com.trippin.core.design.TrippinChoiceChip(text = city, selected = false, onClick = { onStartFor(city) })
+                }
+            }
+        }
+        TrippinButton(
+            text = "Plan a trip",
+            onClick = onStartPlanner,
+            leadingIcon = Icons.Default.Add,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun Step(number: String, title: String, body: String) {
+    val colors = TrippinTheme.colors
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(number, style = TrippinType.Numeric.copy(fontSize = 24.sp), color = colors.accent, modifier = Modifier.width(44.dp))
+        Column {
+            Text(title, style = TrippinType.Heading, color = colors.ink)
+            Spacer(Modifier.height(2.dp))
+            Text(body, style = TrippinType.Body, color = colors.inkMuted)
+        }
+    }
+}

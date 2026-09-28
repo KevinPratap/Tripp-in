@@ -187,7 +187,8 @@ private fun SignedInShell(
                             viewModel.openTrip(id)
                             navController.navigate(Plan(id))
                         },
-                        onStartPlanner = { navController.navigate(Planner()) }
+                        onStartPlanner = { navController.navigate(Planner()) },
+                        onStartPlannerFor = { city -> navController.navigate(Planner(city)) }
                     )
                 }
 
