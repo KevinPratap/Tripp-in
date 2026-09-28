@@ -22,6 +22,7 @@ fun TodayScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenMap: (String) -> Unit,
+    onOpenStop: (String) -> Unit,
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -52,6 +53,7 @@ fun TodayScreen(
                     visited = state.visited,
                     onToggleVisited = viewModel::toggleVisited,
                     onOpenMap = { onOpenMap(tripId) },
+                    onOpenStop = onOpenStop,
                     modifier = Modifier.fillMaxSize()
                 )
             }

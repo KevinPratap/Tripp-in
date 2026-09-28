@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Res,
@@ -152,5 +153,15 @@ export class CollabController {
       splitBetween: dto.splitBetween,
     });
   }
-}
 
+  @Delete(':id/expenses/:expenseId')
+  @RateLimit({ limit: 30, windowMs: 60000 })
+  @ApiOperation({ summary: 'Remove one logged expense and update debt settlements' })
+  @ApiResponse({ status: 200, description: 'Updated expense overview' })
+  async deleteExpense(
+    @Param('id') tripId: string,
+    @Param('expenseId') expenseId: string
+  ): Promise<ExpenseOverview> {
+    return this.collabService.deleteExpense(tripId, expenseId);
+  }
+}

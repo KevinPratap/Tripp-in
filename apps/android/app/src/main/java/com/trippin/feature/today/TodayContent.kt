@@ -45,6 +45,7 @@ fun TodayContent(
     visited: Set<String>,
     onToggleVisited: (String) -> Unit,
     onOpenMap: () -> Unit,
+    onOpenStop: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = TrippinTheme.colors
@@ -104,7 +105,8 @@ fun TodayContent(
                 visited = act.id in visited,
                 onToggleVisited = { onToggleVisited(act.id) },
                 destinationName = destinationName,
-                dayDate = todaysDay.date
+                dayDate = todaysDay.date,
+                onOpen = { onOpenStop(act.id) }
             )
         }
     }

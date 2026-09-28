@@ -42,12 +42,14 @@ import com.trippin.core.design.TrippinType
 import com.trippin.core.common.shareTokenFromPath
 import com.trippin.core.design.clickableTab
 import com.trippin.feature.auth.SignInScreen
+import com.trippin.feature.budget.BudgetScreen
 import com.trippin.feature.group.GroupScreen
 import com.trippin.feature.home.HomeScreen
 import com.trippin.feature.itinerary.ItineraryScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.planner.PlannerScreen
 import com.trippin.feature.profile.ProfileScreen
+import com.trippin.feature.stop.StopScreen
 import com.trippin.feature.today.TodayScreen
 import com.trippin.feature.trips.TripsScreen
 import com.trippin.feature.triphub.TripHubScreen
@@ -158,7 +160,8 @@ private fun SignedInShell(
                         onOpenPlan = { navController.navigate(Plan(it)) },
                         onOpenToday = { navController.navigate(Today(it)) },
                         onOpenMap = { navController.navigate(MapView(it)) },
-                        onOpenGroup = { navController.navigate(Group(it)) }
+                        onOpenGroup = { navController.navigate(Group(it)) },
+                        onOpenBudget = { navController.navigate(Budget(it)) }
                     )
                 }
 
@@ -168,7 +171,8 @@ private fun SignedInShell(
                     ItineraryScreen(
                         tripId = tripId,
                         onBack = { navController.popBackStack() },
-                        onOpenMap = { navController.navigate(MapView(it)) }
+                        onOpenMap = { navController.navigate(MapView(it)) },
+                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) }
                     )
                 }
 
@@ -196,8 +200,17 @@ private fun SignedInShell(
                     TodayScreen(
                         tripId = tripId,
                         onBack = { navController.popBackStack() },
-                        onOpenMap = { navController.navigate(MapView(tripId)) }
+                        onOpenMap = { navController.navigate(MapView(tripId)) },
+                        onOpenStop = { activityId -> navController.navigate(Stop(tripId, activityId)) }
                     )
+                }
+
+                composable<Stop> {
+                    StopScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable<Budget> {
+                    BudgetScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable<MapView> { entry ->

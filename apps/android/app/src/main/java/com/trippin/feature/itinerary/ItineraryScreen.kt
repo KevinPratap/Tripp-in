@@ -89,6 +89,7 @@ fun ItineraryScreen(
     tripId: String,
     onBack: () -> Unit,
     onOpenMap: (String) -> Unit,
+    onOpenStop: (String) -> Unit,
     viewModel: ItineraryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -209,6 +210,7 @@ fun ItineraryScreen(
                                 visited = state.visited,
                                 onToggleVisited = viewModel::toggleVisited,
                                 onOpenMap = { onOpenMap(tripId) },
+                                onOpenStop = onOpenStop,
                                 modifier = Modifier.weight(1f)
                             )
                         } else {
@@ -217,6 +219,7 @@ fun ItineraryScreen(
                                 destinationName = destinationName,
                                 onToggleVisited = viewModel::toggleVisited,
                                 onReplan = viewModel::replan,
+                                onOpenStop = onOpenStop,
                                 modifier = Modifier.weight(1f)
                             )
                             Box(Modifier.background(colors.paper).padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -351,6 +354,7 @@ private fun DaysPane(
     destinationName: String?,
     onToggleVisited: (String) -> Unit,
     onReplan: (String) -> Unit,
+    onOpenStop: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = TrippinTheme.colors
@@ -410,7 +414,7 @@ private fun DaysPane(
 
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
             days.getOrNull(page)?.let { day ->
-                DayList(day, state, destinationName, onToggleVisited, multiDay = days.size > 1)
+                DayList(day, state, destinationName, onToggleVisited, onOpenStop, multiDay = days.size > 1)
             }
         }
     }
@@ -422,6 +426,7 @@ private fun DayList(
     state: ItineraryUiState,
     destinationName: String?,
     onToggleVisited: (String) -> Unit,
+    onOpenStop: (String) -> Unit,
     multiDay: Boolean
 ) {
     val colors = TrippinTheme.colors
@@ -470,7 +475,8 @@ private fun DayList(
                 visited = act.id in state.visited,
                 onToggleVisited = { onToggleVisited(act.id) },
                 destinationName = destinationName,
-                dayDate = day.date
+                dayDate = day.date,
+                onOpen = { onOpenStop(act.id) }
             )
         }
     }

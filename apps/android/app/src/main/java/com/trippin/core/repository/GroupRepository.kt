@@ -38,4 +38,8 @@ class GroupRepository @Inject constructor(
 
     suspend fun createShareLink(tripId: String): DataResult<ShareLinkDto> =
         runNetwork { api.createShareLink(tripId) }
+
+    /** Stops every live link to the trip. Anyone holding an old link can no longer open it. */
+    suspend fun revokeShareLinks(tripId: String): DataResult<Int> =
+        runNetwork { api.revokeShareLinks(tripId).revoked }
 }

@@ -399,3 +399,55 @@ data class SavedTripSummaryDto(
 data class MyTripsDto(
     val trips: List<SavedTripSummaryDto> = emptyList()
 )
+
+@Serializable
+data class RevokeSharesDto(
+    val revoked: Int = 0
+)
+
+/** One amount a traveller logged. Amounts are only ever added up within one currency. */
+@Serializable
+data class ExpenseDto(
+    val id: String,
+    val title: String,
+    val amount: Double,
+    val currency: String = "",
+    val paidBy: String,
+    val splitBetween: List<String> = emptyList(),
+    val createdAt: String = ""
+)
+
+@Serializable
+data class DebtSettlementDto(
+    val from: String,
+    val to: String,
+    val amount: Double,
+    val currency: String = ""
+)
+
+@Serializable
+data class CurrencyTotalDto(
+    val currency: String,
+    val amount: Double
+)
+
+@Serializable
+data class ExpenseOverviewDto(
+    val tripId: String = "",
+    val expenses: List<ExpenseDto> = emptyList(),
+    /** The total in [currency] only, never a sum across currencies. */
+    val totalSpent: Double = 0.0,
+    val currency: String = "",
+    val settlements: List<DebtSettlementDto> = emptyList(),
+    val totalsByCurrency: List<CurrencyTotalDto> = emptyList(),
+    val mixedCurrencies: Boolean = false
+)
+
+@Serializable
+data class AddExpenseRequestDto(
+    val title: String,
+    val amount: Double,
+    val currency: String? = null,
+    val paidBy: String,
+    val splitBetween: List<String> = emptyList()
+)
