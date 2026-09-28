@@ -13,9 +13,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CardTravel
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -38,19 +37,20 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.trippin.core.design.LoadingBlock
-import com.trippin.core.design.MessageState
 import com.trippin.core.design.TrippinTheme
 import com.trippin.core.design.TrippinType
 import com.trippin.core.common.shareTokenFromPath
 import com.trippin.core.design.clickableTab
 import com.trippin.feature.auth.SignInScreen
 import com.trippin.feature.group.GroupScreen
+import com.trippin.feature.home.HomeScreen
 import com.trippin.feature.itinerary.ItineraryScreen
 import com.trippin.feature.map.MapScreen
 import com.trippin.feature.planner.PlannerScreen
 import com.trippin.feature.profile.ProfileScreen
 import com.trippin.feature.today.TodayScreen
 import com.trippin.feature.trips.TripsScreen
+import com.trippin.feature.triphub.TripHubScreen
 
 @Composable
 fun TrippinAppShell(
@@ -76,9 +76,8 @@ fun TrippinAppShell(
 }
 
 private enum class ShellTab(val label: String, val icon: ImageVector) {
+    HOME("Home", Icons.Default.Home),
     TRIPS("Trips", Icons.Default.CardTravel),
-    PLAN("Plan", Icons.Default.CalendarMonth),
-    GROUP("Group", Icons.Default.Group),
     YOU("You", Icons.Default.Person)
 }
 
@@ -89,7 +88,6 @@ private fun SignedInShell(
     onSharePathConsumed: () -> Unit
 ) {
     val navController = rememberNavController()
-    val currentTripId by viewModel.currentTripId.collectAsStateWithLifecycle()
     val resolvedShareTripId by viewModel.resolvedShareTripId.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
@@ -104,23 +102,40 @@ private fun SignedInShell(
 
     LaunchedEffect(resolvedShareTripId) {
         resolvedShareTripId?.let { tripId ->
-            navController.navigate(Plan(tripId)) { launchSingleTop = true }
+            navController.navigate(TripHub(tripId)) { launchSingleTop = true }
             viewModel.clearResolvedShareTrip()
         }
+    }
+
+    val openTrip: (String) -> Unit = { id ->
+        viewModel.openTrip(id)
+        navController.navigate(TripHub(id)) { launchSingleTop = true }
     }
 
     Column(Modifier.fillMaxSize().background(TrippinTheme.colors.paper)) {
         Box(Modifier.weight(1f)) {
             NavHost(
                 navController = navController,
-                startDestination = Trips
+                startDestination = Home
             ) {
-                composable<Trips> {
-                    TripsScreen(
-                        onOpenTrip = { id ->
+                composable<Home> {
+                    HomeScreen(
+                        onOpenTrip = openTrip,
+                        onOpenToday = { id ->
+                            viewModel.openTrip(id)
+                            navController.navigate(Today(id))
+                        },
+                        onOpenPlan = { id ->
                             viewModel.openTrip(id)
                             navController.navigate(Plan(id))
                         },
+                        onStartPlanner = { navController.navigate(Planner()) }
+                    )
+                }
+
+                composable<Trips> {
+                    TripsScreen(
+                        onOpenTrip = openTrip,
                         onOpenToday = { id ->
                             viewModel.openTrip(id)
                             navController.navigate(Today(id))
@@ -131,34 +146,35 @@ private fun SignedInShell(
                     )
                 }
 
-                composable<Plan> { entry ->
-                    val tripId = entry.toRoute<Plan>().tripId
-                    if (tripId.isBlank()) {
-                        NoTripOpen("No trip open", "Pick a trip on the Trips tab and its plan opens here, with the days planned and the stops for the day you are on.")
-                    } else {
-                        LaunchedEffect(tripId) { viewModel.openTrip(tripId) }
-                        ItineraryScreen(
-                            tripId = tripId,
-                            onBack = { navController.navigate(Trips) { launchSingleTop = true } },
-                            onOpenMap = { navController.navigate(MapView(it)) }
-                        )
-                    }
-                }
-
-                composable<Group> { entry ->
-                    val tripId = entry.toRoute<Group>().tripId
-                    if (tripId.isBlank()) {
-                        NoTripOpen("No trip open", "Pick a trip on the Trips tab, then the people going and what each of them wants is here.")
-                    } else {
-                        LaunchedEffect(tripId) { viewModel.openTrip(tripId) }
-                        GroupScreen(tripId = tripId)
-                    }
-                }
-
                 composable<You> {
                     ProfileScreen(
                         onOpenTrips = { navController.navigate(Trips) { launchSingleTop = true } }
                     )
+                }
+
+                composable<TripHub> {
+                    TripHubScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenPlan = { navController.navigate(Plan(it)) },
+                        onOpenToday = { navController.navigate(Today(it)) },
+                        onOpenMap = { navController.navigate(MapView(it)) },
+                        onOpenGroup = { navController.navigate(Group(it)) }
+                    )
+                }
+
+                composable<Plan> { entry ->
+                    val tripId = entry.toRoute<Plan>().tripId
+                    LaunchedEffect(tripId) { viewModel.openTrip(tripId) }
+                    ItineraryScreen(
+                        tripId = tripId,
+                        onBack = { navController.popBackStack() },
+                        onOpenMap = { navController.navigate(MapView(it)) }
+                    )
+                }
+
+                composable<Group> { entry ->
+                    val tripId = entry.toRoute<Group>().tripId
+                    GroupScreen(tripId = tripId, onBack = { navController.popBackStack() })
                 }
 
                 composable<Planner> { entry ->
@@ -167,7 +183,10 @@ private fun SignedInShell(
                         onBack = { navController.popBackStack() },
                         onTripCreated = { id ->
                             viewModel.openTrip(id)
-                            navController.navigate(Plan(id)) { popUpTo(Trips) }
+                            // The new trip's hub sits under its plan, so backing out of the build lands
+                            // on the trip rather than on the planner that made it.
+                            navController.navigate(TripHub(id)) { popUpTo(Home) }
+                            navController.navigate(Plan(id))
                         }
                     )
                 }
@@ -190,24 +209,28 @@ private fun SignedInShell(
             }
         }
 
-        val tabOptions: androidx.navigation.NavOptionsBuilder.() -> Unit = {
-            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-            launchSingleTop = true
-            restoreState = true
-        }
-        TrippinBottomBar(
-            currentDestination = currentDestination,
-            onSelect = { tab ->
-                // Navigate with the concrete route type at the call site: type-safe navigate resolves
-                // the serializer from the reified type, so upcasting to Destination first would fail.
-                when (tab) {
-                    ShellTab.TRIPS -> navController.navigate(Trips, tabOptions)
-                    ShellTab.PLAN -> navController.navigate(Plan(currentTripId.orEmpty()), tabOptions)
-                    ShellTab.GROUP -> navController.navigate(Group(currentTripId.orEmpty()), tabOptions)
-                    ShellTab.YOU -> navController.navigate(You, tabOptions)
-                }
+        // The bar belongs to the three top-level places. Inside a trip the screen has its own way
+        // back and its own action at the bottom, and a second row of navigation would compete with it.
+        val onTab = ShellTab.entries.any { currentDestination.isTab(it) }
+        if (onTab) {
+            val tabOptions: androidx.navigation.NavOptionsBuilder.() -> Unit = {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
             }
-        )
+            TrippinBottomBar(
+                currentDestination = currentDestination,
+                onSelect = { tab ->
+                    // Navigate with the concrete route type at the call site: type-safe navigate resolves
+                    // the serializer from the reified type, so upcasting to Destination first would fail.
+                    when (tab) {
+                        ShellTab.HOME -> navController.navigate(Home, tabOptions)
+                        ShellTab.TRIPS -> navController.navigate(Trips, tabOptions)
+                        ShellTab.YOU -> navController.navigate(You, tabOptions)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -217,14 +240,14 @@ private fun TrippinBottomBar(
     onSelect: (ShellTab) -> Unit
 ) {
     val colors = TrippinTheme.colors
-    Column(Modifier.fillMaxWidth().background(colors.panel)) {
-        Box(Modifier.fillMaxWidth().height(2.5.dp).background(colors.line))
+    Column(Modifier.fillMaxWidth().background(colors.paper)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(colors.panel)
                 .navigationBarsPadding()
                 .heightIn(min = 64.dp)
+                .padding(horizontal = 8.dp)
         ) {
             ShellTab.entries.forEach { tab ->
                 val selected = currentDestination.isTab(tab)
@@ -238,8 +261,8 @@ private fun TrippinBottomBar(
                 ) {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label,
-                        tint = if (selected) colors.accent else colors.inkMuted,
+                        contentDescription = null,
+                        tint = if (selected) colors.ink else colors.inkMuted,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(Modifier.height(4.dp))
@@ -247,6 +270,12 @@ private fun TrippinBottomBar(
                         text = tab.label,
                         style = TrippinType.Caption,
                         color = if (selected) colors.ink else colors.inkMuted
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        Modifier
+                            .size(width = 16.dp, height = 3.dp)
+                            .background(if (selected) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
                     )
                 }
             }
@@ -258,19 +287,9 @@ private fun androidx.navigation.NavDestination?.isTab(tab: ShellTab): Boolean {
     val dest = this ?: return false
     return dest.hierarchy.any { node ->
         when (tab) {
+            ShellTab.HOME -> node.hasRoute(Home::class)
             ShellTab.TRIPS -> node.hasRoute(Trips::class)
-            ShellTab.PLAN -> node.hasRoute(Plan::class)
-            ShellTab.GROUP -> node.hasRoute(Group::class)
             ShellTab.YOU -> node.hasRoute(You::class)
         }
     }
-}
-
-@Composable
-private fun NoTripOpen(headline: String, body: String) {
-    MessageState(
-        icon = Icons.Default.CalendarMonth,
-        title = headline,
-        body = body
-    )
 }

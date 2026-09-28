@@ -7,6 +7,13 @@ import { AuthService } from './auth.service';
 import { hashToken } from '../common/auth/token-hash';
 import { Mailer, MailMessage } from '../common/mail/mailer';
 
+jest.mock('../places/city-photos', () => ({
+  ...jest.requireActual('../places/city-photos'),
+  cityPhotoMap: jest
+    .fn()
+    .mockResolvedValue(new Map([['Lisbon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Lisbon.jpg']]))
+}));
+
 /**
  * The rules that matter for accounts: a raw token is never stored, a magic link is
  * single use and time limited, and signing in hands the guest's trips to the account.
@@ -318,7 +325,8 @@ describe('AuthService', () => {
         stopCount: 3,
         currency: 'EUR',
         totalEstimatedCost: 135,
-        shareToken: 'shr-token'
+        shareToken: 'shr-token',
+        heroImageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Lisbon.jpg'
       });
     });
 
@@ -342,7 +350,8 @@ describe('AuthService', () => {
         itineraryStatus: null,
         dayCount: 0,
         stopCount: 0,
-        shareToken: null
+        shareToken: null,
+        heroImageUrl: null
       });
     });
   });

@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -202,13 +203,29 @@ private fun TripCard(
         onClick = onOpen
     ) {
         Column {
-            // Destination header: names the place in its own letters rather than using a stock image.
-            PlacePlate(
-                title = trip.destinationName.ifBlank { "Untitled" },
-                category = dateLabel ?: "",
-                height = 88.dp
-            )
-            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.hairline))
+            // The destination's own photograph when it has one, otherwise its name on ink. Never a stock image.
+            com.trippin.core.design.PlaceBackdrop(
+                photoUrl = trip.heroImageUrl,
+                contentDescription = "Photo of ${trip.destinationName}",
+                modifier = Modifier.fillMaxWidth().height(if (isLive) 132.dp else 104.dp)
+            ) {
+                Row(
+                    Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        trip.destinationName.substringBefore(',').trim().ifBlank { "Untitled" },
+                        style = TrippinType.Title.copy(fontSize = if (isLive) 34.sp else 30.sp),
+                        color = com.trippin.core.design.HeaderCream,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (dateLabel != null) {
+                        Text(dateLabel, style = TrippinType.Caption, color = com.trippin.core.design.HeaderCreamMuted)
+                    }
+                }
+            }
             Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),

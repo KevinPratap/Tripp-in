@@ -9,41 +9,42 @@ import androidx.compose.ui.unit.sp
 import com.trippin.R
 
 /**
- * Display face for headlines and titles, body face for everything else. Same pairing as the web
- * app (Fraunces display, Nunito body) so the phone and the browser are recognisably one product
- * instead of two Material defaults.
+ * Two faces with two different jobs. Instrument Serif names places and states the big numbers: a
+ * destination, a stop, a time, a total. Geist carries everything a person acts on or scans: labels,
+ * buttons, body copy, metadata. Keeping the serif off controls is what lets a place read as a place.
+ *
+ * Instrument Serif ships in one weight. Every display role below asks for Normal, because any heavier
+ * request would make Compose fake a bold by smearing the outlines.
  */
 val TrippinDisplay = FontFamily(
-    Font(R.font.fraunces_bold, FontWeight.Bold),
-    Font(R.font.fraunces_bold, FontWeight.SemiBold)
+    Font(R.font.instrument_serif_regular, FontWeight.Normal)
 )
 
 val TrippinBody = FontFamily(
-    Font(R.font.nunito_regular, FontWeight.Normal),
-    Font(R.font.nunito_bold, FontWeight.Bold),
-    Font(R.font.nunito_bold, FontWeight.SemiBold),
-    Font(R.font.nunito_bold, FontWeight.Black),
-    Font(R.font.nunito_bold, FontWeight.ExtraBold)
+    Font(R.font.geist_regular, FontWeight.Normal),
+    Font(R.font.geist_medium, FontWeight.Medium),
+    Font(R.font.geist_semibold, FontWeight.SemiBold),
+    Font(R.font.geist_bold, FontWeight.Bold)
 )
 
 val TrippinTypography = Typography(
     headlineLarge = TextStyle(
         fontFamily = TrippinDisplay,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 36.sp,
         lineHeight = 40.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = TrippinDisplay,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 28.sp,
         lineHeight = 32.sp
     ),
     titleLarge = TextStyle(
         fontFamily = TrippinDisplay,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
-        lineHeight = 26.sp
+        fontWeight = FontWeight.Normal,
+        fontSize = 24.sp,
+        lineHeight = 28.sp
     ),
     titleMedium = TextStyle(
         fontFamily = TrippinBody,
@@ -83,25 +84,25 @@ object TrippinType {
     /** The single biggest thing on a screen. One per screen, never two. */
     val Display = TextStyle(
         fontFamily = TrippinDisplay,
-        fontWeight = FontWeight.Black,
-        fontSize = 30.sp,
-        lineHeight = 34.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 36.sp,
+        lineHeight = 38.sp,
         letterSpacing = 0.sp
     )
 
     /** A screen heading, or a card's own name. */
     val Title = TextStyle(
         fontFamily = TrippinDisplay,
-        fontWeight = FontWeight.Black,
-        fontSize = 22.sp,
-        lineHeight = 26.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 26.sp,
+        lineHeight = 30.sp,
         letterSpacing = 0.sp
     )
 
     /** A section heading inside a screen: Group, Today, Money. */
     val Heading = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
         lineHeight = 22.sp,
         letterSpacing = 0.sp
@@ -125,10 +126,10 @@ object TrippinType {
      */
     val Label = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        lineHeight = 17.sp,
-        letterSpacing = 0.1.sp
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp
     )
 
     /** Metadata only: a source, a count, a time. The floor, never below. */
@@ -148,7 +149,7 @@ object TrippinType {
      */
     val Eyebrow = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         lineHeight = 14.sp,
         letterSpacing = 0.8.sp
@@ -159,18 +160,18 @@ object TrippinType {
      * animated before it is known: no counting up to a price.
      */
     val Numeric = TextStyle(
-        fontFamily = TrippinBody,
-        fontWeight = FontWeight.Black,
-        fontSize = 26.sp,
-        lineHeight = 30.sp,
+        fontFamily = TrippinDisplay,
+        fontWeight = FontWeight.Normal,
+        fontSize = 32.sp,
+        lineHeight = 34.sp,
         letterSpacing = 0.sp,
-        fontFeatureSettings = "tnum"
+        fontFeatureSettings = "lnum"
     )
 
     /** The same tabular figures at caption scale, for a stop row's time or a small amount. */
     val NumericSmall = TextStyle(
         fontFamily = TrippinBody,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
         lineHeight = 17.sp,
         letterSpacing = 0.sp,

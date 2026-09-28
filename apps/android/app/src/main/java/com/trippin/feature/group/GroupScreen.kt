@@ -71,6 +71,7 @@ import com.trippin.core.network.TripOptionDto
 @Composable
 fun GroupScreen(
     tripId: String,
+    onBack: () -> Unit,
     viewModel: GroupViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,7 @@ fun GroupScreen(
             TrippinTopBar(
                 title = "Group",
                 subtitle = "Who is going, and what each of them wants",
+                onBack = onBack,
                 actions = {
                     TrippinIconButton(Icons.Default.Share, "Invite", tint = colors.accent, onClick = viewModel::createShareLink)
                 }
