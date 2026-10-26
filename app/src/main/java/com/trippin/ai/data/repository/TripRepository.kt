@@ -171,6 +171,30 @@ class TripRepository(private val backend: Backend, private val prefs: Preference
         return code
     }
 
+    /** Turns on the public live page. The page shows a sanitised copy of the trip (see ShareSnapshot). */
+    fun enableShare(trip: Trip, me: Session, snapshot: Map<String, Any?>): String {
+        val code = (1..10).map { ALPHABET[random.nextInt(ALPHABET.length)] }.joinToString("")
+        val batch = backend.db.batch()
+        batch.set(backend.share(code), snapshot + mapOf("updatedAt" to FieldValue.serverTimestamp()))
+        batch.update(backend.trip(trip.id), "shareCode", code)
+        addEvent(batch, trip.id, me, EventType.INVITE_CREATED, "${me.name} turned on the live web link")
+        backend.fire(batch.commit(), "turn on the live link")
+        return code
+    }
+
+    fun disableShare(trip: Trip, me: Session) {
+        val code = trip.shareCode ?: return
+        val batch = backend.db.batch()
+        batch.delete(backend.share(code))
+        batch.update(backend.trip(trip.id), "shareCode", null)
+        addEvent(batch, trip.id, me, EventType.INVITE_REVOKED, "${me.name} turned off the live web link")
+        backend.fire(batch.commit(), "turn off the live link")
+    }
+
+    fun syncShare(code: String, snapshot: Map<String, Any?>) {
+        backend.fire(backend.share(code).set(snapshot + mapOf("updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge()), "update the live link")
+    }
+
     fun revokeInvite(trip: Trip, me: Session) {
         val code = trip.inviteCode ?: return
         val batch = backend.db.batch()

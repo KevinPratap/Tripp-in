@@ -39,7 +39,7 @@ captures/
 *.aab
 
 # Docker / DB data
-data/
+/data/
 *.sql.gz
 
 # Coverage / Logs

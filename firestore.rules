@@ -53,6 +53,35 @@ service cloud.firestore {
       allow delete: if canManage(resource.data.tripId) || isOwner(resource.data.tripId);
     }
 
+    // ---------------- Live web pages ----------------
+    // A sanitised public copy of a trip, readable by anyone who has the code (never listable).
+    // Only the trip's managers write it. Web guests sign in anonymously and may only write their
+    // own vote document, and only while the share exists.
+    match /shares/{code} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && code.size() == 10
+        && canManageAfter(request.resource.data.tripId);
+      allow update: if canManage(resource.data.tripId)
+        && request.resource.data.tripId == resource.data.tripId;
+      allow delete: if canManage(resource.data.tripId) || isOwner(resource.data.tripId);
+
+      match /guests/{guestId} {
+        allow read: if true;
+        allow create, update: if signedIn()
+          && request.auth.uid == guestId
+          && exists(/databases/$(database)/documents/shares/$(code))
+          && request.resource.data.keys().hasOnly(['name', 'votes', 'updatedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 40
+          && request.resource.data.votes is map
+          && request.resource.data.votes.size() <= 60;
+        allow delete: if signedIn() && request.auth.uid == guestId;
+      }
+    }
+
     // ---------------- Trips ----------------
     match /trips/{tripId} {
       allow read: if signedIn() && me() in resource.data.memberIds;

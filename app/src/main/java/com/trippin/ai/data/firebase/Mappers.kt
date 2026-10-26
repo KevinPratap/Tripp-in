@@ -120,6 +120,7 @@ fun DocumentSnapshot.toTrip(): Trip? {
         inviteExpiresAt = (get("inviteExpiresAt") as? Timestamp)?.toDate()?.time,
         destinationVoteClosesAt = (get("destinationVoteClosesAt") as? Timestamp)?.toDate()?.time,
         createdAt = millis("createdAt"),
+        shareCode = str("shareCode"),
     )
 }
 

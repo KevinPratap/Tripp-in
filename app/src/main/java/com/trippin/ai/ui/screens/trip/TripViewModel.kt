@@ -31,7 +31,12 @@ import com.trippin.intelligence.group.StartPreference
 import com.trippin.intelligence.group.VoteKind
 import com.trippin.intelligence.model.Category
 import com.trippin.intelligence.model.Place
+import com.trippin.ai.data.share.ShareSnapshot
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -113,6 +118,16 @@ class TripViewModel(private val c: AppContainer, val tripId: String, val me: Ses
 
     init {
         viewModelScope.launch { c.preferences.markSeen(tripId) }
+        startShareSync()
+    }
+
+    /** While the live page is on, keep its public copy in step with the trip (managers only, debounced). */
+    @OptIn(FlowPreview::class)
+    private fun startShareSync() = viewModelScope.launch {
+        ui.map { u ->
+            val t = u.trip
+            if (t?.shareCode != null && u.roleOf(me.uid)?.canManage == true) t.shareCode to ShareSnapshot.build(t, u.members, u.ideas, u.itinerary) else null
+        }.filterNotNull().distinctUntilChanged().debounce(1500).collect { (code, snap) -> c.tripRepository.syncShare(code, snap) }
     }
 
     private fun trip(): Trip? = ui.value.trip
@@ -218,11 +233,22 @@ class TripViewModel(private val c: AppContainer, val tripId: String, val me: Ses
 
     // ---- People ----
     fun createInvite(): String? = trip()?.let { c.tripRepository.createInvite(it, me) }
+    fun createShare() {
+        val t = trip() ?: return
+        val u = ui.value
+        c.tripRepository.enableShare(t, me, ShareSnapshot.build(t, u.members, u.ideas, u.itinerary))
+    }
+    fun stopShare() { trip()?.let { c.tripRepository.disableShare(it, me) } }
     fun revokeInvite() { trip()?.let { c.tripRepository.revokeInvite(it, me) } }
     fun setRole(m: Member, r: Role) { trip()?.let { c.tripRepository.setRole(it, m, r, me) } }
     fun remove(m: Member) { trip()?.let { c.tripRepository.removeMember(it, m, me) } }
     fun leave() { trip()?.let { c.tripRepository.leave(it, me) } }
-    fun delete(onDone: () -> Unit) = viewModelScope.launch { c.tripRepository.delete(tripId); onDone() }
+    fun delete(onDone: () -> Unit) = viewModelScope.launch {
+        // The public live page must not outlive the trip.
+        trip()?.takeIf { it.shareCode != null }?.let { c.tripRepository.disableShare(it, me) }
+        c.tripRepository.delete(tripId)
+        onDone()
+    }
 
     val isDemo: Boolean get() = c.backend.isDemo
 

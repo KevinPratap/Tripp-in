@@ -54,6 +54,8 @@ data class Trip(
     val inviteExpiresAt: Long?,
     val destinationVoteClosesAt: Long?,
     val createdAt: Long,
+    /** Token of the public live web page for this trip, when the owner has switched sharing on. */
+    val shareCode: String? = null,
 ) {
     val endDate: LocalDate get() = startDate.plusDays((days - 1).toLong())
     fun isPast(today: LocalDate = LocalDate.now()): Boolean = endDate.isBefore(today)

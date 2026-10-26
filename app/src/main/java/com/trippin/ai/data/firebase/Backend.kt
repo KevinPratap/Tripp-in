@@ -83,6 +83,7 @@ class Backend(context: Context) {
     fun expenses(tripId: String) = trip(tripId).collection("expenses")
     fun itinerary(tripId: String): DocumentReference = trip(tripId).collection("itinerary").document("current")
     fun invite(code: String): DocumentReference = db.collection("invites").document(code)
+    fun share(code: String): DocumentReference = db.collection("shares").document(code)
 
     /** Every sub-collection of a trip, used when the owner deletes it (Firestore does not cascade). */
     fun tripChildren(tripId: String) = listOf(

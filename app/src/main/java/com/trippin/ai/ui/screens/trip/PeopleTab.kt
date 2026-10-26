@@ -96,6 +96,33 @@ fun PeopleTab(vm: TripViewModel, ui: TripUi, onPrefs: () -> Unit, onDeleted: () 
         }
 
         item {
+            SectionTitle("Live web page")
+            if (trip.shareCode != null) {
+                val link = com.trippin.ai.data.share.ShareSnapshot.link(trip.shareCode)
+                Panel {
+                    Text("Anyone with this link can follow the plan live and vote in their browser. No app needed.", color = Trip.Muted)
+                    Text(link, style = MaterialTheme.typography.bodyLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SmallButton("Copy", onClick = { clipboard.setText(AnnotatedString(link)) })
+                        SmallButton("Share", onClick = {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "Follow \"${trip.title}\" live and vote on places: $link")
+                            }
+                            context.startActivity(Intent.createChooser(send, "Share the live page"))
+                        })
+                        if (vm.canManage) SmallButton("Turn off", onClick = { vm.stopShare() }, color = Trip.Danger)
+                    }
+                }
+            } else if (vm.canManage) {
+                Panel {
+                    Text("Share a live page anyone can open in a browser, to follow the plan and vote on places.", color = Trip.Muted)
+                    SmallButton("Create live link", onClick = { vm.createShare() })
+                }
+            }
+        }
+
+        item {
             SectionTitle("Your preferences")
             Panel(onClick = onPrefs) {
                 Text("Diet, pace, walking limit and more. The planner reads these for you specifically.", color = Trip.Muted)
