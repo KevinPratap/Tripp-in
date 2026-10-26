@@ -52,15 +52,11 @@ jobs:
           cp app/build/test-results/testDebugUnitTest/*.xml /tmp/out/ 2>/dev/null || true
           git config user.name ci
           git config user.email ci@users.noreply.github.com
-          git fetch origin ci-output || true
-          if git rev-parse origin/ci-output >/dev/null 2>&1; then
-            git checkout -q -B ci-output origin/ci-output
-          else
-            git checkout -q --orphan ci-output
-            git rm -rfq . || true
-          fi
+          git fetch origin ci-output:refs/remotes/origin/ci-output
+          git worktree add --detach /tmp/wt origin/ci-output
+          cd /tmp/wt
           rm -rf out
           cp -r /tmp/out out
           git add out
           git commit -m "ci output for $GITHUB_SHA" || true
-          git push origin ci-output
+          git push origin HEAD:ci-output
