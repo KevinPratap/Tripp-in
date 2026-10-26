@@ -8,6 +8,8 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -42,3 +44,23 @@ jobs:
           name: test-reports
           path: |
             app/build/test-results/testDebugUnitTest/*.xml
+      - name: Publish outputs to the ci-output branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out
+          cp -r app/build/snapshots /tmp/out/ 2>/dev/null || true
+          cp app/build/test-results/testDebugUnitTest/*.xml /tmp/out/ 2>/dev/null || true
+          git config user.name ci
+          git config user.email ci@users.noreply.github.com
+          git fetch origin ci-output || true
+          if git rev-parse origin/ci-output >/dev/null 2>&1; then
+            git checkout -q -B ci-output origin/ci-output
+          else
+            git checkout -q --orphan ci-output
+            git rm -rfq . || true
+          fi
+          rm -rf out
+          cp -r /tmp/out out
+          git add out
+          git commit -m "ci output for $GITHUB_SHA" || true
+          git push origin ci-output
