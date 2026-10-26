@@ -1,9 +1,87 @@
-16:> Configure project :app
-17:e: file:///home/runner/work/Tripp-in/Tripp-in/app/build.gradle.kts:31:30: Unresolved reference: util
-18:e: file:///home/runner/work/Tripp-in/Tripp-in/app/build.gradle.kts:33:55: Unresolved reference: load
-28:* What went wrong:
-40:> Run with --stacktrace option to get the stack trace.
-41:> Run with --info or --debug option to get more log output.
-42:> Run with --scan to get full insights.
-43:> Get more help at https://help.gradle.org.
-51:BUILD FAILED in 1m 4s
+15:> Task :intelligence:checkKotlinGradlePluginConfigurationErrors SKIPPED
+16:> Task :intelligence:processResources NO-SOURCE
+17:> Task :intelligence:processTestResources NO-SOURCE
+18:> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+19:> Task :app:preBuild UP-TO-DATE
+20:> Task :app:preDebugBuild UP-TO-DATE
+21:> Task :app:generateDebugBuildConfig
+22:> Task :app:generateDebugResValues
+23:> Task :app:checkDebugAarMetadata
+24:> Task :app:mapDebugSourceSetPaths
+25:> Task :app:generateDebugResources
+26:> Task :app:packageDebugResources
+27:> Task :app:mergeDebugResources
+28:> Task :app:createDebugCompatibleScreenManifests
+29:> Task :app:extractDeepLinksDebug
+30:> Task :app:parseDebugLocalResources
+31:> Task :intelligence:compileKotlin
+32:> Task :app:processDebugMainManifest
+33:> Task :intelligence:compileJava NO-SOURCE
+34:> Task :intelligence:classes UP-TO-DATE
+35:> Task :intelligence:jar
+36:> Task :app:processDebugManifest
+37:> Task :app:buildKotlinToolingMetadata
+38:> Task :app:preReleaseBuild UP-TO-DATE
+39:> Task :app:generateReleaseBuildConfig
+40:> Task :app:generateReleaseResValues
+41:> Task :app:checkReleaseAarMetadata
+42:> Task :app:mapReleaseSourceSetPaths
+43:> Task :app:generateReleaseResources
+44:> Task :app:packageReleaseResources
+45:> Task :app:processDebugManifestForPackage
+46:> Task :app:parseReleaseLocalResources
+47:> Task :app:mergeReleaseResources
+48:> Task :app:createReleaseCompatibleScreenManifests
+49:> Task :app:extractDeepLinksRelease
+50:> Task :app:processReleaseMainManifest
+51:> Task :intelligence:compileTestKotlin
+52:> Task :intelligence:compileTestJava NO-SOURCE
+53:> Task :intelligence:testClasses UP-TO-DATE
+54:> Task :app:processDebugResources
+55:> Task :intelligence:test
+56:> Task :app:processReleaseManifest
+57:> Task :app:processReleaseManifestForPackage
+58:> Task :app:javaPreCompileRelease
+59:> Task :app:extractProguardFiles
+60:> Task :app:mergeReleaseJniLibFolders
+61:> Task :app:processReleaseResources
+62:> Task :app:mergeReleaseNativeLibs
+64:> Task :app:stripReleaseDebugSymbols
+67:> Task :app:extractReleaseNativeSymbolTables
+68:> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+69:> Task :app:checkReleaseDuplicateClasses
+70:> Task :app:mergeReleaseStartupProfile
+71:> Task :app:mergeReleaseArtProfile
+72:> Task :app:mergeReleaseShaders
+73:> Task :app:compileReleaseShaders NO-SOURCE
+74:> Task :app:generateReleaseAssets UP-TO-DATE
+75:> Task :app:mergeReleaseAssets
+76:> Task :app:compressReleaseAssets
+77:> Task :app:extractReleaseVersionControlInfo
+78:> Task :app:collectReleaseDependencies
+79:> Task :app:sdkReleaseDependencyData
+80:> Task :app:writeReleaseAppMetadata
+81:> Task :app:writeReleaseSigningConfigVersions
+82:> Task :app:convertLinkedResourcesToProtoRelease
+83:> Task :app:kspReleaseKotlin
+84:> Task :app:kspDebugKotlin
+85:> Task :app:compileReleaseKotlin
+86:> Task :app:compileDebugKotlin
+87:> Task :app:compileReleaseJavaWithJavac
+88:> Task :app:generateReleaseLintVitalReportModel
+89:> Task :app:mergeReleaseGeneratedProguardFiles
+90:> Task :app:processReleaseJavaRes
+91:> Task :app:expandReleaseArtProfileWildcards
+92:> Task :app:mergeReleaseJavaResource
+93:> Task :app:lintVitalAnalyzeRelease
+94:> Task :app:minifyReleaseWithR8
+95:> Task :app:lintVitalReportRelease
+96:> Task :app:lintVitalRelease
+97:> Task :app:compileReleaseArtProfile
+98:> Task :app:shrinkReleaseRes
+99:> Task :app:convertShrunkResourcesToBinaryRelease
+100:> Task :app:optimizeReleaseResources
+101:> Task :app:packageRelease
+102:> Task :app:createReleaseApkListingFileRedirect
+103:> Task :app:assembleRelease
+114:BUILD SUCCESSFUL in 5m 35s
