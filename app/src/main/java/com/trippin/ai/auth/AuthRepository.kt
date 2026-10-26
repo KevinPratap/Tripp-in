@@ -24,15 +24,15 @@ data class Session(
     val uid: String,
     val name: String,
     val email: String?,
-    /** A guest: anonymous Firebase user (connected) or a local id (demo). */
+    /** A guest: anonymous Firebase user (connected) or a local id (offline fallback). */
     val isGuest: Boolean,
     val isDemo: Boolean,
 )
 
 /**
  * Sign-in. Connected mode uses Firebase Auth: email/password, or anonymous sign-in for guests —
- * a guest can later attach an email with [saveGuestAccount] and keep every trip. Demo mode keeps
- * a local id and name in DataStore.
+ * a guest can later attach an email with [saveGuestAccount] and keep every trip. Without Firebase
+ * credentials the app falls back to a local id and name in DataStore.
  */
 class AuthRepository(private val backend: Backend, private val prefs: PreferencesRepository, scope: CoroutineScope) {
 
@@ -111,6 +111,46 @@ class AuthRepository(private val backend: Backend, private val prefs: Preference
             u.updateProfile(UserProfileChangeRequest.Builder().setDisplayName(clean).build()).await()
             firebaseUser.value = Triple(u.uid, clean, u.email) to u.isAnonymous
         }
+    }
+
+    /**
+     * Permanently removes the sign-in. Email accounts confirm with their password first, because
+     * Firebase only deletes an account that signed in recently. Call after the trip data is cleared.
+     */
+    suspend fun deleteAccount(password: String?): Result<Unit> = try {
+        val user = auth?.currentUser
+        if (user != null) {
+            val email = user.email
+            if (email != null && !user.isAnonymous) {
+                require(!password.isNullOrEmpty()) { "Enter your password to confirm." }
+                user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+            }
+            user.delete().await()
+        }
+        firebaseUser.value = null
+        prefs.clearLocalIdentity()
+        Result.success(Unit)
+    } catch (e: FirebaseAuthInvalidCredentialsException) {
+        Result.failure(IllegalStateException("That password isn't right."))
+    } catch (e: com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException) {
+        Result.failure(IllegalStateException("For your security, sign out, sign back in, then delete again."))
+    } catch (e: Exception) {
+        Result.failure(IllegalStateException(e.message?.takeIf { it.length < 120 } ?: "Couldn't delete the account. Try again."))
+    }
+
+    /** Verifies the password of an email account without changing anything. Guests have nothing to confirm. */
+    suspend fun confirmPassword(password: String?): Result<Unit> = try {
+        val user = auth?.currentUser
+        val email = user?.email
+        if (user != null && email != null && !user.isAnonymous) {
+            require(!password.isNullOrEmpty()) { "Enter your password to confirm." }
+            user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+        }
+        Result.success(Unit)
+    } catch (e: FirebaseAuthInvalidCredentialsException) {
+        Result.failure(IllegalStateException("That password isn't right."))
+    } catch (e: Exception) {
+        Result.failure(IllegalStateException(e.message?.takeIf { it.length < 120 } ?: "Couldn't confirm. Try again."))
     }
 
     suspend fun signOut() {

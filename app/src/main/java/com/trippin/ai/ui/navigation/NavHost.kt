@@ -73,7 +73,6 @@ import com.trippin.ai.ui.screens.create.CreateTripScreen
 import com.trippin.ai.ui.screens.explore.ExploreScreen
 import com.trippin.ai.ui.screens.home.HomeScreen
 import com.trippin.ai.ui.screens.join.JoinScreen
-import com.trippin.ai.ui.screens.lab.LabScreen
 import com.trippin.ai.ui.screens.prefs.PrefsScreen
 import com.trippin.ai.ui.screens.profile.ProfileScreen
 import com.trippin.ai.ui.screens.today.TodayScreen
@@ -90,7 +89,6 @@ object Routes {
     const val TRIP = "trip/{tripId}?tab={tab}"
     const val JOIN = "join?code={code}"
     const val TODAY = "today/{tripId}"
-    const val LAB = "lab"
     const val EXPLORE = "explore"
     const val CREATE_FOR = "createfor/{name}/{country}/{lat}/{lng}"
     const val SWIPE_HUB = "swipehub"
@@ -223,7 +221,7 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
                 TripsScreen(container, onOpen = { nav.navigate(Routes.trip(it)) }, onCreate = { nav.navigate(Routes.CREATE) }, onJoin = { nav.navigate(Routes.join()) })
             }
             composable(Routes.PROFILE) {
-                ProfileScreen(container, onLab = { nav.navigate(Routes.LAB) }, onDefaults = { nav.navigate(Routes.prefs()) })
+                ProfileScreen(container, onDefaults = { nav.navigate(Routes.prefs()) })
             }
             composable(Routes.CREATE) {
                 CreateTripScreen(container, onBack = { nav.popBackStack() }, onCreated = { id, invite ->
@@ -245,7 +243,6 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
                     onToday = { nav.navigate(Routes.today(id)) },
                     onSwipe = { nav.navigate(Routes.swipe(id)) },
                     onPrefs = { nav.navigate(Routes.prefs(id)) },
-                    onLab = { nav.navigate(Routes.LAB) },
                     onDeleted = { nav.navigate(Routes.TRIPS) { popUpTo(Routes.HOME) } },
                 )
             }
@@ -263,7 +260,6 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
             composable(Routes.TODAY, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
                 TodayScreen(container, entry.arguments?.getString("tripId").orEmpty(), onClose = { nav.popBackStack() })
             }
-            composable(Routes.LAB) { LabScreen(container, onBack = { if (!nav.popBackStack()) nav.navigate(Routes.HOME) }) }
             composable(
                 Routes.PREFS,
                 arguments = listOf(navArgument("tripId") { type = NavType.StringType; nullable = true; defaultValue = null }),

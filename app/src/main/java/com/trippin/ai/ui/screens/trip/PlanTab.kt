@@ -58,7 +58,7 @@ import com.trippin.intelligence.group.VoteKind
  * never silently changed once locked — managers edit directly, everyone else proposes a change.
  */
 @Composable
-fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Unit, onIdeas: () -> Unit, onPrefs: () -> Unit) {
+fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onIdeas: () -> Unit, onPrefs: () -> Unit) {
     val trip = ui.trip ?: return
     val itin = ui.itinerary
     val context = LocalContext.current
@@ -143,7 +143,6 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
                     SmallButton("Add to calendar", onClick = { CalendarExport.share(context, trip, itin) })
                 }
                 if (!itin.locked) {
-                    SmallButton("See the AI Lab", onClick = onLab)
                     if (vm.canManage) SignalButton("Confirm this plan", onClick = { vm.confirmPlan() })
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -161,7 +160,7 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
 
     whyStop?.let { s ->
         val day = itin.days.firstOrNull { d -> d.stops.any { it.key == s.key } }
-        WhySheet(s, rainKnown = day?.rainKnown ?: false, onDismiss = { whyStop = null }, onLab = { whyStop = null; onLab() })
+        WhySheet(s, rainKnown = day?.rainKnown ?: false, onDismiss = { whyStop = null })
     }
 
     removeTarget?.let { s ->

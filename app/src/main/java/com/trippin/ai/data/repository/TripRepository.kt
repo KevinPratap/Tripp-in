@@ -24,6 +24,7 @@ import com.trippin.ai.data.model.TripEvent
 import com.trippin.ai.data.model.TripStatus
 import com.trippin.intelligence.TripBrain
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
@@ -122,8 +123,18 @@ class TripRepository(private val backend: Backend, private val prefs: Preference
         val trip = runCatching { backend.trip(tripId).get(source).await().toTrip() }.getOrNull()
         val b = backend.db.batch()
         trip?.inviteCode?.let { b.delete(backend.invite(it)) }
+        trip?.shareCode?.let { b.delete(backend.share(it)) } // the public live page must not outlive the trip
         b.delete(backend.trip(tripId))
         backend.fire(b.commit(), "delete the trip")
+    }
+
+    /**
+     * Account deletion: trips you own are deleted for everyone, trips you only joined are left.
+     * Waits for the writes to reach the server so they land before the sign-in is removed.
+     */
+    suspend fun clearAccountData(me: Session) {
+        myTrips(me.uid).first().forEach { t -> if (t.ownerId == me.uid) delete(t.id) else leave(t, me) }
+        runCatching { withTimeout(20_000) { backend.db.waitForPendingWrites().await() } }
     }
 
     fun leave(trip: Trip, me: Session) {
@@ -239,18 +250,6 @@ class TripRepository(private val backend: Backend, private val prefs: Preference
         } catch (e: Exception) {
             JoinResult.Failed("Couldn't join: ${e.message?.take(80) ?: "unknown error"}")
         }
-    }
-
-    /** Demo mode only: adds simulated friends with their own votes and preferences, for testing a group on one phone. */
-    fun addSimulatedMember(tripId: String, name: String): String {
-        val uid = "sim-" + newCode().lowercase()
-        val fake = Session(uid, name, null, true, true)
-        val batch = backend.db.batch()
-        batch.set(backend.members(tripId).document(uid), memberDoc(fake, Role.MEMBER, "SIMULATED"))
-        batch.update(backend.trip(tripId), "memberIds", FieldValue.arrayUnion(uid))
-        addEvent(batch, tripId, fake, EventType.MEMBER_JOINED, "$name joined the trip (simulated)")
-        backend.fire(batch.commit(), "add $name")
-        return uid
     }
 
     fun addEvent(batch: WriteBatch, tripId: String, actor: Session, type: EventType, text: String) {

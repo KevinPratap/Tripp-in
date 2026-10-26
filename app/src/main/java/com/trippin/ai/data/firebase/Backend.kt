@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.SharedFlow
  * - **Connected**: `google-services.json` is in `app/`, so FirebaseApp is initialised by the
  *   Google Services plugin. Trips sync live between phones through Firestore, and Firebase Auth
  *   gives every user (including guests, via anonymous sign-in) a real uid.
- * - **Demo**: no config file. Firestore still runs, but only as an on-device database (network
- *   disabled), with a local uid. Everything works on one phone, which keeps the app usable on a
- *   lab machine; invites to other phones need the connected mode.
+ * - **Offline fallback**: no config file (for example a build without Firebase credentials).
+ *   Firestore still runs, but only as an on-device database with the network disabled and a
+ *   local uid, so the app never crashes; syncing and invites need the connected mode.
  *
  * Writes are fire-and-forget: Firestore applies them to the local cache at once (so the UI
  * updates immediately, even offline) and syncs later. Failures (e.g. a security-rule denial)

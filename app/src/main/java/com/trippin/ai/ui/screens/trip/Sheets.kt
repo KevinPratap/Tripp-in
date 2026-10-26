@@ -164,13 +164,13 @@ fun CommentsSheet(
     }
 }
 
-/** The Bayesian network's explanation for one stop. */
+/** Why a stop is rated the way it is: the chance it goes wrong, and what drives it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WhySheet(s: ItineraryStop, rainKnown: Boolean, onDismiss: () -> Unit, onLab: () -> Unit) {
+fun WhySheet(s: ItineraryStop, rainKnown: Boolean, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Trip.Paper) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Kicker("Bayesian network · ${s.name}", color = Trip.Ink)
+            Kicker("Risk check · ${s.name}", color = Trip.Ink)
             Text("Why ${s.risk.lowercase()} risk?", style = MaterialTheme.typography.displaySmall)
             ProbabilityBar("Plan disrupted", s.pDisrupted, Trip.Signal)
             ProbabilityBar("Delayed on the way", s.pDelay)
@@ -187,7 +187,6 @@ fun WhySheet(s: ItineraryStop, rainKnown: Boolean, onDismiss: () -> Unit, onLab:
                 style = MaterialTheme.typography.bodyMedium, color = Trip.Muted,
             )
             if (s.hoursEstimated) Text("Tip: check the opening hours before you go.", style = MaterialTheme.typography.titleMedium)
-            Row { TextButton(onClick = onLab) { Text("See the model in the AI Lab", color = Trip.Ink) } }
         }
     }
 }

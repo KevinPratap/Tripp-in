@@ -16,7 +16,7 @@ object Network {
         .readTimeout(40, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             // Overpass asks clients to identify themselves.
-            chain.proceed(chain.request().newBuilder().header("User-Agent", "TrippinAI/2.0 (Android)").build())
+            chain.proceed(chain.request().newBuilder().header("User-Agent", "TrippinAI/4.0 (Android)").build())
         }
         .addInterceptor(HttpLoggingInterceptor().apply { level = if (com.trippin.ai.BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE })
         .build()

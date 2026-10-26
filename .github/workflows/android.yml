@@ -1,15 +1,14 @@
-name: Android compile and tests
+name: Android build and tests
 
 on:
   push:
-    branches: ['claude/**']
+    branches: ['claude/**', main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
   android:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -18,45 +17,9 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
-      - name: Pure Kotlin tests
+      - name: Planner tests
         run: ./gradlew :intelligence:test --no-daemon
       - name: Compile app
         run: ./gradlew :app:compileDebugKotlin --no-daemon
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: trippin-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-      - name: Render design snapshots
-        run: ./gradlew :app:testDebugUnitTest --tests '*DesignSnapshotTest' --no-daemon
-      - name: Upload snapshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: design-snapshots
-          path: app/build/snapshots/*.png
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports
-          path: |
-            app/build/test-results/testDebugUnitTest/*.xml
-      - name: Publish outputs to the ci-output branch
-        if: always()
-        run: |
-          mkdir -p /tmp/out
-          cp -r app/build/snapshots /tmp/out/ 2>/dev/null || true
-          cp app/build/test-results/testDebugUnitTest/*.xml /tmp/out/ 2>/dev/null || true
-          git config user.name ci
-          git config user.email ci@users.noreply.github.com
-          git fetch origin ci-output:refs/remotes/origin/ci-output
-          git worktree add --detach /tmp/wt origin/ci-output
-          cd /tmp/wt
-          rm -rf out
-          cp -r /tmp/out out
-          git add out
-          git commit -m "ci output for $GITHUB_SHA" || true
-          git push origin HEAD:ci-output
+      - name: Build release (shrinker and resources check)
+        run: ./gradlew :app:assembleRelease --no-daemon

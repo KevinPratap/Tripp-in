@@ -145,11 +145,6 @@ class CollabRepository(private val backend: Backend, private val trips: TripRepo
         backend.fire(backend.expenses(trip.id).document(expense.id).delete(), "remove the expense")
     }
 
-    /** Demo helper: a simulated member's vote. */
-    fun voteAs(tripId: String, uid: String, ideaId: String, kind: VoteKind) {
-        backend.fire(backend.ideas(tripId).document(ideaId).update("votes.$uid", kind.name), "save a simulated vote")
-    }
-
     fun dismiss(trip: Trip, idea: Idea) {
         backend.fire(backend.ideas(trip.id).document(idea.id).update("status", IdeaStatus.DISMISSED.name), "remove the suggestion")
     }
@@ -186,9 +181,6 @@ class CollabRepository(private val backend: Backend, private val trips: TripRepo
         backend.fire(batch.commit(), "save your preferences")
     }
 
-    fun savePrefsAs(tripId: String, p: MemberPrefs) {
-        backend.fire(backend.prefs(tripId).document(p.uid).set(p.toMap()), "save simulated preferences")
-    }
 
     /** Opens the destination vote with an optional deadline shown to everyone. */
     fun openDestinationVote(trip: Trip, me: Session, closesAt: Long?) {

@@ -92,14 +92,7 @@ fun AuthScreen(container: AppContainer) {
         )
         Spacer(Modifier.height(4.dp))
 
-        if (auth.firebaseAvailable) {
-            Segmented(Mode.entries, mode, { it.label }, { mode = it; error = null })
-        } else {
-            Text(
-                "Offline demo build: trips are stored on this phone. Connect Firebase to sync with friends.",
-                style = MaterialTheme.typography.bodyMedium, color = Trip.Muted,
-            )
-        }
+        Segmented(Mode.entries, mode, { it.label }, { mode = it; error = null })
 
         if (mode != Mode.SIGN_IN) {
             TextInput(name, { name = it.take(40) }, "Your first name", placeholder = "Shown to friends on shared trips", onDone = if (mode == Mode.GUEST && canSubmit) action else null)

@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Firebase is optional: drop your own google-services.json into app/ to switch on sign-in.
-// Without it the app builds and runs in guest mode.
+// Firebase config: google-services.json goes in app/ (it is not committed). Without it the app
+// still builds and falls back to an on-device mode, so contributors can compile without credentials.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
@@ -20,14 +20,34 @@ android {
         applicationId = "com.trippin.ai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "3.0"
+        versionCode = 4
+        versionName = "4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Release signing comes from the environment (or keystore.properties locally), never from the repo.
+    signingConfigs {
+        create("release") {
+            val props = java.util.Properties().apply {
+                val f = rootProject.file("keystore.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            fun pick(key: String, env: String) = props.getProperty(key) ?: System.getenv(env)
+            val store = pick("storeFile", "TRIPPIN_KEYSTORE")
+            if (store != null && file(store).exists()) {
+                storeFile = file(store)
+                storePassword = pick("storePassword", "TRIPPIN_STORE_PASSWORD")
+                keyAlias = pick("keyAlias", "TRIPPIN_KEY_ALIAS")
+                keyPassword = pick("keyPassword", "TRIPPIN_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -44,7 +64,6 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
-        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -93,10 +112,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    // Screenshot rendering of the design system on the JVM (no device needed).
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

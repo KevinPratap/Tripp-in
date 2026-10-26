@@ -64,25 +64,6 @@ class LearningRepository(private val dao: LearningDao) {
         return interests.sortedByDescending { learned[it] ?: 0.0 }
     }
 
-    /** Lab demo: trains on a simulated traveller so the heatmap visibly converges. */
-    suspend fun simulate(episodes: Int, seed: Int = Random.nextInt()) {
-        val a = agent()
-        val rng = Random(seed)
-        fun react(s: State, c: Category): Feedback = when {
-            s.energy == QLearningRecommender.Energy.LOW -> if (c == Category.PARK) Feedback.LIKED else Feedback.SKIPPED
-            s.time == QLearningRecommender.TimeOfDay.AFTERNOON -> if (c == Category.FOOD) Feedback.LIKED else Feedback.SKIPPED
-            s.time == QLearningRecommender.TimeOfDay.MORNING -> if (c == Category.MUSEUM) Feedback.LIKED else Feedback.KEPT
-            else -> if (c == Category.NIGHTLIFE) Feedback.LIKED else Feedback.KEPT
-        }
-        repeat(episodes) {
-            val s = State(QLearningRecommender.TimeOfDay.entries.random(rng), QLearningRecommender.Energy.entries.random(rng))
-            val c = a.choose(s)
-            val next = State(QLearningRecommender.TimeOfDay.entries.random(rng), QLearningRecommender.Energy.entries.random(rng))
-            a.learn(s, c, react(s, c), next)
-        }
-        persist(a)
-    }
-
     suspend fun reset() = mutex.withLock {
         dao.clearQ()
         dao.clearFeedback()

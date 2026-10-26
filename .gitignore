@@ -46,3 +46,9 @@ captures/
 coverage/
 logs/
 *.log
+
+# Secrets and signing
+keystore.properties
+*.jks
+*.keystore
+app/google-services.json

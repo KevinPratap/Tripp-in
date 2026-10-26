@@ -77,7 +77,7 @@ val Body = FontFamily(
     Font(R.font.sans_semibold, FontWeight.SemiBold),
     Font(R.font.sans_bold, FontWeight.Bold),
 )
-/** Formulas in the AI Lab. */
+/** Monospace for figures and codes. */
 val Mono = FontFamily.Monospace
 
 private val TrippinTypography = Typography(

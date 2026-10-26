@@ -68,7 +68,7 @@ service cloud.firestore {
       allow delete: if canManage(resource.data.tripId) || isOwner(resource.data.tripId);
 
       match /guests/{guestId} {
-        allow read: if true;
+        allow read: if exists(/databases/$(database)/documents/shares/$(code));
         allow create, update: if signedIn()
           && request.auth.uid == guestId
           && exists(/databases/$(database)/documents/shares/$(code))

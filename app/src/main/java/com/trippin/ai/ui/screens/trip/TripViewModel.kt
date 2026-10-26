@@ -243,37 +243,7 @@ class TripViewModel(private val c: AppContainer, val tripId: String, val me: Ses
     fun setRole(m: Member, r: Role) { trip()?.let { c.tripRepository.setRole(it, m, r, me) } }
     fun remove(m: Member) { trip()?.let { c.tripRepository.removeMember(it, m, me) } }
     fun leave() { trip()?.let { c.tripRepository.leave(it, me) } }
-    fun delete(onDone: () -> Unit) = viewModelScope.launch {
-        // The public live page must not outlive the trip.
-        trip()?.takeIf { it.shareCode != null }?.let { c.tripRepository.disableShare(it, me) }
-        c.tripRepository.delete(tripId)
-        onDone()
-    }
-
-    val isDemo: Boolean get() = c.backend.isDemo
-
-    /**
-     * Demo mode only: adds three simulated friends with different constraints and votes, so the
-     * group features (voting, conflicting preferences, the planner's compromises) can be shown on one phone.
-     */
-    fun simulateFriends() = viewModelScope.launch {
-        val t = trip() ?: return@launch
-        val friends = listOf(
-            Triple("Sara", setOf(Category.FOOD, Category.MUSEUM), MemberPrefs("", "Sara", setOf(Category.FOOD, Category.MUSEUM), diet = Diet.VEGETARIAN, start = StartPreference.LATE)),
-            Triple("Rahul", setOf(Category.LANDMARK, Category.NIGHTLIFE), MemberPrefs("", "Rahul", setOf(Category.LANDMARK, Category.NIGHTLIFE), noAlcohol = false)),
-            Triple("Mei", setOf(Category.PARK, Category.SHOPPING), MemberPrefs("", "Mei", setOf(Category.PARK, Category.SHOPPING), maxWalkKm = 6, noAlcohol = true)),
-        )
-        val existing = ui.value.members.map { it.name }.toSet()
-        val ideas = ui.value.ideas
-        friends.filter { it.first !in existing }.forEachIndexed { i, (name, _, p) ->
-            val uid = c.tripRepository.addSimulatedMember(t.id, name)
-            c.collabRepository.savePrefsAs(t.id, p.copy(uid = uid, name = name, updatedAt = System.currentTimeMillis()))
-            ideas.filter { it.status != IdeaStatus.DISMISSED }.forEachIndexed { j, idea ->
-                val kind = when ((i + j) % 4) { 0 -> VoteKind.MUST; 1, 2 -> VoteKind.UP; else -> VoteKind.DOWN }
-                c.collabRepository.voteAs(t.id, uid, idea.id, kind)
-            }
-        }
-    }
+    fun delete(onDone: () -> Unit) = viewModelScope.launch { c.tripRepository.delete(tripId); onDone() }
 
     suspend fun waitLoaded(): TripUi = ui.first { !it.loading }
 }

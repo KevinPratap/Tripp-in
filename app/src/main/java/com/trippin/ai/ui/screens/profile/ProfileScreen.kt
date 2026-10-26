@@ -30,7 +30,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.trippin.ai.AppContainer
+import com.trippin.ai.BuildConfig
 import com.trippin.ai.data.repository.Settings
 import com.trippin.ai.ui.components.Avatar
 import com.trippin.ai.ui.components.GhostButton
@@ -45,21 +48,22 @@ import com.trippin.ai.work.TripBriefWorker
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/** You: your name, whether you're on Firebase or a local demo, notification settings, and the AI Lab. */
+/** You: your name, notification settings, default preferences and account controls. */
 @Composable
-fun ProfileScreen(container: AppContainer, onLab: () -> Unit, onDefaults: () -> Unit) {
+fun ProfileScreen(container: AppContainer, onDefaults: () -> Unit) {
     val me = LocalSession.current
     val settings by container.preferences.settings.collectAsStateWithLifecycle(initialValue = Settings(null, null, true))
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val snack = LocalSnack.current
     var renaming by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Kicker(if (me.isDemo) "Demo mode · on this phone only" else if (me.isGuest) "Guest" else me.email ?: "Signed in")
+        Kicker(if (me.isGuest) "Guest" else me.email ?: "Signed in")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Avatar(me.name, me.uid, 56.dp)
             Column(Modifier.weight(1f)) { Headline(me.name) }
@@ -85,30 +89,54 @@ fun ProfileScreen(container: AppContainer, onLab: () -> Unit, onDefaults: () -> 
         }
 
         SmallButton("Default preferences for new trips", onClick = onDefaults, modifier = Modifier.fillMaxWidth())
-        SmallButton("Open the AI Lab", onClick = onLab, modifier = Modifier.fillMaxWidth())
 
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Trip.Ink).padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Kicker("What makes it intelligent", color = Trip.Signal)
-            listOf(
-                "Bayesian network: risk that a stop goes wrong",
-                "Fuzzy inference: how tired the group is, and what to do",
-                "Genetic algorithm: the order of each day's stops",
-                "Q-learning: what kind of stop you'd like next",
-            ).forEach { Text(it, style = MaterialTheme.typography.titleMedium, color = Trip.Paper) }
-            Text("Places & weather: OpenStreetMap, Open-Meteo. No paid APIs, no keys.", style = MaterialTheme.typography.bodyMedium, color = Trip.OnInkMuted)
-        }
-
-        if (me.isDemo) {
-            Text(
-                "This build isn't connected to Firebase yet, so friends on other phones can't see this account. Everything still works on this device.",
-                style = MaterialTheme.typography.bodyMedium, color = Trip.Muted,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Kicker("About")
+            Text("Places and routes come from OpenStreetMap contributors. Weather from Open-Meteo. Place photos from Wikimedia Commons, credited where shown.", style = MaterialTheme.typography.bodyMedium, color = Trip.Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { openUrl(context, PRIVACY_URL) }) { Text("Privacy", color = Trip.Ink) }
+                TextButton(onClick = { openUrl(context, TERMS_URL) }) { Text("Terms", color = Trip.Ink) }
+            }
+            Text("Trippin ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = Trip.Muted)
         }
 
         GhostButton("Sign out", onClick = { scope.launch { container.authRepository.signOut() } }, modifier = Modifier.fillMaxWidth())
+        TextButton(onClick = { deleting = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete account and data", color = Trip.Danger) }
+    }
+
+    if (deleting) {
+        var password by remember { mutableStateOf("") }
+        var busy by remember { mutableStateOf(false) }
+        val needsPassword = !me.isGuest && me.email != null
+        AlertDialog(
+            onDismissRequest = { if (!busy) deleting = false },
+            title = { Text("Delete your account?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("This permanently removes your account. Trips you created are deleted for everyone on them, and you leave trips you only joined. This can't be undone.", color = Trip.Muted)
+                    if (needsPassword) TextInput(password, { password = it }, "Password", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = !busy && (!needsPassword || password.isNotEmpty()), onClick = {
+                    busy = true
+                    scope.launch {
+                        // Check the password before touching any data, so a typo can't half-delete an account.
+                        val ok = container.authRepository.confirmPassword(password.takeIf { needsPassword })
+                        if (ok.isFailure) {
+                            busy = false
+                            snack(ok.exceptionOrNull()?.message ?: "Couldn't confirm. Try again.")
+                            return@launch
+                        }
+                        container.tripRepository.clearAccountData(me)
+                        container.authRepository.deleteAccount(password.takeIf { needsPassword })
+                            .onFailure { busy = false; snack(it.message ?: "Couldn't delete the account.") }
+                            .onSuccess { deleting = false }
+                    }
+                }) { Text(if (busy) "Deleting" else "Delete", color = Trip.Danger) }
+            },
+            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = false }) { Text("Cancel") } },
+        )
     }
 
     if (renaming) {
@@ -130,4 +158,11 @@ fun ProfileScreen(container: AppContainer, onLab: () -> Unit, onDefaults: () -> 
             dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
         )
     }
+}
+
+private const val PRIVACY_URL = "https://trippin-ee84c.web.app/privacy.html"
+private const val TERMS_URL = "https://trippin-ee84c.web.app/terms.html"
+
+private fun openUrl(context: android.content.Context, url: String) {
+    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
 }

@@ -64,7 +64,6 @@ fun TripScreen(
     onToday: () -> Unit,
     onSwipe: () -> Unit,
     onPrefs: () -> Unit,
-    onLab: () -> Unit,
     onDeleted: () -> Unit,
 ) {
     val me = LocalSession.current
@@ -135,7 +134,7 @@ fun TripScreen(
             when (tab) {
                 TripTab.OVERVIEW -> OverviewTab(vm, ui, onGo = { tab = it }, onToday = onToday, onPrefs = onPrefs, onSwipe = onSwipe)
                 TripTab.IDEAS -> IdeasTab(vm, ui, onSwipe = onSwipe)
-                TripTab.PLAN -> PlanTab(vm, ui, onToday = onToday, onLab = onLab, onIdeas = { tab = TripTab.IDEAS }, onPrefs = onPrefs)
+                TripTab.PLAN -> PlanTab(vm, ui, onToday = onToday, onIdeas = { tab = TripTab.IDEAS }, onPrefs = onPrefs)
                 TripTab.BUDGET -> BudgetTab(vm, ui)
                 TripTab.PEOPLE -> PeopleTab(vm, ui, onPrefs = onPrefs, onDeleted = onDeleted)
                 TripTab.ACTIVITY -> ActivityTab(vm, ui)

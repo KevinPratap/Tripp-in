@@ -137,15 +137,6 @@ fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday:
             }
         }
 
-        if (vm.isDemo && trip.isGroup) {
-            item {
-                Panel(background = Trip.PaperDeep) {
-                    Kicker("Demo mode")
-                    Text("No friends on this device yet? Simulate a few to see how the group features behave.", color = Trip.Muted)
-                    SmallButton("Add simulated friends", onClick = { vm.simulateFriends() })
-                }
-            }
-        }
     }
 }
 

@@ -117,7 +117,6 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
     val suggestions by vm.suggestions.collectAsStateWithLifecycle()
     val kmToNext by vm.kmToNext.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showDemo by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
     LaunchedEffect(Unit) {
@@ -217,11 +216,11 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
             Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(TripTheme.Cobalt).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Kicker("Reinforcement learning · learns from you", color = Color.White)
+            Kicker("Up next · learns what you like", color = Color.White)
             val top = suggestions.firstOrNull()
             Text((top?.first?.name ?: "n/a").uppercase(), style = MaterialTheme.typography.displaySmall, color = Color.White)
             Text(
-                "Best next kind of stop for ${rlState.time.name.lowercase()}, ${rlState.energy.name.lowercase()} energy. Tell it how that sounds and it updates its Q-table.",
+                "Best next kind of stop for ${rlState.time.name.lowercase()}, ${rlState.energy.name.lowercase()} energy. Tell it how that sounds and suggestions get better.",
                 style = MaterialTheme.typography.bodyMedium, color = Color.White,
             )
             if (top != null) {
@@ -233,18 +232,6 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
             }
         }
 
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Demo controls", style = MaterialTheme.typography.titleMedium, color = TripTheme.Paper, modifier = Modifier.weight(1f))
-            Switch(
-                checked = showDemo, onCheckedChange = { showDemo = it },
-                colors = SwitchDefaults.colors(checkedTrackColor = TripTheme.Signal, checkedThumbColor = TripTheme.Ink),
-            )
-        }
-        if (showDemo) {
-            DemoSlider("Clock ${minute.asClock()}", minute.toFloat(), 360f..1320f) { vm.minute.value = it.toInt() }
-            DemoSlider("Walked ${"%.1f".format(walked)} km", walked.toFloat(), 0f..15f) { vm.walkedKm.value = it.toDouble() }
-            DemoSlider("Temperature ${temp.toInt()}°C", temp.toFloat(), 10f..45f) { vm.temperatureOverride.value = it.toDouble() }
-        }
         Spacer(Modifier.navigationBarsPadding().height(12.dp))
     }
 }
@@ -257,13 +244,3 @@ private fun FeedbackButton(label: String, modifier: Modifier, onClick: () -> Uni
     ) { Text(label, style = MaterialTheme.typography.titleMedium) }
 }
 
-@Composable
-private fun DemoSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TripTheme.Paper)
-        Slider(
-            value = value.coerceIn(range), onValueChange = onChange, valueRange = range,
-            colors = SliderDefaults.colors(thumbColor = TripTheme.Signal, activeTrackColor = TripTheme.Signal, inactiveTrackColor = Color(0xFF3A3B34)),
-        )
-    }
-}
