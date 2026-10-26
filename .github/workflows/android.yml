@@ -27,3 +27,11 @@ jobs:
         with:
           name: trippin-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+      - name: Render design snapshots
+        run: ./gradlew :app:testDebugUnitTest --tests '*DesignSnapshotTest' --no-daemon
+      - name: Upload snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-snapshots
+          path: app/build/snapshots/*.png
