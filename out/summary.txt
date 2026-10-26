@@ -1,0 +1,9 @@
+16:> Configure project :app
+17:e: file:///home/runner/work/Tripp-in/Tripp-in/app/build.gradle.kts:31:30: Unresolved reference: util
+18:e: file:///home/runner/work/Tripp-in/Tripp-in/app/build.gradle.kts:33:55: Unresolved reference: load
+28:* What went wrong:
+40:> Run with --stacktrace option to get the stack trace.
+41:> Run with --info or --debug option to get more log output.
+42:> Run with --scan to get full insights.
+43:> Get more help at https://help.gradle.org.
+51:BUILD FAILED in 1m 4s
