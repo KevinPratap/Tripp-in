@@ -35,3 +35,10 @@ jobs:
         with:
           name: design-snapshots
           path: app/build/snapshots/*.png
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            app/build/test-results/testDebugUnitTest/*.xml
