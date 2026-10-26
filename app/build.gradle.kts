@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -28,7 +30,7 @@ android {
     // Release signing comes from the environment (or keystore.properties locally), never from the repo.
     signingConfigs {
         create("release") {
-            val props = java.util.Properties().apply {
+            val props = Properties().apply {
                 val f = rootProject.file("keystore.properties")
                 if (f.exists()) f.inputStream().use { load(it) }
             }
