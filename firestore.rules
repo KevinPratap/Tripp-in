@@ -179,6 +179,23 @@ service cloud.firestore {
         allow delete: if uid == me() || isOwner(tripId);
       }
 
+      // -------- Shared costs: the payer is always the person writing --------
+      match /expenses/{expenseId} {
+        allow read: if isMember(tripId);
+        allow create: if canContributeAfter(tripId)
+          && request.resource.data.paidBy == me()
+          && text(request.resource.data.title, 80)
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.currency is string
+          && request.resource.data.currency.size() == 3
+          && request.resource.data.splitAmong is list
+          && request.resource.data.splitAmong.size() > 0
+          && request.resource.data.splitAmong.size() <= 50;
+        allow update: if false;
+        allow delete: if resource.data.paidBy == me() || canManage(tripId);
+      }
+
       // -------- Change proposals --------
       match /proposals/{proposalId} {
         allow read: if isMember(tripId);

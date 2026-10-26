@@ -1,5 +1,8 @@
 package com.trippin.ai.ui.screens.trip
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +35,7 @@ import com.trippin.ai.ui.theme.Trip
  * opening the trip after a few days away knows immediately what changed and what to do next.
  */
 @Composable
-fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday: () -> Unit, onPrefs: () -> Unit) {
+fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday: () -> Unit, onPrefs: () -> Unit, onSwipe: () -> Unit = {}) {
     val trip = ui.trip ?: return
     val weather by vm.weather.collectAsStateWithLifecycle()
 
@@ -54,6 +57,22 @@ fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday:
             }
         }
 
+        if (!trip.isPast() && vm.canContribute && (trip.isGroup || ui.destinationIdeas.isNotEmpty() || ui.placeIdeas.isNotEmpty())) {
+            item {
+                androidx.compose.foundation.layout.Column(
+                    Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).background(Trip.Brand)
+                        .clickable(onClick = onSwipe).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("Swipe with the group", style = MaterialTheme.typography.titleLarge, color = androidx.compose.ui.graphics.Color.White)
+                    Text(
+                        "Right to like, left to pass, up for a must. See where everyone agrees.",
+                        style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f),
+                    )
+                }
+            }
+        }
+
         when (trip.status) {
             TripStatus.DECIDING_DESTINATION -> item {
                 Panel(background = Trip.Card) {
@@ -61,7 +80,7 @@ fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday:
                     Text("Where should you go?", style = MaterialTheme.typography.titleLarge)
                     Text(
                         if (ui.destinationIdeas.isEmpty()) "Suggest some cities and vote together."
-                        else "${ui.destinationIdeas.size} suggested so far — cast your vote.",
+                        else "${ui.destinationIdeas.size} suggested so far. Cast your vote.",
                         color = Trip.Muted,
                     )
                     SignalButton("Suggest & vote", onClick = { onGo(TripTab.IDEAS) })
@@ -76,7 +95,7 @@ fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday:
                             weather!!.take(5).forEach { w ->
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(w.date.dayOfMonth.toString(), style = MaterialTheme.typography.labelMedium, color = Trip.Muted)
-                                    Text(if (w.known) "${w.maxTempC.toInt()}°" else "—", style = MaterialTheme.typography.titleMedium)
+                                    Text(if (w.known) "${w.maxTempC.toInt()}°" else "n/a", style = MaterialTheme.typography.titleMedium)
                                     Text(if (w.known) "${(w.rainProbability * 100).toInt()}% rain" else "unknown", style = MaterialTheme.typography.labelSmall, color = Trip.Muted)
                                 }
                             }
@@ -99,10 +118,11 @@ fun OverviewTab(vm: TripViewModel, ui: TripUi, onGo: (TripTab) -> Unit, onToday:
                     },
                     onClick = { onGo(TripTab.PLAN) },
                 )
+                StatusRow("Budget", if (ui.expenses.isEmpty()) "No expenses yet" else "${ui.expenses.size} ${if (ui.expenses.size == 1) "expense" else "expenses"} logged", onClick = { onGo(TripTab.BUDGET) })
                 StatusRow("People", "${ui.members.size} on the trip", onClick = { onGo(TripTab.PEOPLE) })
                 StatusRow(
-                    "Your preferences",
-                    if (ui.prefsOf(vm.me.uid)?.updatedAt ?: 0 > 0) "Saved" else "Not set — helps the planner",
+                    "Your vibe check",
+                    if (ui.prefsOf(vm.me.uid)?.updatedAt ?: 0 > 0) "Saved" else "Not set, helps the planner",
                     onClick = onPrefs,
                 )
             }
@@ -137,7 +157,7 @@ private fun StatusRow(label: String, value: String, onClick: () -> Unit) {
                 Text(label, style = MaterialTheme.typography.titleMedium)
                 Text(value, style = MaterialTheme.typography.bodyMedium, color = Trip.Muted)
             }
-            Pill("OPEN", Trip.Ink, Trip.Paper)
+            Pill("Open", Trip.Ink, Trip.Paper)
         }
     }
 }

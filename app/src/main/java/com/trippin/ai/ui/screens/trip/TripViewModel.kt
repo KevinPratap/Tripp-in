@@ -1,5 +1,6 @@
 package com.trippin.ai.ui.screens.trip
 
+import com.trippin.ai.data.model.TripExpense
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trippin.ai.AppContainer
@@ -55,6 +56,7 @@ data class TripUi(
     val reactions: Map<String, Map<String, VoteKind>> = emptyMap(),
     val proposals: List<Proposal> = emptyList(),
     val events: List<TripEvent> = emptyList(),
+    val expenses: List<TripExpense> = emptyList(),
 ) {
     fun roleOf(uid: String): Role? = members.firstOrNull { it.uid == uid }?.role
     val destinationIdeas: List<Idea> get() = ideas.filter { it.type == IdeaType.DESTINATION && it.status != IdeaStatus.DISMISSED }.sortedByDescending { it.score }
@@ -95,13 +97,13 @@ class TripViewModel(private val c: AppContainer, val tripId: String, val me: Ses
         c.tripRepository.events(tripId),
     ) { p, it, r, pr, e -> Plan(p, it, r, pr, e) }
 
-    val ui: StateFlow<TripUi> = combine(core, plan) { a, b ->
+    val ui: StateFlow<TripUi> = combine(core, plan, c.collabRepository.expenses(tripId)) { a, b, ex ->
         if (a.trip != null) tripSeen = true
         TripUi(
             loading = false,
             missing = a.trip == null,
             trip = a.trip, members = a.members, ideas = a.ideas, comments = a.comments, decisions = a.decisions,
-            prefs = b.prefs, itinerary = b.itinerary, reactions = b.reactions, proposals = b.proposals, events = b.events,
+            prefs = b.prefs, itinerary = b.itinerary, reactions = b.reactions, proposals = b.proposals, events = b.events, expenses = ex,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripUi())
 
@@ -147,6 +149,16 @@ class TripViewModel(private val c: AppContainer, val tripId: String, val me: Ses
         val current = idea.votes[me.uid]
         c.collabRepository.vote(t, me, idea, if (current == kind) null else kind)
     }
+
+    /** Swipe vote: sets this member's vote outright, or clears it when [kind] is null (undo). */
+    fun swipe(idea: Idea, kind: VoteKind?) { trip()?.let { c.collabRepository.swipeVote(it, me, idea, kind) } }
+    fun finishSwiping(count: Int) { trip()?.let { c.collabRepository.finishSwiping(it, me, count) } }
+    fun lock(keep: List<Idea>, drop: List<Idea>) { trip()?.let { c.collabRepository.lockIdeas(it, me, keep, drop) } }
+
+    fun addExpense(title: String, amountMinor: Long, currency: String, splitAmong: List<String>) {
+        trip()?.let { c.collabRepository.addExpense(it, me, title, amountMinor, currency, splitAmong) }
+    }
+    fun deleteExpense(e: TripExpense) { trip()?.let { c.collabRepository.deleteExpense(it, e) } }
 
     fun dismiss(idea: Idea) { trip()?.let { c.collabRepository.dismiss(it, idea) } }
     fun restore(idea: Idea) { trip()?.let { c.collabRepository.restore(it, idea) } }

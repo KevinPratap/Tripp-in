@@ -1,5 +1,9 @@
 package com.trippin.ai.ui.screens.trip
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.trippin.ai.data.model.IdeaStatus
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +55,7 @@ import com.trippin.intelligence.group.VoteKind
  * decided this shows destination candidates; afterwards it shows place ideas for the itinerary.
  */
 @Composable
-fun IdeasTab(vm: TripViewModel, ui: TripUi) {
+fun IdeasTab(vm: TripViewModel, ui: TripUi, onSwipe: () -> Unit = {}) {
     val trip = ui.trip ?: return
     var searching by remember { mutableStateOf(false) }
     var commentsFor by remember { mutableStateOf<Idea?>(null) }
@@ -62,6 +66,18 @@ fun IdeasTab(vm: TripViewModel, ui: TripUi) {
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp, 20.dp, 20.dp, 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (vm.canContribute && list.any { it.status == IdeaStatus.OPEN }) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Trip.Brand).clickable(onClick = onSwipe).padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text("Swipe with the group", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                        Text("Right to like, left to pass, up for a must. See where everyone agrees.", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.92f))
+                    }
+                }
+            }
+
             item {
                 if (votingDestination) {
                     Kicker("Choosing where to go")
@@ -103,10 +119,24 @@ fun IdeasTab(vm: TripViewModel, ui: TripUi) {
             }
         }
 
+        val liked = list.count { it.score > 0 }
+        if (liked > 0 && !votingDestination) {
+            Row(
+                Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 28.dp)
+                    .clip(RoundedCornerShape(999.dp)).background(Trip.Brand).clickable(onClick = onSwipe)
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("$liked ${if (liked == 1) "pick" else "picks"} liked", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text("View matches", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.85f))
+            }
+        }
+
         if (vm.canContribute) {
             FloatingActionButton(
                 onClick = { searching = true },
-                containerColor = Trip.Ink, contentColor = Trip.Paper,
+                containerColor = Trip.Signal, contentColor = Color.White,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
             ) { Icon(Icons.Filled.Add, contentDescription = if (votingDestination) "Suggest a destination" else "Suggest a place") }
         }
@@ -170,8 +200,8 @@ private fun IdeaCard(
         if (!dismissed) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 VoteChip("Must", VoteKind.MUST, myVote, idea.musts, Trip.Signal) { onVote(VoteKind.MUST) }
-                VoteChip("👍", VoteKind.UP, myVote, idea.ups - idea.musts, Trip.Mint) { onVote(VoteKind.UP) }
-                VoteChip("👎", VoteKind.DOWN, myVote, idea.downs, Trip.Danger) { onVote(VoteKind.DOWN) }
+                VoteChip("Up", VoteKind.UP, myVote, idea.ups - idea.musts, Trip.Mint) { onVote(VoteKind.UP) }
+                VoteChip("Down", VoteKind.DOWN, myVote, idea.downs, Trip.Danger) { onVote(VoteKind.DOWN) }
                 Box(Modifier.weight(1f))
                 IconButton(onClick = onComment) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -182,7 +212,7 @@ private fun IdeaCard(
             }
         }
 
-        if (onDecide != null) SignalButton("Pick this — ${idea.score} pts", onClick = onDecide, container = Trip.Cobalt)
+        if (onDecide != null) SignalButton("Pick this: ${idea.score} pts", onClick = onDecide, container = Trip.Cobalt)
     }
 }
 

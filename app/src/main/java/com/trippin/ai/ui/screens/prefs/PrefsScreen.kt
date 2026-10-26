@@ -80,12 +80,12 @@ fun PrefsScreen(container: AppContainer, tripId: String?, onDone: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar(if (tripId != null) "Your preferences" else "Default preferences", onBack = onDone)
+        TopBar(if (tripId != null) "Your vibe check" else "Default vibe check", onBack = onDone)
         if (!loaded) return@Column
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             item {
                 Text(
-                    if (tripId != null) "The planner reads this for you specifically — it's separate from your votes." else "Copied into every new trip you create or join. You can still change it per trip.",
+                    if (tripId != null) "The planner reads this for you specifically. It's separate from your votes." else "Copied into every new trip you create or join. You can still change it per trip.",
                     color = Trip.Muted, style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -98,10 +98,10 @@ fun PrefsScreen(container: AppContainer, tripId: String?, onDone: () -> Unit) {
                                 val on = c in interests
                                 Panel(
                                     onClick = { interests = if (on) interests - c else interests + c },
-                                    background = if (on) Trip.Ink else Trip.Card,
+                                    background = if (on) Trip.Cobalt else Trip.Card,
                                     padding = 12.dp,
                                     modifier = Modifier.weight(1f),
-                                ) { Text(c.label(), color = if (on) Trip.Paper else Trip.Ink, style = MaterialTheme.typography.titleMedium) }
+                                ) { Text(c.label(), color = if (on) androidx.compose.ui.graphics.Color.White else Trip.Ink, style = MaterialTheme.typography.titleMedium) }
                             }
                         }
                     }
@@ -114,7 +114,7 @@ fun PrefsScreen(container: AppContainer, tripId: String?, onDone: () -> Unit) {
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Doesn't drink alcohol", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Switch(noAlcohol, { noAlcohol = it }, colors = SwitchDefaults.colors(checkedTrackColor = Trip.Signal, checkedThumbColor = Trip.Ink))
+                    Switch(noAlcohol, { noAlcohol = it }, colors = SwitchDefaults.colors(checkedTrackColor = Trip.Signal, checkedThumbColor = androidx.compose.ui.graphics.Color.White))
                 }
             }
             item {
@@ -128,7 +128,7 @@ fun PrefsScreen(container: AppContainer, tripId: String?, onDone: () -> Unit) {
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Accessibility needs (step-free access)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Switch(accessibility, { accessibility = it }, colors = SwitchDefaults.colors(checkedTrackColor = Trip.Signal, checkedThumbColor = Trip.Ink))
+                    Switch(accessibility, { accessibility = it }, colors = SwitchDefaults.colors(checkedTrackColor = Trip.Signal, checkedThumbColor = androidx.compose.ui.graphics.Color.White))
                 }
             }
             item {

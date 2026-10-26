@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
@@ -81,9 +82,11 @@ fun Panel(
     padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(24.dp)
     Column(
-        modifier.fillMaxWidth().clip(shape).background(background).border(2.dp, Trip.Ink, shape)
+        modifier.fillMaxWidth()
+            .shadow(if (Trip.dark) 0.dp else 3.dp, shape, ambientColor = Color(0x1A14141A), spotColor = Color(0x2614141A))
+            .clip(shape).background(background).border(1.dp, Trip.Line, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(padding),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -94,7 +97,7 @@ fun Panel(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Kicker(text, color = Trip.Ink, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.titleMedium, color = Trip.Ink, modifier = Modifier.weight(1f))
         action?.invoke()
     }
 }
@@ -125,7 +128,7 @@ fun Avatar(name: String, uid: String, size: Dp = 36.dp, modifier: Modifier = Mod
     }
 }
 
-/** Overlapping avatars "👤👤👤 +2", so a shared trip is recognisable at a glance. */
+/** Overlapping avatars with a +N counter, so a shared trip is recognisable at a glance. */
 @Composable
 fun AvatarStack(people: List<Pair<String, String>>, max: Int = 4, size: Dp = 32.dp, modifier: Modifier = Modifier) {
     Row(modifier.semantics { contentDescription = "${people.size} travellers" }, verticalAlignment = Alignment.CenterVertically) {
@@ -163,7 +166,7 @@ fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect:
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
                     .background(if (on) Trip.Ink else Trip.Card)
-                    .border(2.dp, Trip.Ink, RoundedCornerShape(14.dp))
+                    .border(1.dp, if (on) Trip.Ink else Trip.Line, RoundedCornerShape(14.dp))
                     .selectable(selected = on, role = Role.RadioButton) { onSelect(o) }
                     .heightIn(min = 48.dp)
                     .padding(vertical = 12.dp, horizontal = 4.dp),
@@ -178,7 +181,7 @@ fun SmallButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         onClick = onClick, enabled = enabled,
         modifier = modifier.heightIn(min = 44.dp),
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(2.dp, if (enabled) color else color.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, if (enabled) color.copy(alpha = 0.35f) else color.copy(alpha = 0.15f)),
         colors = if (filled) ButtonDefaults.outlinedButtonColors(containerColor = color, contentColor = Trip.Paper)
         else ButtonDefaults.outlinedButtonColors(contentColor = color),
     ) { Text(text, style = MaterialTheme.typography.titleMedium, maxLines = 1) }
@@ -210,9 +213,10 @@ fun TextInput(
         supportingText = error?.let { { Text(it) } },
         shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Trip.Ink, unfocusedBorderColor = Trip.Ink,
+            focusedBorderColor = Trip.Cobalt, unfocusedBorderColor = Trip.Line,
             focusedContainerColor = Trip.Card, unfocusedContainerColor = Trip.Card,
-            focusedLabelColor = Trip.Ink, cursorColor = Trip.Ink,
+            focusedLabelColor = Trip.Cobalt, cursorColor = Trip.Cobalt,
+            focusedTextColor = Trip.Ink, unfocusedTextColor = Trip.Ink,
         ),
         modifier = modifier.fillMaxWidth(),
     )
@@ -225,7 +229,7 @@ private val dayDate = DateTimeFormatter.ofPattern("EEE d MMM")
 
 fun dateRange(start: LocalDate, days: Int): String {
     val end = start.plusDays((days - 1).toLong())
-    return if (days == 1) start.format(dayDate) else "${start.format(shortDate)} – ${end.format(shortDate)}"
+    return if (days == 1) start.format(dayDate) else "${start.format(shortDate)} to ${end.format(shortDate)}"
 }
 
 fun dayLabel(d: LocalDate): String = d.format(dayDate)

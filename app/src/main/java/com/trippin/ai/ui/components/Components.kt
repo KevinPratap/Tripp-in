@@ -3,8 +3,10 @@ package com.trippin.ai.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -29,29 +30,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.trippin.ai.ui.theme.Trip
 
-/** Big poster headline. Uppercases for the bold look. */
+/** Big screen headline in sentence case. The last character can carry the brand colour. */
 @Composable
 fun Headline(text: String, modifier: Modifier = Modifier, color: Color = Trip.Ink, accentLastChar: Boolean = false) {
     if (accentLastChar && text.isNotEmpty()) {
-        Row(modifier) {
-            Text(text.dropLast(1).uppercase(), style = MaterialTheme.typography.displayLarge, color = color)
-            Text(text.takeLast(1), style = MaterialTheme.typography.displayLarge, color = Trip.Signal)
+        val styled = buildAnnotatedString {
+            append(text.dropLast(1))
+            withStyle(SpanStyle(color = Trip.Signal)) { append(text.takeLast(1)) }
         }
+        Text(styled, style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
     } else {
-        Text(text.uppercase(), style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
+        Text(text, style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
     }
 }
 
+/** Small section label above a heading or a block. */
 @Composable
 fun Kicker(text: String, modifier: Modifier = Modifier, color: Color = Trip.Muted) {
-    Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, color = color, modifier = modifier)
+    Text(text, style = MaterialTheme.typography.labelMedium, color = color, modifier = modifier)
 }
 
-/** The main call to action: full width, 60dp, ink with a signal arrow. */
+/**
+ * The main call to action: full width, 56dp, brand gradient. Pass a different [container]
+ * to get a solid colour instead (for example on top of a coloured card).
+ */
 @Composable
 fun SignalButton(
     text: String,
@@ -62,24 +72,25 @@ fun SignalButton(
     container: Color = Trip.Ink,
     content: Color = Trip.Paper,
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled && !loading,
-        modifier = modifier.fillMaxWidth().height(60.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = container,
-            contentColor = content,
-            disabledContainerColor = container.copy(alpha = 0.4f),
-            disabledContentColor = content.copy(alpha = 0.7f),
-        ),
+    val shape = RoundedCornerShape(18.dp)
+    val useBrand = container == Trip.Ink
+    val fg = if (useBrand) Color.White else content
+    val active = enabled && !loading
+    val alpha = if (active) 1f else 0.45f
+    Box(
+        modifier.fillMaxWidth().height(56.dp).clip(shape)
+            .then(if (useBrand) Modifier.background(Trip.Brand, alpha = alpha) else Modifier.background(container.copy(alpha = alpha)))
+            .clickable(enabled = active, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(22.dp), color = content, strokeWidth = 3.dp)
+            CircularProgressIndicator(modifier = Modifier.size(22.dp), color = fg, strokeWidth = 3.dp)
         } else {
-            Text(text.uppercase(), style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.width(10.dp))
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Trip.Signal)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
@@ -90,7 +101,7 @@ fun GhostButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(2.dp, Trip.Ink),
+        border = BorderStroke(1.dp, Trip.Ink.copy(alpha = 0.22f)),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Trip.Ink),
     ) { Text(text, style = MaterialTheme.typography.titleMedium) }
 }
@@ -101,7 +112,7 @@ fun Pill(text: String, background: Color, foreground: Color, modifier: Modifier 
         modifier
             .clip(RoundedCornerShape(999.dp))
             .background(background)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
     ) {
         Text(text, style = MaterialTheme.typography.labelSmall, color = foreground, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -110,30 +121,31 @@ fun Pill(text: String, background: Color, foreground: Color, modifier: Modifier 
 /** Colour-coded risk from the Bayesian network. Colour AND words, never colour alone. */
 @Composable
 fun RiskPill(level: String, probability: Double, modifier: Modifier = Modifier) {
-    val (bg, fg) = when (level) {
-        "Low" -> Trip.Mint to Color.White
-        "Medium" -> Trip.Amber to Color.White
-        else -> Color(0xFFB3261E) to Color.White
+    val bg = when (level) {
+        "Low" -> Trip.Mint
+        "Medium" -> Trip.Amber
+        else -> Trip.Danger
     }
-    Pill("${level.uppercase()} RISK · ${(probability * 100).toInt()}%", bg, fg, modifier)
+    Pill("$level risk, ${(probability * 100).toInt()}%", bg, Color.White, modifier)
 }
 
 @Composable
 fun NumberBadge(n: Int, modifier: Modifier = Modifier) {
     Box(
-        modifier.size(34.dp).clip(CircleShape).background(Trip.Signal),
+        modifier.size(32.dp).clip(CircleShape).background(Trip.Brand),
         contentAlignment = Alignment.Center,
-    ) { Text("$n", style = MaterialTheme.typography.labelMedium, color = Trip.Ink) }
+    ) { Text("$n", style = MaterialTheme.typography.labelMedium, color = Color.White) }
 }
 
 @Composable
 fun Stepper(value: Int, onChange: (Int) -> Unit, range: IntRange, label: String, modifier: Modifier = Modifier) {
+    val hair = BorderStroke(1.dp, Trip.Ink.copy(alpha = 0.2f))
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .border(2.dp, Trip.Ink, RoundedCornerShape(18.dp))
             .background(Trip.Card)
+            .border(hair, RoundedCornerShape(18.dp))
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -141,17 +153,17 @@ fun Stepper(value: Int, onChange: (Int) -> Unit, range: IntRange, label: String,
         OutlinedButton(
             onClick = { if (value > range.first) onChange(value - 1) },
             shape = CircleShape,
-            modifier = Modifier.size(48.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-            border = BorderStroke(2.dp, Trip.Ink),
-        ) { Text("−", style = MaterialTheme.typography.titleLarge, color = Trip.Ink) }
+            modifier = Modifier.size(44.dp),
+            contentPadding = PaddingValues(0.dp),
+            border = hair,
+        ) { Text("-", style = MaterialTheme.typography.titleLarge, color = Trip.Ink) }
         Text("$value $label", style = MaterialTheme.typography.titleLarge)
         OutlinedButton(
             onClick = { if (value < range.last) onChange(value + 1) },
             shape = CircleShape,
-            modifier = Modifier.size(48.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-            border = BorderStroke(2.dp, Trip.Ink),
+            modifier = Modifier.size(44.dp),
+            contentPadding = PaddingValues(0.dp),
+            border = hair,
         ) { Text("+", style = MaterialTheme.typography.titleLarge, color = Trip.Ink) }
     }
 }

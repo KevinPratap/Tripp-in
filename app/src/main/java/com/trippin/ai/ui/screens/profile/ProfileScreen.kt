@@ -93,10 +93,10 @@ fun ProfileScreen(container: AppContainer, onLab: () -> Unit, onDefaults: () -> 
         ) {
             Kicker("What makes it intelligent", color = Trip.Signal)
             listOf(
-                "Bayesian network — risk that a stop goes wrong",
-                "Fuzzy inference — how tired the group is, and what to do",
-                "Genetic algorithm — the order of each day's stops",
-                "Q-learning — what kind of stop you'd like next",
+                "Bayesian network: risk that a stop goes wrong",
+                "Fuzzy inference: how tired the group is, and what to do",
+                "Genetic algorithm: the order of each day's stops",
+                "Q-learning: what kind of stop you'd like next",
             ).forEach { Text(it, style = MaterialTheme.typography.titleMedium, color = Trip.Paper) }
             Text("Places & weather: OpenStreetMap, Open-Meteo. No paid APIs, no keys.", style = MaterialTheme.typography.bodyMedium, color = Trip.OnInkMuted)
         }

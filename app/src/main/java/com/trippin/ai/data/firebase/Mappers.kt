@@ -1,5 +1,6 @@
 package com.trippin.ai.data.firebase
 
+import com.trippin.ai.data.model.TripExpense
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
@@ -167,6 +168,23 @@ fun DocumentSnapshot.toEvent(tripId: String): TripEvent? {
 fun DocumentSnapshot.toDecision(): Decision? {
     val type = enumOrNull<DecisionType>(get("type")) ?: return null
     return Decision(id, type, str("refId"), str("title") ?: "", str("decidedById") ?: "", str("decidedByName") ?: "", millis("at"), str("tally") ?: "")
+}
+
+// ---------- Expenses ----------
+
+fun DocumentSnapshot.toExpense(): TripExpense? {
+    val amount = getLong("amountMinor") ?: return null
+    val currency = str("currency") ?: return null
+    return TripExpense(
+        id = id,
+        title = str("title") ?: "Expense",
+        amountMinor = amount,
+        currency = currency,
+        paidBy = str("paidBy") ?: "",
+        paidByName = str("paidByName") ?: "Someone",
+        splitAmong = (get("splitAmong") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        createdAt = millis("createdAt"),
+    )
 }
 
 // ---------- Preferences ----------

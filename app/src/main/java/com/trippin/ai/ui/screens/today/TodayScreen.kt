@@ -220,9 +220,9 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
         ) {
             Kicker("Reinforcement learning · learns from you", color = Color.White)
             val top = suggestions.firstOrNull()
-            Text((top?.first?.name ?: "—").uppercase(), style = MaterialTheme.typography.displaySmall, color = Color.White)
+            Text((top?.first?.name ?: "n/a").uppercase(), style = MaterialTheme.typography.displaySmall, color = Color.White)
             Text(
-                "Best next kind of stop for ${rlState.time.name.lowercase()}, ${rlState.energy.name.lowercase()} energy. Tell it how that sounds — it updates its Q-table.",
+                "Best next kind of stop for ${rlState.time.name.lowercase()}, ${rlState.energy.name.lowercase()} energy. Tell it how that sounds and it updates its Q-table.",
                 style = MaterialTheme.typography.bodyMedium, color = Color.White,
             )
             if (top != null) {

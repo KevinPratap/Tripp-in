@@ -2,10 +2,33 @@ package com.trippin.ai.ui.navigation
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.trippin.ai.ui.screens.swipe.SwipeHubScreen
+import com.trippin.ai.ui.screens.swipe.SwipeScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Luggage
 import androidx.compose.material.icons.filled.Person
@@ -46,6 +69,7 @@ import com.trippin.ai.auth.AuthState
 import com.trippin.ai.auth.Session
 import com.trippin.ai.ui.screens.auth.AuthScreen
 import com.trippin.ai.ui.screens.create.CreateTripScreen
+import com.trippin.ai.ui.screens.explore.ExploreScreen
 import com.trippin.ai.ui.screens.home.HomeScreen
 import com.trippin.ai.ui.screens.join.JoinScreen
 import com.trippin.ai.ui.screens.lab.LabScreen
@@ -66,10 +90,17 @@ object Routes {
     const val JOIN = "join?code={code}"
     const val TODAY = "today/{tripId}"
     const val LAB = "lab"
+    const val EXPLORE = "explore"
+    const val CREATE_FOR = "createfor/{name}/{country}/{lat}/{lng}"
+    const val SWIPE_HUB = "swipehub"
+    const val SWIPE = "swipe/{tripId}"
     const val PREFS = "prefs?tripId={tripId}"
     fun trip(id: String, tab: String? = null) = "trip/$id" + (tab?.let { "?tab=$it" } ?: "")
     fun join(code: String? = null) = "join" + (code?.let { "?code=$it" } ?: "")
+    fun createFor(d: com.trippin.ai.data.model.Destination) =
+        "createfor/${android.net.Uri.encode(d.name)}/${android.net.Uri.encode(d.country ?: "-")}/${d.lat}/${d.lng}"
     fun today(id: String) = "today/$id"
+    fun swipe(id: String) = "swipe/$id"
     fun prefs(tripId: String? = null) = "prefs" + (tripId?.let { "?tripId=$it" } ?: "")
 }
 
@@ -79,12 +110,14 @@ val LocalSnack = staticCompositionLocalOf<(String) -> Unit> { {} }
 /** The signed-in user, for screens that need to know who "you" are. */
 val LocalSession = staticCompositionLocalOf<Session> { error("No session") }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val label: String, val icon: ImageVector, val raised: Boolean = false)
 
 private val tabs = listOf(
     Tab(Routes.HOME, "Home", Icons.Filled.Home),
     Tab(Routes.TRIPS, "Trips", Icons.Filled.Luggage),
-    Tab(Routes.PROFILE, "Profile", Icons.Filled.Person),
+    Tab(Routes.SWIPE_HUB, "Swipe", Icons.Filled.Style, raised = true),
+    Tab(Routes.EXPLORE, "Explore", Icons.Filled.Explore),
+    Tab(Routes.PROFILE, "You", Icons.Filled.Person),
 )
 
 @Composable
@@ -138,6 +171,42 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
                     onJoin = { nav.navigate(Routes.join()) },
                     onOpen = { id, tab -> nav.navigate(Routes.trip(id, tab)) },
                     onToday = { nav.navigate(Routes.today(it)) },
+                    onSwipe = { nav.navigate(Routes.swipe(it)) },
+                    onSwipeHub = { nav.navigate(Routes.SWIPE_HUB) { launchSingleTop = true } },
+                )
+            }
+            composable(Routes.EXPLORE) {
+                ExploreScreen(container, onPick = { nav.navigate(Routes.createFor(it)) })
+            }
+            composable(
+                Routes.CREATE_FOR,
+                arguments = listOf(
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("country") { type = NavType.StringType },
+                    navArgument("lat") { type = NavType.StringType },
+                    navArgument("lng") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                val a = entry.arguments
+                val dest = com.trippin.ai.data.model.Destination(
+                    a?.getString("name").orEmpty(),
+                    a?.getString("country")?.takeIf { it != "-" },
+                    a?.getString("lat")?.toDoubleOrNull() ?: 0.0,
+                    a?.getString("lng")?.toDoubleOrNull() ?: 0.0,
+                )
+                CreateTripScreen(container, onBack = { nav.popBackStack() }, onCreated = { id, invite ->
+                    nav.navigate(Routes.trip(id, if (invite) "people" else null)) { popUpTo(Routes.EXPLORE) }
+                }, prefill = dest)
+            }
+            composable(Routes.SWIPE_HUB) {
+                SwipeHubScreen(container, onOpen = { nav.navigate(Routes.swipe(it)) }, onCreate = { nav.navigate(Routes.CREATE) })
+            }
+            composable(Routes.SWIPE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
+                val id = entry.arguments?.getString("tripId").orEmpty()
+                SwipeScreen(
+                    container, id,
+                    onBack = { if (!nav.popBackStack()) nav.navigate(Routes.HOME) },
+                    onPlan = { nav.navigate(Routes.trip(id, "plan")) { popUpTo(Routes.SWIPE) { inclusive = true } } },
                 )
             }
             composable(Routes.TRIPS) {
@@ -164,6 +233,7 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
                     container, id, initialTab = entry.arguments?.getString("tab"),
                     onBack = { if (!nav.popBackStack()) nav.navigate(Routes.HOME) },
                     onToday = { nav.navigate(Routes.today(id)) },
+                    onSwipe = { nav.navigate(Routes.swipe(id)) },
                     onPrefs = { nav.navigate(Routes.prefs(id)) },
                     onLab = { nav.navigate(Routes.LAB) },
                     onDeleted = { nav.navigate(Routes.TRIPS) { popUpTo(Routes.HOME) } },
@@ -196,27 +266,38 @@ private fun SignedInApp(container: AppContainer, snackbar: SnackbarHostState) {
 
 @Composable
 private fun BottomBar(nav: NavHostController, route: String?) {
-    NavigationBar(containerColor = Trip.Ink) {
+    Row(
+        Modifier.fillMaxWidth().background(Trip.Card)
+            .drawBehind { drawLine(Trip.Line, Offset.Zero, Offset(size.width, 0f), strokeWidth = 1.dp.toPx()) }
+            .navigationBarsPadding().height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         tabs.forEach { tab ->
-            NavigationBarItem(
-                selected = route == tab.route,
-                onClick = {
+            val selected = route == tab.route
+            Box(
+                Modifier.weight(1f).fillMaxHeight().selectable(selected = selected, role = Role.Tab) {
                     nav.navigate(tab.route) {
                         popUpTo(nav.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
                 },
-                icon = { Icon(tab.icon, contentDescription = null) },
-                label = { Text(tab.label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Trip.Ink,
-                    selectedTextColor = Trip.Paper,
-                    indicatorColor = Trip.Signal,
-                    unselectedIconColor = Trip.OnInkMuted,
-                    unselectedTextColor = Trip.OnInkMuted,
-                ),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                if (tab.raised) {
+                    Box(
+                        Modifier.offset(y = (-6).dp).size(width = 60.dp, height = 44.dp)
+                            .shadow(6.dp, RoundedCornerShape(16.dp), ambientColor = Color(0x33FF3D6E), spotColor = Color(0x66FF3D6E))
+                            .clip(RoundedCornerShape(16.dp)).background(Trip.Brand),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(tab.icon, contentDescription = tab.label, tint = Color.White) }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Icon(tab.icon, contentDescription = null, tint = if (selected) Trip.Signal else Trip.Muted, modifier = Modifier.size(24.dp))
+                        Text(tab.label, style = MaterialTheme.typography.labelSmall, color = if (selected) Trip.Ink else Trip.Muted)
+                    }
+                }
+            }
         }
     }
 }

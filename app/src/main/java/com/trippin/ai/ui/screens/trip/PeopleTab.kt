@@ -79,7 +79,7 @@ fun PeopleTab(vm: TripViewModel, ui: TripUi, onPrefs: () -> Unit, onDeleted: () 
                         SmallButton("Share", onClick = {
                             val send = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "Join us on Trippin' — \"${trip.title}\": ${TripRepository.inviteLink(trip.inviteCode!!)}")
+                                putExtra(Intent.EXTRA_TEXT, "Join us on Trippin': \"${trip.title}\": ${TripRepository.inviteLink(trip.inviteCode!!)}")
                             }
                             context.startActivity(Intent.createChooser(send, "Invite to ${trip.title}"))
                         })
@@ -99,7 +99,7 @@ fun PeopleTab(vm: TripViewModel, ui: TripUi, onPrefs: () -> Unit, onDeleted: () 
         item {
             SectionTitle("Your preferences")
             Panel(onClick = onPrefs) {
-                Text("Diet, pace, walking limit and more — the planner reads these for you specifically.", color = Trip.Muted)
+                Text("Diet, pace, walking limit and more. The planner reads these for you specifically.", color = Trip.Muted)
             }
         }
 
@@ -135,7 +135,7 @@ fun PeopleTab(vm: TripViewModel, ui: TripUi, onPrefs: () -> Unit, onDeleted: () 
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete this trip?") },
-            text = { Text("This removes it for everyone — ideas, votes, the plan, everything. This can't be undone.") },
+            text = { Text("This removes it for everyone: ideas, votes, the plan, everything. This can't be undone.") },
             confirmButton = { TextButton(onClick = { confirmDelete = false; vm.delete(onDeleted) }) { Text("Delete", color = Trip.Danger) } },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )

@@ -85,7 +85,7 @@ fun SearchSheet(
             Text(title, style = MaterialTheme.typography.headlineMedium)
             TextInput(q, { q = it }, hint, trailing = { if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Trip.Ink) })
             when {
-                failed -> Text("Can't search right now — check your connection.", color = MaterialTheme.colorScheme.error)
+                failed -> Text("Can't search right now. Check your connection.", color = MaterialTheme.colorScheme.error)
                 !loading && q.trim().length >= 2 && results.isEmpty() -> Text("No matches. Try another spelling.", color = Trip.Muted)
             }
             LazyColumn(Modifier.weight(1f, fill = false)) {
@@ -131,7 +131,7 @@ fun CommentsSheet(
             Kicker("Comments", color = Trip.Ink)
             Text(title, style = MaterialTheme.typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (comments.isEmpty()) item { Text("No comments yet. Say what you think — cost, timing, who's in.", color = Trip.Muted) }
+                if (comments.isEmpty()) item { Text("No comments yet. Say what you think: cost, timing, who's in.", color = Trip.Muted) }
                 items(comments, key = { it.id }) { cm ->
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Avatar(cm.name, cm.uid, 32.dp)

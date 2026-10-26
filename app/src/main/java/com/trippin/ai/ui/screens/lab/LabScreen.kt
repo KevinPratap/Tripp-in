@@ -180,7 +180,7 @@ private fun BayesLab() {
         ProbabilityBar("P(Disrupted | evidence)", a.pDisrupted, Trip.Signal)
         ProbabilityBar("P(Delay | evidence)", a.pDelay)
         ProbabilityBar("P(Closed | evidence)", a.pClosed)
-        ProbabilityBar("P(Rain | Disrupted) — diagnostic", a.pRainGivenDisrupted, Trip.Cobalt)
+        ProbabilityBar("P(Rain | Disrupted), diagnostic", a.pRainGivenDisrupted, Trip.Cobalt)
         Text("Risk level: ${a.level}", style = MaterialTheme.typography.titleLarge)
     }
 }

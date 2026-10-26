@@ -1,5 +1,6 @@
 package com.trippin.ai.ui.screens.trip
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,7 @@ enum class TripTab(val key: String, val label: String) {
     OVERVIEW("overview", "Overview"),
     IDEAS("ideas", "Ideas & votes"),
     PLAN("plan", "Plan"),
+    BUDGET("budget", "Budget"),
     PEOPLE("people", "People"),
     ACTIVITY("activity", "Activity"),
 }
@@ -61,6 +63,7 @@ fun TripScreen(
     initialTab: String?,
     onBack: () -> Unit,
     onToday: () -> Unit,
+    onSwipe: () -> Unit,
     onPrefs: () -> Unit,
     onLab: () -> Unit,
     onDeleted: () -> Unit,
@@ -90,18 +93,18 @@ fun TripScreen(
 
     Column(Modifier.fillMaxSize()) {
         // Header: title, dates, destination and the people — a shared trip is obvious at a glance.
-        Column(Modifier.fillMaxWidth().background(Trip.Signal).statusBarsPadding().padding(bottom = 12.dp)) {
+        Column(Modifier.fillMaxWidth().background(Trip.Brand).statusBarsPadding().padding(bottom = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Trip.Ink) }
-                Kicker(dateRange(trip.startDate, trip.days) + " · ${trip.days} day${if (trip.days == 1) "" else "s"}", color = Trip.Ink, modifier = Modifier.weight(1f))
-                Pill(statusLabel(trip.status, trip.isPast()), Trip.Ink, Trip.Paper, Modifier.padding(end = 12.dp))
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White) }
+                Kicker(dateRange(trip.startDate, trip.days) + " · ${trip.days} day${if (trip.days == 1) "" else "s"}", color = Color.White.copy(alpha = 0.9f), modifier = Modifier.weight(1f))
+                Pill(statusLabel(trip.status, trip.isPast()), Color.White, Trip.Ink, Modifier.padding(end = 12.dp))
             }
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(trip.title, style = MaterialTheme.typography.displaySmall, color = Trip.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(trip.title, style = MaterialTheme.typography.displaySmall, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         trip.destination?.label ?: "Destination not decided yet",
-                        style = MaterialTheme.typography.titleMedium, color = Trip.Ink, modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.92f), modifier = Modifier.weight(1f),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     if (ui.members.size > 1 || trip.isGroup) AvatarStack(ui.members.map { it.uid to it.name })
@@ -131,9 +134,10 @@ fun TripScreen(
 
         Box(Modifier.weight(1f)) {
             when (tab) {
-                TripTab.OVERVIEW -> OverviewTab(vm, ui, onGo = { tab = it }, onToday = onToday, onPrefs = onPrefs)
-                TripTab.IDEAS -> IdeasTab(vm, ui)
+                TripTab.OVERVIEW -> OverviewTab(vm, ui, onGo = { tab = it }, onToday = onToday, onPrefs = onPrefs, onSwipe = onSwipe)
+                TripTab.IDEAS -> IdeasTab(vm, ui, onSwipe = onSwipe)
                 TripTab.PLAN -> PlanTab(vm, ui, onToday = onToday, onLab = onLab, onIdeas = { tab = TripTab.IDEAS }, onPrefs = onPrefs)
+                TripTab.BUDGET -> BudgetTab(vm, ui)
                 TripTab.PEOPLE -> PeopleTab(vm, ui, onPrefs = onPrefs, onDeleted = onDeleted)
                 TripTab.ACTIVITY -> ActivityTab(vm, ui)
             }
@@ -142,9 +146,9 @@ fun TripScreen(
 }
 
 fun statusLabel(s: TripStatus, past: Boolean): String = when {
-    past -> "COMPLETED"
-    s == TripStatus.DECIDING_DESTINATION -> "VOTING"
-    s == TripStatus.COLLECTING_IDEAS -> "PLANNING"
-    s == TripStatus.PLAN_READY -> "REVIEW"
-    else -> "CONFIRMED"
+    past -> "Completed"
+    s == TripStatus.DECIDING_DESTINATION -> "Voting"
+    s == TripStatus.COLLECTING_IDEAS -> "Planning"
+    s == TripStatus.PLAN_READY -> "Review"
+    else -> "Confirmed"
 }

@@ -1,5 +1,8 @@
 package com.trippin.ai.ui.screens.trip
 
+import androidx.compose.ui.platform.LocalContext
+import com.trippin.ai.data.export.CalendarExport
+import com.trippin.ai.data.export.RecapCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,6 +65,7 @@ import com.trippin.intelligence.group.VoteKind
 fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Unit, onIdeas: () -> Unit, onPrefs: () -> Unit) {
     val trip = ui.trip ?: return
     val itin = ui.itinerary
+    val context = LocalContext.current
     val generation by vm.generation.collectAsStateWithLifecycle()
     val snack = LocalSnack.current
     var whyStop by remember { mutableStateOf<ItineraryStop?>(null) }
@@ -83,7 +87,7 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
                     )
                     ui.placeIdeas.isEmpty() -> EmptyState(
                         "No places suggested yet",
-                        "Add a few ideas so the planner has real places to work with — museums, food, sights.",
+                        "Add a few ideas so the planner has real places to work with: museums, food, sights.",
                         action = { SmallButton("Suggest places", onClick = onIdeas) },
                     )
                     !vm.canManage -> EmptyState("Waiting on the plan", "An owner or admin needs to generate it. Meanwhile, set your own preferences so it fits you.", action = { SmallButton("Set my preferences", onClick = onPrefs) })
@@ -105,7 +109,7 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Kicker(if (itin.locked) "Confirmed plan" else "Draft — review before you go")
+                    Kicker(if (itin.locked) "Confirmed plan" else "Draft: review before you go")
                     Text("${itin.totalKm.toInt()} km · genetic algorithm improved routing ${itin.gaImprovementPercent.toInt()}%", style = MaterialTheme.typography.bodyMedium, color = Trip.Muted)
                 }
                 if (itin.locked) Icon(Icons.Filled.Lock, contentDescription = "Locked", tint = Trip.Muted)
@@ -138,6 +142,10 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SmallButton("Share recap", onClick = { RecapCard.share(context, trip, itin) })
+                    SmallButton("Add to calendar", onClick = { CalendarExport.share(context, trip, itin) })
+                }
                 if (!itin.locked) {
                     SmallButton("See the AI Lab", onClick = onLab)
                     if (vm.canManage) SignalButton("Confirm this plan", onClick = { vm.confirmPlan() })
@@ -230,8 +238,8 @@ private fun StopRow(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SmallButton("Why?", onClick = onWhy)
-                SmallButton(if (myReaction == VoteKind.UP) "👍 ✓" else "👍", onClick = { onReact(VoteKind.UP) })
-                SmallButton(if (myReaction == VoteKind.DOWN) "👎 ✓" else "👎", onClick = { onReact(VoteKind.DOWN) })
+                SmallButton(if (myReaction == VoteKind.UP) "Liked" else "Like", onClick = { onReact(VoteKind.UP) })
+                SmallButton(if (myReaction == VoteKind.DOWN) "Passed" else "Pass", onClick = { onReact(VoteKind.DOWN) })
             }
             if (canEdit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,7 +256,7 @@ private fun StopRow(
 private fun ProposalRow(p: Proposal, onApprove: () -> Unit, onReject: () -> Unit) {
     Panel(background = Trip.Card, padding = 14.dp) {
         Text(p.summary, style = MaterialTheme.typography.titleMedium)
-        Text("${p.createdByName}" + (if (p.reason.isNotBlank()) " — “${p.reason}”" else ""), color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
+        Text("${p.createdByName}" + (if (p.reason.isNotBlank()) ": “${p.reason}”" else ""), color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SmallButton("Approve", onClick = onApprove, filled = true)
             SmallButton("Decline", onClick = onReject, color = Trip.Danger)

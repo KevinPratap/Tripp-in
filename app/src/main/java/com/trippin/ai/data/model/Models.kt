@@ -226,6 +226,18 @@ data class Proposal(
     }
 }
 
+/** One shared cost. [amountMinor] is whole minor units (paise, cents), split equally among [splitAmong]. */
+data class TripExpense(
+    val id: String,
+    val title: String,
+    val amountMinor: Long,
+    val currency: String,
+    val paidBy: String,
+    val paidByName: String,
+    val splitAmong: List<String>,
+    val createdAt: Long,
+)
+
 /** A place or city returned by search (Photon / OpenStreetMap). */
 data class PlaceHit(
     val name: String,

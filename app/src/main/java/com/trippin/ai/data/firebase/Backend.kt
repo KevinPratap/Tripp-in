@@ -80,20 +80,21 @@ class Backend(context: Context) {
     fun prefs(tripId: String) = trip(tripId).collection("prefs")
     fun proposals(tripId: String) = trip(tripId).collection("proposals")
     fun reactions(tripId: String) = trip(tripId).collection("reactions")
+    fun expenses(tripId: String) = trip(tripId).collection("expenses")
     fun itinerary(tripId: String): DocumentReference = trip(tripId).collection("itinerary").document("current")
     fun invite(code: String): DocumentReference = db.collection("invites").document(code)
 
     /** Every sub-collection of a trip, used when the owner deletes it (Firestore does not cascade). */
     fun tripChildren(tripId: String) = listOf(
         ideas(tripId), comments(tripId), events(tripId), decisions(tripId), prefs(tripId),
-        proposals(tripId), reactions(tripId), trip(tripId).collection("itinerary"), members(tripId), // members last
+        proposals(tripId), reactions(tripId), expenses(tripId), trip(tripId).collection("itinerary"), members(tripId), // members last
     )
 
     private fun friendly(what: String, e: Exception): String {
         val m = e.message.orEmpty()
         return when {
             "PERMISSION_DENIED" in m -> "You don't have permission to $what."
-            "UNAVAILABLE" in m || "offline" in m.lowercase() -> "You're offline — \"$what\" will sync when you reconnect."
+            "UNAVAILABLE" in m || "offline" in m.lowercase() -> "You're offline. \"$what\" will sync when you reconnect."
             else -> "Couldn't $what. Please try again."
         }
     }

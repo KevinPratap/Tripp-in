@@ -1,5 +1,7 @@
 package com.trippin.ai.data.repository
 
+import com.trippin.ai.data.model.TripExpense
+import com.trippin.ai.data.firebase.toExpense
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.SetOptions
@@ -85,6 +87,62 @@ class CollabRepository(private val backend: Backend, private val trips: TripRepo
             trips.addEvent(batch, trip.id, me, EventType.VOTE_CAST, "${me.name} $verb")
         }
         backend.fire(batch.commit(), "save your vote")
+    }
+
+    /**
+     * A swipe sets this member's vote outright (it never toggles) and posts nothing to the activity
+     * feed, so swiping through twenty cards does not bury it. [finishSwiping] posts one summary.
+     * Passing null clears the vote (used by undo).
+     */
+    fun swipeVote(trip: Trip, me: Session, idea: Idea, kind: VoteKind?) {
+        val value: Any = kind?.name ?: FieldValue.delete()
+        backend.fire(backend.ideas(trip.id).document(idea.id).update("votes.${me.uid}", value), "save your vote")
+    }
+
+    fun finishSwiping(trip: Trip, me: Session, count: Int) {
+        if (count <= 0) return
+        val batch = backend.db.batch()
+        trips.addEvent(batch, trip.id, me, EventType.VOTE_CAST, "${me.name} finished voting on $count ${if (count == 1) "idea" else "ideas"}")
+        backend.fire(batch.commit(), "post your vote summary")
+    }
+
+    /**
+     * Locks what the group agreed on: [keep] become selected and [drop] are set aside (they can be
+     * restored from Ideas). Only owners and admins can do this; the security rules enforce it.
+     */
+    fun lockIdeas(trip: Trip, me: Session, keep: List<Idea>, drop: List<Idea>) {
+        if (keep.isEmpty() && drop.isEmpty()) return
+        val batch = backend.db.batch()
+        keep.forEach { batch.update(backend.ideas(trip.id).document(it.id), "status", IdeaStatus.SELECTED.name) }
+        drop.forEach { batch.update(backend.ideas(trip.id).document(it.id), "status", IdeaStatus.DISMISSED.name) }
+        val text = buildString {
+            append("${me.name} locked ${keep.size} ${if (keep.size == 1) "pick" else "picks"} into the plan")
+            if (drop.isNotEmpty()) append(" and set aside ${drop.size}")
+        }
+        trips.addEvent(batch, trip.id, me, EventType.ITINERARY_UPDATED, text)
+        backend.fire(batch.commit(), "lock the picks")
+    }
+
+    fun expenses(tripId: String): Flow<List<TripExpense>> =
+        backend.expenses(tripId).asFlow().map { d -> d.mapNotNull { it.toExpense() }.sortedByDescending { it.createdAt } }
+
+    /** The payer is always the person adding it, which is what the security rules require. */
+    fun addExpense(trip: Trip, me: Session, title: String, amountMinor: Long, currency: String, splitAmong: List<String>) {
+        val clean = title.trim().take(80)
+        val batch = backend.db.batch()
+        batch.set(
+            backend.expenses(trip.id).document(),
+            mapOf(
+                "title" to clean, "amountMinor" to amountMinor, "currency" to currency.uppercase(),
+                "paidBy" to me.uid, "paidByName" to me.name, "splitAmong" to splitAmong.distinct(), "createdAt" to now(),
+            ),
+        )
+        trips.addEvent(batch, trip.id, me, EventType.TRIP_UPDATED, "${me.name} added an expense: $clean")
+        backend.fire(batch.commit(), "add the expense")
+    }
+
+    fun deleteExpense(trip: Trip, expense: TripExpense) {
+        backend.fire(backend.expenses(trip.id).document(expense.id).delete(), "remove the expense")
     }
 
     /** Demo helper: a simulated member's vote. */

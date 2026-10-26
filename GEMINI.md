@@ -33,6 +33,7 @@ You are working on Tripp'in AI, an honest, verified travel planning engine. Read
 ## 2. Design System & Accessibility
 
 - **Palette**: Action Crimson Red (`#E11D48`), Carbon Ink (`#18181B`), Newsprint Cream (`#FAF8F5`).
+- **Android v4 design language** (applies to `app/` only; the web palette above is unchanged): brand gradient coral `#FF3D6E` to violet `#6C4DFF` for actions, votes and story rings, gold `#FFC53D` only for MUST votes, near-black ink `#14141A`, soft neutral surface `#F6F6F9`. Hairline borders and soft elevation instead of heavy borders. Dark mode is supported through `Trip.dark` in `Theme.kt`. Vector icons only, never emojis.
 - **Borders & Shadows**: 2.5px solid ink borders, `shadow-[4px_4px_0px_#18181B]`, 8px grid system.
 - **Accessibility**:
   - All interactive buttons and touch targets must be at least 44px (`min-h-11`).

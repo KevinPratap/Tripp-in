@@ -50,14 +50,14 @@ private fun TripBrain.Pace.label() = when (this) {
 
 /** Set up a new trip: solo or with friends, where (or vote later), when, and how full the days should be. */
 @Composable
-fun CreateTripScreen(container: AppContainer, onBack: () -> Unit, onCreated: (String, Boolean) -> Unit) {
+fun CreateTripScreen(container: AppContainer, onBack: () -> Unit, onCreated: (String, Boolean) -> Unit, prefill: Destination? = null) {
     val me = LocalSession.current
     val snack = LocalSnack.current
     val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf("") }
     var isGroup by remember { mutableStateOf(false) }
-    var destination by remember { mutableStateOf<Destination?>(null) }
+    var destination by remember { mutableStateOf(prefill) }
     var start by remember { mutableStateOf(LocalDate.now().plusWeeks(2)) }
     var days by remember { mutableStateOf(4) }
     var pace by remember { mutableStateOf(TripBrain.Pace.STANDARD) }
@@ -71,7 +71,7 @@ fun CreateTripScreen(container: AppContainer, onBack: () -> Unit, onCreated: (St
             item {
                 SectionTitle("Who's going")
                 Segmented(listOf(false, true), isGroup, { if (it) "With friends" else "Just me" }, { isGroup = it })
-                if (isGroup) Text("You'll get an invite link right after this — everyone votes and suggests together.", color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
+                if (isGroup) Text("You'll get an invite link right after this. Everyone votes and suggests together.", color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
             }
             item {
                 SectionTitle("Trip name")
@@ -80,10 +80,10 @@ fun CreateTripScreen(container: AppContainer, onBack: () -> Unit, onCreated: (St
             item {
                 SectionTitle("Destination")
                 if (isGroup) {
-                    Text("Leave blank to decide together — you'll suggest and vote on cities as a group.", color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
+                    Text("Leave blank to decide together. You'll suggest and vote on cities as a group.", color = Trip.Muted, style = MaterialTheme.typography.bodyMedium)
                 }
                 Panel(onClick = { searching = true }) {
-                    Text(destination?.label ?: if (isGroup) "Not decided — vote later" else "Choose a destination", style = MaterialTheme.typography.titleLarge)
+                    Text(destination?.label ?: if (isGroup) "Not decided, vote later" else "Choose a destination", style = MaterialTheme.typography.titleLarge)
                 }
             }
             item {
@@ -100,8 +100,8 @@ fun CreateTripScreen(container: AppContainer, onBack: () -> Unit, onCreated: (St
                 Text(
                     when (pace) {
                         TripBrain.Pace.RELAXED -> "Fewer stops a day, more breathing room."
-                        TripBrain.Pace.STANDARD -> "A balanced day — the genetic algorithm fits what it can."
-                        TripBrain.Pace.PACKED -> "Long days, more stops — good for a short trip."
+                        TripBrain.Pace.STANDARD -> "A balanced day. The genetic algorithm fits what it can."
+                        TripBrain.Pace.PACKED -> "Long days, more stops. Good for a short trip."
                     },
                     color = Trip.Muted, style = MaterialTheme.typography.bodyMedium,
                 )
