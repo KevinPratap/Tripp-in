@@ -46,7 +46,7 @@ import org.robolectric.annotation.GraphicsMode
 /** Renders the design system to PNGs in build/snapshots so the look can be reviewed without a device. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi", application = android.app.Application::class)
 class DesignSnapshotTest {
     @get:Rule val rule = createComposeRule()
 
