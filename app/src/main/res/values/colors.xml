@@ -1,5 +1,5 @@
 <resources>
-    <color name="ink">#0F0F0E</color>
-    <color name="paper">#F2EDE4</color>
-    <color name="signal">#FF4F1F</color>
+    <color name="ink">#17181C</color>
+    <color name="paper">#FBFAF7</color>
+    <color name="gold">#B08848</color>
 </resources>

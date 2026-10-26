@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.ui.graphics.Color
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,7 +75,7 @@ fun TripScreen(
     val trip = ui.trip
     if (trip == null) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+            IconButton(onClick = onBack) { Icon(TripIcons.Back, contentDescription = "Back") }
             if (ui.loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Trip.Ink) }
             } else {
@@ -95,7 +94,7 @@ fun TripScreen(
         // Header: title, dates, destination and the people — a shared trip is obvious at a glance.
         Column(Modifier.fillMaxWidth().background(Trip.Brand).statusBarsPadding().padding(bottom = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White) }
+                IconButton(onClick = onBack) { Icon(TripIcons.Back, contentDescription = "Back", tint = Color.White) }
                 Kicker(dateRange(trip.startDate, trip.days) + " · ${trip.days} day${if (trip.days == 1) "" else "s"}", color = Color.White.copy(alpha = 0.9f), modifier = Modifier.weight(1f))
                 Pill(statusLabel(trip.status, trip.isPast()), Color.White, Trip.Ink, Modifier.padding(end = 12.dp))
             }

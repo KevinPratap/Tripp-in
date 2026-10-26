@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.foundation.layout.Arrangement
+import com.trippin.ai.ui.brand.Art
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -118,7 +119,7 @@ fun BudgetTab(vm: TripViewModel, ui: TripUi) {
             }
         }
         if (expenses.isEmpty()) {
-            item { EmptyState("No expenses yet", "Add the hotel, the train or a dinner and Trippin works out who owes whom.") }
+            item { EmptyState("No expenses yet", "Add the hotel, the train or a dinner and Trippin works out who owes whom.", art = Art.SPLIT) }
         } else {
             item {
                 SectionTitle("Settle up")

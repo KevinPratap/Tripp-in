@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.ui.platform.LocalContext
+import com.trippin.ai.ui.icons.TripIcons
 import com.trippin.ai.data.export.CalendarExport
 import com.trippin.ai.data.export.RecapCard
 import androidx.compose.foundation.layout.Arrangement
@@ -13,11 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -112,7 +108,7 @@ fun PlanTab(vm: TripViewModel, ui: TripUi, onToday: () -> Unit, onLab: () -> Uni
                     Kicker(if (itin.locked) "Confirmed plan" else "Draft: review before you go")
                     Text("${itin.totalKm.toInt()} km · genetic algorithm improved routing ${itin.gaImprovementPercent.toInt()}%", style = MaterialTheme.typography.bodyMedium, color = Trip.Muted)
                 }
-                if (itin.locked) Icon(Icons.Filled.Lock, contentDescription = "Locked", tint = Trip.Muted)
+                if (itin.locked) Icon(TripIcons.Lock, contentDescription = "Locked", tint = Trip.Muted)
             }
         }
 
@@ -243,9 +239,9 @@ private fun StopRow(
             }
             if (canEdit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (canMoveEarlier) IconButton(onClick = { onMove(dayIndex - 1) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Move to previous day", tint = Trip.Muted) }
-                    if (canMoveLater) IconButton(onClick = { onMove(dayIndex + 1) }) { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Move to next day", tint = Trip.Muted) }
-                    IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = "Remove", tint = Trip.Danger) }
+                    if (canMoveEarlier) IconButton(onClick = { onMove(dayIndex - 1) }) { Icon(TripIcons.Back, contentDescription = "Move to previous day", tint = Trip.Muted) }
+                    if (canMoveLater) IconButton(onClick = { onMove(dayIndex + 1) }) { Icon(TripIcons.Forward, contentDescription = "Move to next day", tint = Trip.Muted) }
+                    IconButton(onClick = onRemove) { Icon(TripIcons.Close, contentDescription = "Remove", tint = Trip.Danger) }
                 }
             }
         }

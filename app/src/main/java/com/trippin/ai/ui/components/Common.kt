@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,8 +22,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -66,7 +65,7 @@ fun TopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modifier, 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Trip.Ink) }
+            IconButton(onClick = onBack) { Icon(TripIcons.Back, contentDescription = "Back", tint = Trip.Ink) }
         } else Spacer(Modifier.width(16.dp))
         Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         actions()
@@ -82,10 +81,10 @@ fun Panel(
     padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(20.dp)
     Column(
         modifier.fillMaxWidth()
-            .shadow(if (Trip.dark) 0.dp else 3.dp, shape, ambientColor = Color(0x1A14141A), spotColor = Color(0x2614141A))
+            .shadow(if (Trip.dark) 0.dp else 6.dp, shape, ambientColor = Color(0x0F14151A), spotColor = Color(0x1A14151A))
             .clip(shape).background(background).border(1.dp, Trip.Line, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(padding),
@@ -97,14 +96,15 @@ fun Panel(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = MaterialTheme.typography.titleMedium, color = Trip.Ink, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.titleLarge, color = Trip.Ink, modifier = Modifier.weight(1f))
         action?.invoke()
     }
 }
 
 @Composable
-fun EmptyState(title: String, body: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
+fun EmptyState(title: String, body: String, modifier: Modifier = Modifier, art: com.trippin.ai.ui.brand.Art? = null, action: (@Composable () -> Unit)? = null) {
     Column(modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (art != null) com.trippin.ai.ui.brand.Illustration(art, size = 140.dp)
         Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Text(body, style = MaterialTheme.typography.bodyLarge, color = Trip.Muted, textAlign = TextAlign.Center)
         action?.let { Spacer(Modifier.height(4.dp)); it() }

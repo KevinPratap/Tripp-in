@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trips
 
 import androidx.compose.foundation.background
+import com.trippin.ai.ui.brand.Art
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,7 +63,7 @@ fun TripsScreen(container: AppContainer, onOpen: (String) -> Unit, onCreate: () 
         val list = trips
         when {
             list == null -> Unit
-            list.isEmpty() -> item { EmptyState("No trips yet", "Plan one, or join a friend's with an invite code.") }
+            list.isEmpty() -> item { EmptyState("No trips yet", "Plan one, or join a friend's with an invite code.", art = Art.SUITCASE) }
             else -> items(list, key = { it.id }) { trip -> TripRow(trip, onClick = { onOpen(trip.id) }) }
         }
     }

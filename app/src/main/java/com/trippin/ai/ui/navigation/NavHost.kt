@@ -1,7 +1,10 @@
 package com.trippin.ai.ui.navigation
 
 import androidx.activity.ComponentActivity
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +17,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -27,11 +29,6 @@ import com.trippin.ai.ui.screens.swipe.SwipeHubScreen
 import com.trippin.ai.ui.screens.swipe.SwipeScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Luggage
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -47,6 +44,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -67,6 +66,8 @@ import androidx.navigation.navDeepLink
 import com.trippin.ai.AppContainer
 import com.trippin.ai.auth.AuthState
 import com.trippin.ai.auth.Session
+import com.trippin.ai.ui.brand.OnboardingScreen
+import com.trippin.ai.ui.brand.SplashScreen
 import com.trippin.ai.ui.screens.auth.AuthScreen
 import com.trippin.ai.ui.screens.create.CreateTripScreen
 import com.trippin.ai.ui.screens.explore.ExploreScreen
@@ -113,11 +114,11 @@ val LocalSession = staticCompositionLocalOf<Session> { error("No session") }
 private data class Tab(val route: String, val label: String, val icon: ImageVector, val raised: Boolean = false)
 
 private val tabs = listOf(
-    Tab(Routes.HOME, "Home", Icons.Filled.Home),
-    Tab(Routes.TRIPS, "Trips", Icons.Filled.Luggage),
-    Tab(Routes.SWIPE_HUB, "Swipe", Icons.Filled.Style, raised = true),
-    Tab(Routes.EXPLORE, "Explore", Icons.Filled.Explore),
-    Tab(Routes.PROFILE, "You", Icons.Filled.Person),
+    Tab(Routes.HOME, "Home", TripIcons.Home),
+    Tab(Routes.TRIPS, "Trips", TripIcons.Luggage),
+    Tab(Routes.SWIPE_HUB, "Swipe", TripIcons.Style, raised = true),
+    Tab(Routes.EXPLORE, "Explore", TripIcons.Explore),
+    Tab(Routes.PROFILE, "You", TripIcons.Person),
 )
 
 @Composable
@@ -129,17 +130,26 @@ fun TrippinNavHost(container: AppContainer) {
 
     LaunchedEffect(Unit) { container.backend.errors.collect { show(it) } }
 
+    val context = LocalContext.current
+    val uiPrefs = remember { context.getSharedPreferences("trippin_ui", android.content.Context.MODE_PRIVATE) }
+    var onboarded by remember { mutableStateOf(uiPrefs.getBoolean("onboarded", false)) }
+    var splash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(1300); splash = false }
+
     CompositionLocalProvider(LocalSnack provides show) {
         when (val a = auth) {
-            AuthState.Loading -> Box(Modifier.fillMaxSize().background(Trip.Paper), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Trip.Ink)
-            }
-            AuthState.SignedOut -> Scaffold(containerColor = Trip.Paper, snackbarHost = { SnackbarHost(snackbar) }) { p ->
-                Box(Modifier.padding(p)) { AuthScreen(container) }
-            }
-            is AuthState.SignedIn -> CompositionLocalProvider(LocalSession provides a.session) {
-                // Keyed on the uid so a different account never sees the previous back stack.
-                androidx.compose.runtime.key(a.session.uid) { SignedInApp(container, snackbar) }
+            AuthState.Loading -> SplashScreen()
+            else -> if (splash) SplashScreen() else when (a) {
+                AuthState.SignedOut -> if (!onboarded) {
+                    OnboardingScreen(onDone = { uiPrefs.edit().putBoolean("onboarded", true).apply(); onboarded = true })
+                } else Scaffold(containerColor = Trip.Paper, snackbarHost = { SnackbarHost(snackbar) }) { p ->
+                    Box(Modifier.padding(p)) { AuthScreen(container) }
+                }
+                is AuthState.SignedIn -> CompositionLocalProvider(LocalSession provides a.session) {
+                    // Keyed on the uid so a different account never sees the previous back stack.
+                    androidx.compose.runtime.key(a.session.uid) { SignedInApp(container, snackbar) }
+                }
+                AuthState.Loading -> SplashScreen()
             }
         }
     }
@@ -286,15 +296,17 @@ private fun BottomBar(nav: NavHostController, route: String?) {
             ) {
                 if (tab.raised) {
                     Box(
-                        Modifier.offset(y = (-6).dp).size(width = 60.dp, height = 44.dp)
-                            .shadow(6.dp, RoundedCornerShape(16.dp), ambientColor = Color(0x33FF3D6E), spotColor = Color(0x66FF3D6E))
-                            .clip(RoundedCornerShape(16.dp)).background(Trip.Brand),
+                        Modifier.offset(y = (-8).dp).size(width = 58.dp, height = 46.dp)
+                            .shadow(10.dp, RoundedCornerShape(23.dp), ambientColor = Color(0x2214151A), spotColor = Color(0x4414151A))
+                            .clip(RoundedCornerShape(23.dp)).background(Trip.Brand)
+                            .border(1.dp, Trip.Gilt, RoundedCornerShape(23.dp)),
                         contentAlignment = Alignment.Center,
-                    ) { Icon(tab.icon, contentDescription = tab.label, tint = Color.White) }
+                    ) { Icon(tab.icon, contentDescription = tab.label, tint = Trip.Signal) }
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Icon(tab.icon, contentDescription = null, tint = if (selected) Trip.Signal else Trip.Muted, modifier = Modifier.size(24.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(tab.icon, contentDescription = null, tint = if (selected) Trip.Ink else Trip.Muted, modifier = Modifier.size(24.dp))
                         Text(tab.label, style = MaterialTheme.typography.labelSmall, color = if (selected) Trip.Ink else Trip.Muted)
+                        Box(Modifier.size(4.dp).clip(CircleShape).background(if (selected) Trip.Signal else Color.Transparent))
                     }
                 }
             }

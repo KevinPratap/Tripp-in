@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.components
 
 import androidx.compose.foundation.Canvas
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -8,14 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Nightlife
-import androidx.compose.material.icons.filled.Park
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,12 +32,12 @@ import com.trippin.intelligence.model.Category
 
 /** Gradient pairs used for cards that have no photo. Chosen by a stable hash so a card never changes colour. */
 private val gradientPairs = listOf(
-    Color(0xFFFF3D6E) to Color(0xFFFF9E5E),
-    Color(0xFF6C4DFF) to Color(0xFF3DA9FF),
-    Color(0xFF12A66A) to Color(0xFF9BE15D),
-    Color(0xFFFF7A18) to Color(0xFFFFC53D),
-    Color(0xFFC13FD6) to Color(0xFF6C4DFF),
-    Color(0xFF0F8FD9) to Color(0xFF3DDDC2),
+    Color(0xFF3A4A68) to Color(0xFF1D2433),
+    Color(0xFF2F5A4B) to Color(0xFF16302A),
+    Color(0xFF7A5A3A) to Color(0xFF3B2A1A),
+    Color(0xFF6B3A48) to Color(0xFF331B24),
+    Color(0xFF4B4468) to Color(0xFF211D33),
+    Color(0xFF2F5560) to Color(0xFF142A31),
 )
 
 private fun pairFor(seed: String): Pair<Color, Color> = gradientPairs[(seed.hashCode() and 0x7fffffff) % gradientPairs.size]
@@ -58,13 +51,13 @@ fun seedBrush(seed: String): Brush {
 fun seedColor(seed: String): Color = pairFor(seed).first
 
 fun categoryIcon(c: Category?): ImageVector = when (c) {
-    Category.MUSEUM -> Icons.Filled.AccountBalance
-    Category.FOOD -> Icons.Filled.Restaurant
-    Category.PARK -> Icons.Filled.Park
-    Category.LANDMARK -> Icons.Filled.Place
-    Category.SHOPPING -> Icons.Filled.ShoppingBag
-    Category.NIGHTLIFE -> Icons.Filled.Nightlife
-    null -> Icons.Filled.Explore
+    Category.MUSEUM -> TripIcons.Museum
+    Category.FOOD -> TripIcons.Restaurant
+    Category.PARK -> TripIcons.Park
+    Category.LANDMARK -> TripIcons.Place
+    Category.SHOPPING -> TripIcons.ShoppingBag
+    Category.NIGHTLIFE -> TripIcons.Nightlife
+    null -> TripIcons.Explore
 }
 
 fun categoryLabel(c: Category?): String = when (c) {
@@ -91,7 +84,7 @@ fun StoryRing(label: String, seed: String, active: Boolean, onClick: () -> Unit,
                 val inset = stroke / 2
                 val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
                 if (active) {
-                    drawArc(brush = Brush.sweepGradient(listOf(Trip.Signal, Trip.Cobalt, Trip.Signal)), startAngle = 0f, sweepAngle = 360f, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                    drawArc(brush = Brush.sweepGradient(listOf(Color(0xFFEBD9AE), Color(0xFFB08848), Color(0xFFD9B878), Color(0xFFEBD9AE))), startAngle = 0f, sweepAngle = 360f, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                 } else {
                     drawArc(color = line, startAngle = 0f, sweepAngle = 360f, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke))
                 }

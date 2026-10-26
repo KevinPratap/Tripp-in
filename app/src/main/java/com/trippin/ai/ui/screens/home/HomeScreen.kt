@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.home
 
 import androidx.compose.foundation.background
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,10 +22,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -119,7 +116,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(Icons.Filled.Search, contentDescription = null, tint = TripTheme.Muted)
+                Icon(TripIcons.Search, contentDescription = null, tint = TripTheme.Muted)
                 Text("Where do you want to go?", style = MaterialTheme.typography.bodyLarge, color = TripTheme.Muted)
             }
         }
@@ -127,8 +124,8 @@ fun HomeScreen(
         // Quick actions
         item {
             LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { ActionChip(Icons.Filled.Add, "Plan a trip", filled = true, onClick = onCreate) }
-                item { ActionChip(Icons.Filled.Style, "Swipe with friends", onClick = onSwipeHub) }
+                item { ActionChip(TripIcons.Add, "Plan a trip", filled = true, onClick = onCreate) }
+                item { ActionChip(TripIcons.Style, "Swipe with friends", onClick = onSwipeHub) }
                 item { ActionChip(null, "Join with code", onClick = onJoin) }
             }
         }
@@ -183,6 +180,7 @@ fun HomeScreen(
                     EmptyState(
                         "No trips planned",
                         "Start one solo, or with friends. Vote together and the plan is built around everyone.",
+                        art = com.trippin.ai.ui.brand.Art.COMPASS,
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }

@@ -83,7 +83,8 @@ fun AuthScreen(container: AppContainer) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Spacer(Modifier.height(16.dp))
-        Kicker("Trippin' AI")
+        com.trippin.ai.ui.brand.TrippinLockup(markSize = 44.dp)
+        Spacer(Modifier.height(8.dp))
         Headline("Plan trips together", accentLastChar = false)
         Text(
             "Invite friends, vote on where to go and what to do, and let the planner turn the group's choices into a day-by-day plan that fits everyone.",

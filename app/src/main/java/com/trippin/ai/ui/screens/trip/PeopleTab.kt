@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import android.content.Intent
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -153,7 +152,7 @@ private fun MemberRow(m: Member, isMe: Boolean, canManage: Boolean, onSetRole: (
             }
             Pill(m.role.label.uppercase(), if (m.role == Role.OWNER) Trip.Signal else Trip.PaperDeep, if (m.role == Role.OWNER) Trip.Ink else Trip.Muted)
             if (canManage && !isMe && m.role != Role.OWNER) {
-                IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = "Remove ${m.name}", tint = Trip.Danger) }
+                IconButton(onClick = onRemove) { Icon(TripIcons.Close, contentDescription = "Remove ${m.name}", tint = Trip.Danger) }
             }
         }
         if (canManage && !isMe && m.role != Role.OWNER) {

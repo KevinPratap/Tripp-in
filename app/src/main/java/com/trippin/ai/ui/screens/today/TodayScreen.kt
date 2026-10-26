@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.today
 
 import android.Manifest
+import com.trippin.ai.ui.icons.TripIcons
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,8 +21,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -131,7 +130,7 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
     val itin = loaded?.itinerary
     if (trip == null || itin == null) {
         Box(Modifier.fillMaxSize().background(TripTheme.Ink)) {
-            IconButton(onClick = onClose, modifier = Modifier.statusBarsPadding()) { Icon(Icons.Filled.Close, contentDescription = "Close", tint = TripTheme.Paper) }
+            IconButton(onClick = onClose, modifier = Modifier.statusBarsPadding()) { Icon(TripIcons.Close, contentDescription = "Close", tint = TripTheme.Paper) }
             Text(
                 if (loaded == null) "Loading…" else "No confirmed plan yet for today.",
                 color = TripTheme.Paper, style = MaterialTheme.typography.titleLarge,
@@ -160,7 +159,7 @@ fun TodayScreen(container: AppContainer, tripId: String, onClose: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Kicker("${trip.destination?.name ?: trip.title} · day ${dayIndex + 1}${if (preview) " · preview" else ""}", color = TripTheme.OnInkMuted, modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = "Close today mode", tint = TripTheme.Paper) }
+            IconButton(onClick = onClose) { Icon(TripIcons.Close, contentDescription = "Close today mode", tint = TripTheme.Paper) }
         }
 
         if (current != null) {

@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.foundation.clickable
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,13 +90,13 @@ fun SearchSheet(
                         Modifier.fillMaxWidth().clickable { onPick(hit) }.padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(Icons.Filled.Place, contentDescription = null, tint = Trip.Signal)
+                        Icon(TripIcons.Place, contentDescription = null, tint = Trip.Signal)
                         Column(Modifier.weight(1f)) {
                             Text(hit.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             val sub = listOfNotNull(hit.detail, hit.country).joinToString(" · ")
                             if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = Trip.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        Icon(Icons.Filled.Add, contentDescription = "Add ${hit.name}")
+                        Icon(TripIcons.Add, contentDescription = "Add ${hit.name}")
                     }
                     HorizontalDivider(color = Trip.PaperDeep)
                 }
@@ -140,7 +136,7 @@ fun CommentsSheet(
                             Text(cm.text, style = MaterialTheme.typography.bodyLarge)
                         }
                         if (cm.uid == myUid || canModerate) {
-                            IconButton(onClick = { confirm = cm }) { Icon(Icons.Filled.Delete, contentDescription = "Delete comment", tint = Trip.Muted) }
+                            IconButton(onClick = { confirm = cm }) { Icon(TripIcons.Delete, contentDescription = "Delete comment", tint = Trip.Muted) }
                         }
                     }
                 }
@@ -149,7 +145,7 @@ fun CommentsSheet(
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.navigationBarsPadding().padding(bottom = 8.dp)) {
                     TextInput(text, { text = it.take(500) }, "Add a comment", singleLine = false, modifier = Modifier.weight(1f))
                     IconButton(onClick = { onPost(text); text = "" }, enabled = text.isNotBlank()) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Post comment", tint = if (text.isNotBlank()) Trip.Ink else Trip.Muted)
+                        Icon(TripIcons.Send, contentDescription = "Post comment", tint = if (text.isNotBlank()) Trip.Ink else Trip.Muted)
                     }
                 }
             } else {

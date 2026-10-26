@@ -1,6 +1,8 @@
 package com.trippin.ai.ui.screens.swipe
 
 import androidx.compose.animation.core.Animatable
+import com.trippin.ai.ui.brand.Art
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -25,14 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -175,7 +169,7 @@ fun SwipeScreen(container: AppContainer, tripId: String, onBack: () -> Unit, onP
 
     if (trip == null) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Trip.Ink) }
+            IconButton(onClick = onBack) { Icon(TripIcons.Back, contentDescription = "Back", tint = Trip.Ink) }
             if (!ui.loading) EmptyState("Trip not available", "It may have been deleted, or you're no longer a member.", modifier = Modifier.padding(20.dp))
         }
         return
@@ -242,14 +236,14 @@ fun SwipeScreen(container: AppContainer, tripId: String, onBack: () -> Unit, onP
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         // Header
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Trip.Ink) }
+            IconButton(onClick = onBack) { Icon(TripIcons.Back, contentDescription = "Back", tint = Trip.Ink) }
             Column(Modifier.weight(1f)) {
                 Text(if (votingDestination) "Where to go" else "What to do", style = MaterialTheme.typography.titleLarge, maxLines = 1)
                 Text(trip.destination?.label ?: trip.title, style = MaterialTheme.typography.bodyMedium, color = Trip.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (vm.canContribute) {
                 IconButton(onClick = { searching = true }) {
-                    Icon(Icons.Filled.Add, contentDescription = if (votingDestination) "Suggest a destination" else "Suggest a place", tint = Trip.Ink)
+                    Icon(TripIcons.Add, contentDescription = if (votingDestination) "Suggest a destination" else "Suggest a place", tint = Trip.Ink)
                 }
             }
         }
@@ -375,7 +369,7 @@ private fun MemberStrip(members: List<Member>, progress: Map<String, Double>) {
                     Box(
                         Modifier.align(Alignment.BottomEnd).size(14.dp).clip(CircleShape).background(Trip.Mint),
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Filled.Check, contentDescription = "Finished voting", tint = Color.White, modifier = Modifier.size(10.dp)) }
+                    ) { Icon(TripIcons.Check, contentDescription = "Finished voting", tint = Color.White, modifier = Modifier.size(10.dp)) }
                 }
             }
         }
@@ -506,10 +500,10 @@ private fun ActionRow(canUndo: Boolean, onUndo: () -> Unit, onVote: (VoteKind) -
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RoundAction(Icons.Filled.Restore, "Undo last vote", Trip.Muted, 48, canUndo, onUndo)
-        RoundAction(Icons.Filled.Close, "Pass", Trip.Danger, 64, true) { onVote(VoteKind.DOWN) }
-        RoundAction(Icons.Filled.Star, "Must do", Trip.Amber, 54, true) { onVote(VoteKind.MUST) }
-        RoundAction(Icons.Filled.ThumbUp, "Like", Trip.Mint, 64, true) { onVote(VoteKind.UP) }
+        RoundAction(TripIcons.Restore, "Undo last vote", Trip.Muted, 48, canUndo, onUndo)
+        RoundAction(TripIcons.Close, "Pass", Trip.Danger, 64, true) { onVote(VoteKind.DOWN) }
+        RoundAction(TripIcons.Star, "Must do", Trip.Amber, 54, true) { onVote(VoteKind.MUST) }
+        RoundAction(TripIcons.ThumbUp, "Like", Trip.Mint, 64, true) { onVote(VoteKind.UP) }
     }
 }
 
@@ -532,7 +526,7 @@ private fun DoneState(empty: Boolean, tiebreak: Boolean, onMatches: () -> Unit, 
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
     ) {
         Box(Modifier.size(84.dp).clip(CircleShape).background(Trip.Brand), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
+            Icon(TripIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
         }
         Text(
             when {
@@ -620,7 +614,7 @@ private fun MatchesPane(
 
         item { Text("Top picks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp)) }
         if (winners.isEmpty()) {
-            item { EmptyState("No matches yet", "Keep swiping. Picks the group agrees on show up here, ranked.") }
+            item { EmptyState("No matches yet", "Keep swiping. Picks the group agrees on show up here, ranked.", art = Art.CARDS) }
         }
         items(winners.size, key = { winners[it].ideaId }) { i ->
             val c = winners[i]

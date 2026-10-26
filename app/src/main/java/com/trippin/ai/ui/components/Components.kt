@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,20 +34,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.trippin.ai.ui.icons.TripIcons
 import com.trippin.ai.ui.theme.Trip
 
-/** Big screen headline in sentence case. The last character can carry the brand colour. */
+/** Big screen headline in sentence case, set in the display serif. */
 @Composable
 fun Headline(text: String, modifier: Modifier = Modifier, color: Color = Trip.Ink, accentLastChar: Boolean = false) {
-    if (accentLastChar && text.isNotEmpty()) {
-        val styled = buildAnnotatedString {
-            append(text.dropLast(1))
-            withStyle(SpanStyle(color = Trip.Signal)) { append(text.takeLast(1)) }
-        }
-        Text(styled, style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
-    } else {
-        Text(text, style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
-    }
+    Text(text, style = MaterialTheme.typography.displayLarge, color = color, modifier = modifier)
 }
 
 /** Small section label above a heading or a block. */
@@ -72,7 +63,7 @@ fun SignalButton(
     container: Color = Trip.Ink,
     content: Color = Trip.Paper,
 ) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(999.dp)
     val useBrand = container == Trip.Ink
     val fg = if (useBrand) Color.White else content
     val active = enabled && !loading
@@ -80,6 +71,7 @@ fun SignalButton(
     Box(
         modifier.fillMaxWidth().height(56.dp).clip(shape)
             .then(if (useBrand) Modifier.background(Trip.Brand, alpha = alpha) else Modifier.background(container.copy(alpha = alpha)))
+            .then(if (useBrand) Modifier.border(1.dp, Trip.Gilt, shape) else Modifier)
             .clickable(enabled = active, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -89,7 +81,7 @@ fun SignalButton(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+                Icon(TripIcons.Forward, contentDescription = null, tint = if (useBrand) Trip.Signal else fg, modifier = Modifier.size(20.dp))
             }
         }
     }

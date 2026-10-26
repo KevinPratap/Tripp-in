@@ -1,6 +1,8 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.foundation.background
+import com.trippin.ai.ui.brand.Art
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,19 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Luggage
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,7 +40,7 @@ import com.trippin.ai.ui.theme.Trip
 fun ActivityTab(vm: TripViewModel, ui: TripUi) {
     if (ui.events.isEmpty()) {
         Column(Modifier.fillMaxSize()) {
-            EmptyState("Nothing yet", "Every suggestion, vote and change to the plan shows up here as it happens.", modifier = Modifier.padding(top = 60.dp))
+            EmptyState("Nothing yet", "Every suggestion, vote and change to the plan shows up here as it happens.", art = Art.ROUTE, modifier = Modifier.padding(top = 60.dp))
         }
         return
     }
@@ -72,17 +61,17 @@ fun ActivityTab(vm: TripViewModel, ui: TripUi) {
 }
 
 private fun eventIcon(t: EventType): ImageVector = when (t) {
-    EventType.TRIP_CREATED, EventType.TRIP_UPDATED -> Icons.Filled.Luggage
-    EventType.MEMBER_JOINED -> Icons.Filled.Person
-    EventType.MEMBER_LEFT, EventType.MEMBER_REMOVED -> Icons.Filled.Close
-    EventType.INVITE_CREATED, EventType.IDEA_CREATED -> Icons.Filled.Add
-    EventType.INVITE_REVOKED -> Icons.Filled.Lock
-    EventType.VOTE_CAST, EventType.VOTING_STARTED -> Icons.Filled.ThumbUp
-    EventType.COMMENT_CREATED -> Icons.Filled.ChatBubbleOutline
-    EventType.DESTINATION_SELECTED -> Icons.Filled.Place
-    EventType.PREFERENCES_UPDATED -> Icons.Filled.Settings
-    EventType.ITINERARY_UPDATED -> Icons.Filled.Map
-    EventType.ITINERARY_CONFIRMED, EventType.PROPOSAL_APPROVED -> Icons.Filled.Check
-    EventType.PROPOSAL_CREATED -> Icons.Filled.Edit
-    EventType.PROPOSAL_REJECTED -> Icons.Filled.Close
+    EventType.TRIP_CREATED, EventType.TRIP_UPDATED -> TripIcons.Luggage
+    EventType.MEMBER_JOINED -> TripIcons.Person
+    EventType.MEMBER_LEFT, EventType.MEMBER_REMOVED -> TripIcons.Close
+    EventType.INVITE_CREATED, EventType.IDEA_CREATED -> TripIcons.Add
+    EventType.INVITE_REVOKED -> TripIcons.Lock
+    EventType.VOTE_CAST, EventType.VOTING_STARTED -> TripIcons.ThumbUp
+    EventType.COMMENT_CREATED -> TripIcons.Chat
+    EventType.DESTINATION_SELECTED -> TripIcons.Place
+    EventType.PREFERENCES_UPDATED -> TripIcons.Settings
+    EventType.ITINERARY_UPDATED -> TripIcons.Map
+    EventType.ITINERARY_CONFIRMED, EventType.PROPOSAL_APPROVED -> TripIcons.Check
+    EventType.PROPOSAL_CREATED -> TripIcons.Edit
+    EventType.PROPOSAL_REJECTED -> TripIcons.Close
 }

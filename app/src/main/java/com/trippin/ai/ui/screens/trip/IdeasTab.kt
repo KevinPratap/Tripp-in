@@ -1,6 +1,7 @@
 package com.trippin.ai.ui.screens.trip
 
 import androidx.compose.foundation.background
+import com.trippin.ai.ui.icons.TripIcons
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import com.trippin.ai.data.model.IdeaStatus
@@ -15,11 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -138,7 +134,7 @@ fun IdeasTab(vm: TripViewModel, ui: TripUi, onSwipe: () -> Unit = {}) {
                 onClick = { searching = true },
                 containerColor = Trip.Signal, contentColor = Color.White,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-            ) { Icon(Icons.Filled.Add, contentDescription = if (votingDestination) "Suggest a destination" else "Suggest a place") }
+            ) { Icon(TripIcons.Add, contentDescription = if (votingDestination) "Suggest a destination" else "Suggest a place") }
         }
     }
 
@@ -193,8 +189,8 @@ private fun IdeaCard(
                 if (sub.isNotBlank()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = Trip.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("Suggested by ${idea.createdByName} · ${ago(idea.createdAt)}", style = MaterialTheme.typography.labelSmall, color = Trip.Muted)
             }
-            if (onRestore != null) IconButton(onClick = onRestore) { Icon(Icons.Filled.Restore, contentDescription = "Restore", tint = Trip.Muted) }
-            else if (onDismiss != null) IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = Trip.Muted) }
+            if (onRestore != null) IconButton(onClick = onRestore) { Icon(TripIcons.Restore, contentDescription = "Restore", tint = Trip.Muted) }
+            else if (onDismiss != null) IconButton(onClick = onDismiss) { Icon(TripIcons.Close, contentDescription = "Dismiss", tint = Trip.Muted) }
         }
 
         if (!dismissed) {
@@ -205,7 +201,7 @@ private fun IdeaCard(
                 Box(Modifier.weight(1f))
                 IconButton(onClick = onComment) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.ChatBubbleOutline, contentDescription = "Comments", tint = Trip.Muted)
+                        Icon(TripIcons.Chat, contentDescription = "Comments", tint = Trip.Muted)
                         if (idea.commentCount > 0) Text(" ${idea.commentCount}", color = Trip.Muted, style = MaterialTheme.typography.labelMedium)
                     }
                 }
