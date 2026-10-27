@@ -113,4 +113,4 @@ The project directory is `Tripp'in`, and the apostrophe breaks two toolchains:
    "Default export is missing". This repo keeps `robots.txt`, `sitemap.xml` and `favicon.svg` in
    `apps/web/public/` instead, which also serves them faster from the CDN.
 
-Both disappear if the folder is renamed without the apostrophe, but nothing here depends on that.
+Both disappear if the folder is renamed without the apostrophe, but nothing here depends on that...
