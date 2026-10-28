@@ -2,7 +2,7 @@ name: Android build and tests
 
 on:
   push:
-    branches: ['claude/**', main]
+    branches: [main, develop, 'claude/**']
   pull_request:
   workflow_dispatch:
 
@@ -19,6 +19,8 @@ jobs:
       - run: chmod +x gradlew
       - name: Planner tests
         run: ./gradlew :intelligence:test --no-daemon
+      - name: App unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
       - name: Compile app
         run: ./gradlew :app:compileDebugKotlin --no-daemon
       - name: Build release (shrinker and resources check)
