@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trippin</title>
+<meta name="description" content="Follow this trip live and vote on places. Planned together on Trippin.">
+<meta name="theme-color" content="#FBFAF7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='26' fill='%2317181C'/%3E%3Cpath d='M30 38 Q54 22 78 38 M54 30 V80' fill='none' stroke='%23FBFAF7' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='78' cy='38' r='6' fill='%23B08848'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17181C; --paper:#FBFAF7; --card:#FFFFFF; --deep:#F1EEE7; --muted:#6B675E;
+  --gold:#B08848; --goldtext:#8A6A34; --champagne:#EADBB8; --mint:#2F7D5C; --danger:#A83A48; --cobalt:#3B4C72;
+  --line:rgba(23,24,28,.09); --shadow:0 1px 2px rgba(23,24,28,.05),0 10px 30px rgba(23,24,28,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{--ink:#FBFAF7; --paper:#141519; --card:#1C1D23; --deep:#23242B; --muted:#A09B90; --goldtext:#D2B073; --line:rgba(251,250,247,.1); --shadow:0 10px 30px rgba(0,0,0,.35);}
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--paper)}
+body{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--paper);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 120px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:22px;letter-spacing:.2px}
+.brand svg{width:28px;height:28px}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.6px;text-transform:uppercase}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(47,125,92,.5);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(47,125,92,0)}100%{box-shadow:0 0 0 0 rgba(47,125,92,0)}}
+.hero{padding:18px 0 8px}
+.kicker{font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--goldtext)}
+h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(38px,9vw,54px);line-height:1.02;margin:8px 0 10px;letter-spacing:-.5px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;background:var(--deep);color:var(--ink)}
+.chip.gold{background:var(--champagne);color:#5B4520}
+.people{display:flex;align-items:center;margin-top:18px;gap:12px;color:var(--muted);font-size:14px}
+.avatars{display:flex}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;border:2px solid var(--paper);margin-left:-8px}
+.av:first-child{margin-left:0}
+.tabs{display:flex;gap:6px;background:var(--deep);padding:5px;border-radius:999px;margin:26px 0 20px;position:sticky;top:10px;z-index:5;backdrop-filter:blur(8px)}
+.tab{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px 'Manrope',sans-serif;padding:11px 0;border-radius:999px;cursor:pointer;transition:.2s}
+.tab[aria-selected=true]{background:var(--ink);color:var(--paper)}
+.card{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:14px;animation:rise .4s both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card h3{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:24px;line-height:1.15}
+.card .sub{color:var(--muted);font-size:14px;margin-top:2px}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.tag{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--goldtext);white-space:nowrap}
+.bar{display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--deep);margin:14px 0 8px}
+.bar span{display:block;transition:width .5s}
+.bar .l{background:var(--gold)} .bar .k{background:var(--mint)} .bar .p{background:#B9B4A8}
+.counts{display:flex;gap:14px;font-size:13px;color:var(--muted);font-weight:600}
+.votes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.vbtn{border:1.5px solid var(--line);background:transparent;color:var(--ink);font:600 14px 'Manrope',sans-serif;padding:11px 0;border-radius:14px;cursor:pointer;transition:.15s}
+.vbtn:active{transform:scale(.97)}
+.vbtn.on.love{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.vbtn.on.like{background:var(--mint);border-color:var(--mint);color:#fff}
+.vbtn.on.pass{background:var(--deep);border-color:var(--muted);color:var(--ink)}
+.chosen{border:1.5px solid var(--gold)}
+.day h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;margin:26px 0 12px}
+.day h2 small{display:block;font:700 12px 'Manrope',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--goldtext);margin-bottom:2px}
+.stop{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.stop:first-child{border-top:0}
+.time{width:64px;flex:none;font-weight:700;font-size:14px;color:var(--goldtext);padding-top:2px}
+.stop b{font-weight:600;font-size:16px}
+.stop span{display:block;color:var(--muted);font-size:13px}
+.empty{text-align:center;color:var(--muted);padding:60px 10px}
+.empty h2{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--ink);margin-bottom:8px}
+.cta{position:fixed;left:0;right:0;bottom:0;padding:14px 20px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--paper) 35%);display:flex;justify-content:center;pointer-events:none}
+.cta a{pointer-events:auto;max-width:600px;width:100%;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:var(--paper);background:var(--ink);border:1.5px solid var(--gold);padding:15px;border-radius:999px;box-shadow:var(--shadow)}
+dialog{border:0;border-radius:24px;padding:26px;max-width:380px;width:calc(100% - 40px);background:var(--card);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(20,21,25,.5);backdrop-filter:blur(4px)}
+dialog h2{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;line-height:1.1;margin-bottom:6px}
+dialog p{color:var(--muted);font-size:14px;margin-bottom:16px}
+dialog input{width:100%;font:600 16px 'Manrope',sans-serif;padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);outline:0}
+dialog input:focus{border-color:var(--gold)}
+dialog button{margin-top:14px;width:100%;border:1.5px solid var(--gold);background:var(--ink);color:var(--paper);font:700 15px 'Manrope',sans-serif;padding:14px;border-radius:999px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.skeleton{height:120px;border-radius:20px;background:linear-gradient(90deg,var(--deep),var(--card),var(--deep));background-size:200% 100%;animation:sh 1.4s infinite;margin-bottom:14px}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" rx="26" fill="currentColor"/><path d="M30 38 Q54 22 78 38 M54 30 V80" fill="none" stroke="var(--paper)" stroke-width="7" stroke-linecap="round"/><circle cx="78" cy="38" r="6" fill="#B08848"/></svg>
+      Trippin
+    </div>
+    <div class="live" id="live" hidden><i></i>Live</div>
+  </header>
+  <main id="app"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></main>
+</div>
+<div class="cta" id="cta" hidden><a href="https://trippin-ee84c.web.app">Plan your own trip with Trippin</a></div>
+<div class="toast" id="toast" role="status"></div>
+<dialog id="who">
+  <form method="dialog" id="whoForm">
+    <h2>Who is voting?</h2>
+    <p>Your name shows next to your votes so the group knows it is you.</p>
+    <input id="whoName" maxlength="40" placeholder="Your name" autocomplete="given-name" required>
+    <button type="submit">Continue</button>
+  </form>
+</dialog>
+
+<script src="/__/firebase/10.14.1/firebase-app-compat.js"></script>
+<script src="/__/firebase/10.14.1/firebase-auth-compat.js"></script>
+<script src="/__/firebase/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var app = $('app');
+  var code = (location.pathname.match(/\/t\/([A-Za-z0-9]+)/) || [])[1];
+  var state = { share:null, guests:[], tab:'places', uid:null, name:null, myVotes:{} };
+  var db, auth, shareRef, unsubs = [];
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function toast(t){var el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show')},2200)}
+  function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function hhmm(m){if(m==null)return '';var h=Math.floor(m/60)%24,mm=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(mm<10?'0':'')+mm+' '+ap}
+  function dateLabel(iso){var d=new Date(iso+'T00:00:00');return isNaN(d)?iso:d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}
+  var colors=['#3B4C72','#2F7D5C','#8A6A34','#A83A48','#5B4B7A','#2F6F7D'];
+  function color(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return colors[h%colors.length]}
+
+  function notFound(){
+    document.title='Trippin';
+    app.innerHTML='<div class="empty"><h2>This link is not active</h2><p>The trip owner may have turned the live page off. Ask them for a fresh link.</p></div>';
+    $('cta').hidden=false;
+  }
+
+  function counts(idea){
+    var love=idea.love||0, like=idea.like||0, pass=idea.pass||0;
+    state.guests.forEach(function(g){var v=g.votes&&g.votes[idea.id]; if(v==='love')love++; else if(v==='like')like++; else if(v==='pass')pass++;});
+    return {love:love,like:like,pass:pass,total:love+like+pass};
+  }
+
+  function render(){
+    var s=state.share;
+    if(!s){return}
+    document.title=(s.title||'Trip')+' on Trippin';
+    var members=(s.members||[]).map(function(m){return m.name});
+    guestsNames().forEach(function(n){members.push(n)});
+    var dest=s.destination&&s.destination.name?s.destination.name+(s.destination.country?', '+s.destination.country:''):null;
+    var h='<section class="hero"><div class="kicker">'+esc(dest||'Trip')+'</div><h1>'+esc(s.title)+'</h1>';
+    h+='<div class="meta">';
+    if(s.startDate)h+='<span class="chip gold">'+esc(dateLabel(s.startDate))+'</span>';
+    if(s.days)h+='<span class="chip">'+esc(s.days)+(s.days===1?' day':' days')+'</span>';
+    if(s.plan&&s.plan.locked)h+='<span class="chip">Plan confirmed</span>';
+    h+='</div>';
+    h+='<div class="people"><div class="avatars">'+members.slice(0,5).map(function(n){return '<div class="av" style="background:'+color(n)+'">'+esc((n||'?').charAt(0).toUpperCase())+'</div>'}).join('')+'</div><span>'+members.length+(members.length===1?' person':' people')+' on this trip</span></div></section>';
+    h+='<nav class="tabs" role="tablist"><button class="tab" role="tab" data-t="places" aria-selected="'+(state.tab==='places')+'">Places</button><button class="tab" role="tab" data-t="plan" aria-selected="'+(state.tab==='plan')+'">Plan</button></nav>';
+    h+= state.tab==='places'?placesHtml(s):planHtml(s);
+    app.innerHTML=h;
+    $('live').hidden=false; $('cta').hidden=false;
+  }
+
+  function guestsNames(){
+    var seen={};return state.guests.map(function(g){return g.name}).filter(function(n){if(!n||seen[n])return false;seen[n]=1;return true});
+  }
+
+  function placesHtml(s){
+    var ideas=(s.ideas||[]).slice().sort(function(a,b){var ca=counts(a),cb=counts(b);return (cb.love*2+cb.like-cb.pass)-(ca.love*2+ca.like-ca.pass)});
+    if(!ideas.length)return '<div class="empty"><h2>No places yet</h2><p>Places the group suggests will appear here for everyone to vote on.</p></div>';
+    return ideas.map(function(i,idx){
+      var c=counts(i),t=c.total||1,mine=state.myVotes[i.id];
+      return '<article class="card'+(i.selected?' chosen':'')+'" style="animation-delay:'+Math.min(idx*40,400)+'ms">'
+        +'<div class="row"><div><h3>'+esc(i.title)+'</h3>'+(i.subtitle?'<div class="sub">'+esc(i.subtitle)+'</div>':'')+'</div>'+(i.selected?'<span class="tag">In the plan</span>':(i.category?'<span class="tag">'+esc(String(i.category).toLowerCase().replace(/_/g,' '))+'</span>':''))+'</div>'
+        +'<div class="bar" aria-hidden="true"><span class="l" style="width:'+(c.love/t*100)+'%"></span><span class="k" style="width:'+(c.like/t*100)+'%"></span><span class="p" style="width:'+(c.pass/t*100)+'%"></span></div>'
+        +'<div class="counts"><span>'+c.love+' love</span><span>'+c.like+' like</span><span>'+c.pass+' pass</span></div>'
+        +'<div class="votes">'+['love','like','pass'].map(function(v){return '<button class="vbtn '+v+(mine===v?' on':'')+'" data-id="'+esc(i.id)+'" data-v="'+v+'">'+({love:'Love it',like:'Like',pass:'Pass'}[v])+'</button>'}).join('')+'</div>'
+        +'</article>';
+    }).join('');
+  }
+
+  function planHtml(s){
+    var p=s.plan;
+    if(!p||!p.days||!p.days.length)return '<div class="empty"><h2>The plan is on its way</h2><p>Once the group builds the day by day plan, it shows up here and updates live.</p></div>';
+    return p.days.map(function(d,i){
+      return '<section class="day"><h2><small>Day '+(i+1)+'</small>'+esc(dateLabel(d.date))+'</h2><div class="card">'
+        +(d.stops&&d.stops.length?d.stops.map(function(st){return '<div class="stop"><div class="time">'+esc(hhmm(st.start))+'</div><div><b>'+esc(st.name)+'</b><span>'+esc(String(st.category||'').toLowerCase().replace(/_/g,' '))+(st.optional?' · optional':'')+(st.leave!=null?' · until '+esc(hhmm(st.leave)):'')+'</span></div></div>'}).join(''):'<div class="sub">Nothing planned yet.</div>')
+        +'</div></section>';
+    }).join('');
+  }
+
+  function ensureName(cb){
+    if(state.name)return cb();
+    var dlg=$('who');
+    $('whoName').value='';
+    $('whoForm').onsubmit=function(){
+      var n=$('whoName').value.trim().slice(0,40);
+      if(!n)return false;
+      state.name=n; lsSet('trippin_guest_name',n); cb();
+    };
+    if(dlg.showModal)dlg.showModal(); else {var n=prompt('Your name');if(n){state.name=n.trim().slice(0,40);cb();}}
+  }
+
+  function castVote(id,v){
+    ensureName(function(){
+      if(!state.uid){toast('Connecting, try again in a moment');return}
+      var next=state.myVotes[id]===v?null:v;
+      var votes=Object.assign({},state.myVotes);
+      if(next)votes[id]=next; else delete votes[id];
+      state.myVotes=votes; render();
+      shareRef.collection('guests').doc(state.uid).set({name:state.name,votes:votes,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})
+        .then(function(){toast(next?'Vote saved':'Vote removed')})
+        .catch(function(){toast('Could not save your vote');});
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-t]'); if(t){state.tab=t.getAttribute('data-t');render();return}
+    var b=e.target.closest('.vbtn'); if(b){castVote(b.getAttribute('data-id'),b.getAttribute('data-v'))}
+  });
+
+  function start(){
+    if(!code){notFound();return}
+    state.name=lsGet('trippin_guest_name');
+    db=firebase.firestore(); auth=firebase.auth();
+    shareRef=db.collection('shares').doc(code);
+    auth.onAuthStateChanged(function(u){
+      if(!u){auth.signInAnonymously().catch(function(){});return}
+      state.uid=u.uid;
+      shareRef.collection('guests').doc(u.uid).get().then(function(d){if(d.exists){state.myVotes=(d.data().votes)||{};if(!state.name&&d.data().name)state.name=d.data().name;render()}}).catch(function(){});
+    });
+    unsubs.push(shareRef.onSnapshot(function(snap){
+      if(!snap.exists){state.share=null;notFound();return}
+      state.share=snap.data(); render();
+    },function(){notFound()}));
+    unsubs.push(shareRef.collection('guests').onSnapshot(function(q){
+      state.guests=q.docs.map(function(d){return d.data()}); if(state.share)render();
+    },function(){}));
+  }
+  start();
+})();
+</script>
+</body>
+</html>

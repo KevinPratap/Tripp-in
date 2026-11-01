@@ -39,10 +39,16 @@ captures/
 *.aab
 
 # Docker / DB data
-data/
+/data/
 *.sql.gz
 
 # Coverage / Logs
 coverage/
 logs/
 *.log
+
+# Secrets and signing
+keystore.properties
+*.jks
+*.keystore
+app/google-services.json
