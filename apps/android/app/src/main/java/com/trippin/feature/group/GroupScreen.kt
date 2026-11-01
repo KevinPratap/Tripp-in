@@ -71,6 +71,7 @@ import com.trippin.core.network.TripOptionDto
 @Composable
 fun GroupScreen(
     tripId: String,
+    onBack: () -> Unit,
     viewModel: GroupViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,7 @@ fun GroupScreen(
             TrippinTopBar(
                 title = "Group",
                 subtitle = "Who is going, and what each of them wants",
+                onBack = onBack,
                 actions = {
                     TrippinIconButton(Icons.Default.Share, "Invite", tint = colors.accent, onClick = viewModel::createShareLink)
                 }
@@ -120,12 +122,7 @@ fun GroupScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        if (state.options.isNotEmpty()) {
-                            item { SectionLabel("Cost options") }
-                            items(state.options, key = { it.id }) { option -> OptionCard(option) }
-                        }
-
-                        item { SectionLabel("Travellers", Modifier.padding(top = 4.dp)) }
+                        item { SectionLabel("Travellers") }
                         if (state.travellers.isEmpty()) {
                             item {
                                 Text("No one has been added yet. Add the people going, or share an invite link.", style = TrippinType.Body, color = colors.inkMuted)
@@ -150,8 +147,14 @@ fun GroupScreen(
                                 leadingIcon = Icons.Default.PersonAdd,
                                 enabled = !state.busy
                             )
-                            Spacer(Modifier.height(24.dp))
                         }
+
+                        // What the trip could cost comes after who is going: the people are the point here.
+                        if (state.options.isNotEmpty()) {
+                            item { SectionLabel("What it could cost", Modifier.padding(top = 12.dp)) }
+                            items(state.options, key = { it.id }) { option -> OptionCard(option) }
+                        }
+                        item { Spacer(Modifier.height(24.dp)) }
                     }
                 }
             }

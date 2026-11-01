@@ -41,22 +41,6 @@ import androidx.compose.ui.unit.dp
  * the layout's, not a guess at what will fill them.
  */
 
-/** True when the device is actually playing animations, so the pulse honours "remove animations". */
-@Composable
-private fun animationsEnabled(): Boolean {
-    if (LocalInspectionMode.current) return false
-    val context = LocalContext.current
-    return remember(context) {
-        runCatching {
-            Settings.Global.getFloat(
-                context.contentResolver,
-                Settings.Global.ANIMATOR_DURATION_SCALE,
-                1f
-            ) != 0f
-        }.getOrDefault(true)
-    }
-}
-
 /**
  * One placeholder block.
  *
@@ -71,7 +55,7 @@ fun SkeletonBlock(
     shape: Shape = RoundedCornerShape(6.dp)
 ) {
     val colors = TrippinTheme.colors
-    val alpha = if (animationsEnabled()) {
+    val alpha = if (rememberAnimationsEnabled()) {
         val transition = rememberInfiniteTransition(label = "skeleton")
         val value by transition.animateFloat(
             initialValue = 0.45f,

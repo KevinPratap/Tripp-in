@@ -58,9 +58,6 @@ export interface ExpenseOverview {
 @Injectable()
 export class CollabService {
   private readonly logger = new Logger(CollabService.name);
-  // In-memory fallback if Redis is offline
-  private readonly inMemoryCollab = new Map<string, Record<string, ActivityCollabData>>();
-  private readonly inMemoryExpenses = new Map<string, TripExpense[]>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -76,13 +73,32 @@ export class CollabService {
     const isLocked = Boolean(trip?.isLocked);
     const lockedAt = trip?.lockedAt ? trip.lockedAt.toISOString() : undefined;
 
-    const cacheKey = `trip:collab:${tripId}`;
-    const cached = await this.redis.get<Record<string, ActivityCollabData>>(cacheKey);
-    if (cached) {
-      return { tripId, isLocked, lockedAt, activities: cached };
+    await this.importLegacyCollab(tripId);
+    const [votes, comments] = await Promise.all([
+      this.prisma.activityVote.findMany({ where: { tripId } }),
+      this.prisma.activityComment.findMany({ where: { tripId }, orderBy: { createdAt: 'asc' } })
+    ]);
+
+    const activities: Record<string, ActivityCollabData> = {};
+    const entry = (activityId: string): ActivityCollabData =>
+      (activities[activityId] ??= { activityId, upvotes: 0, downvotes: 0, voters: {}, comments: [] });
+
+    for (const v of votes) {
+      const act = entry(v.activityId);
+      act.voters[v.voterName] = v.vote;
+      if (v.vote === 1) act.upvotes++;
+      if (v.vote === -1) act.downvotes++;
     }
-    const mem = this.inMemoryCollab.get(tripId) || {};
-    return { tripId, isLocked, lockedAt, activities: mem };
+    for (const c of comments) {
+      entry(c.activityId).comments.push({
+        id: c.id,
+        voterName: c.voterName,
+        text: c.text,
+        createdAt: c.createdAt.toISOString()
+      });
+    }
+
+    return { tripId, isLocked, lockedAt, activities };
   }
 
   async vote(
@@ -112,52 +128,66 @@ export class CollabService {
       throw new NotFoundException(`Activity ${activityId} is not part of trip ${tripId}`);
     }
 
-    const data = await this.getCollabData(tripId);
-    const activities = data.activities;
+    await this.importLegacyCollab(tripId);
 
-    if (!activities[activityId]) {
-      activities[activityId] = {
-        activityId,
-        upvotes: 0,
-        downvotes: 0,
-        voters: {},
-        comments: []
-      };
-    }
-
-    const act = activities[activityId];
-    const prevVote = act.voters[voterName] || 0;
-
-    // Remove previous vote impact
-    if (prevVote === 1) act.upvotes = Math.max(0, act.upvotes - 1);
-    if (prevVote === -1) act.downvotes = Math.max(0, act.downvotes - 1);
-
-    // Apply new vote if different
-    if (prevVote !== vote) {
-      act.voters[voterName] = vote;
-      if (vote === 1) act.upvotes++;
-      if (vote === -1) act.downvotes++;
+    const key = { activityId_voterName: { activityId, voterName } };
+    const previous = await this.prisma.activityVote.findUnique({ where: key });
+    if (previous && previous.vote === vote) {
+      // The same vote pressed again takes it back.
+      await this.prisma.activityVote.delete({ where: key });
     } else {
-      // Toggle off if same vote pressed again
-      delete act.voters[voterName];
-    }
-
-    // Add optional comment / swap suggestion
-    if (comment && comment.trim().length > 0) {
-      act.comments.push({
-        id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        voterName,
-        text: comment.trim(),
-        createdAt: new Date().toISOString()
+      await this.prisma.activityVote.upsert({
+        where: key,
+        create: { tripId, activityId, voterName, vote },
+        update: { vote }
       });
     }
 
-    // Persist in Redis and in-memory
-    const cacheKey = `trip:collab:${tripId}`;
-    await this.redis.set(cacheKey, activities, 86400 * 30); // 30 days retention
-    this.inMemoryCollab.set(tripId, activities);
+    if (comment && comment.trim().length > 0) {
+      await this.prisma.activityComment.create({
+        data: { tripId, activityId, voterName, text: comment.trim() }
+      });
+    }
 
-    return { tripId, activities };
+    return this.getCollabData(tripId);
+  }
+
+  /**
+   * Votes and comments used to live only in Redis with a 30 day expiry. The first read of a trip's
+   * collaboration state copies whatever is still there into the database, then drops the cache key.
+   */
+  private async importLegacyCollab(tripId: string): Promise<void> {
+    const cacheKey = `trip:collab:${tripId}`;
+    let legacy: Record<string, ActivityCollabData> | null = null;
+    try {
+      legacy = await this.redis.get<Record<string, ActivityCollabData>>(cacheKey);
+    } catch {
+      return;
+    }
+    if (!legacy || typeof legacy !== 'object') return;
+
+    const votes: Array<{ tripId: string; activityId: string; voterName: string; vote: number }> = [];
+    const comments: Array<{ tripId: string; activityId: string; voterName: string; text: string; createdAt: Date }> = [];
+    for (const [activityId, act] of Object.entries(legacy)) {
+      for (const [voterName, vote] of Object.entries(act?.voters ?? {})) {
+        if (vote === 1 || vote === -1) votes.push({ tripId, activityId, voterName, vote });
+      }
+      for (const c of act?.comments ?? []) {
+        if (c?.text) {
+          comments.push({
+            tripId,
+            activityId,
+            voterName: String(c.voterName || 'Companion'),
+            text: String(c.text),
+            createdAt: c.createdAt ? new Date(c.createdAt) : new Date()
+          });
+        }
+      }
+    }
+    if (votes.length > 0) await this.prisma.activityVote.createMany({ data: votes, skipDuplicates: true });
+    if (comments.length > 0) await this.prisma.activityComment.createMany({ data: comments });
+    await this.redis.del(cacheKey).catch(() => undefined);
+    this.logger.log(`Moved ${votes.length} vote(s) and ${comments.length} comment(s) for trip ${tripId} into the database`);
   }
 
   async generateIcs(tripId: string): Promise<string> {
@@ -237,7 +267,8 @@ export class CollabService {
   }
 
   /**
-   * Records a new group expense for a trip and recalculates debt settlements.
+   * Records a new group expense for a trip and recalculates debt settlements. An expense with no
+   * currency of its own is in the trip's currency, which follows the destination.
    */
   async addExpense(
     tripId: string,
@@ -249,51 +280,84 @@ export class CollabService {
       splitBetween?: string[];
     }
   ): Promise<ExpenseOverview> {
-    const expenses = await this.getRawExpenses(tripId);
-    const newExpense: TripExpense = {
-      id: Math.random().toString(36).substring(2, 10),
-      title: expenseData.title.trim(),
-      amount: Math.max(0, expenseData.amount),
-      currency: (
-        expenseData.currency || expenses.find((e) => e.currency)?.currency || ''
-      ).toUpperCase(),
-      paidBy: expenseData.paidBy.trim(),
-      splitBetween: (expenseData.splitBetween && expenseData.splitBetween.length > 0)
-        ? expenseData.splitBetween.map((s) => s.trim())
-        : [expenseData.paidBy.trim()],
-      createdAt: new Date().toISOString(),
-    };
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId }, select: { currency: true } });
+    if (!trip) throw new NotFoundException('Trip not found');
+    await this.importLegacyExpenses(tripId);
 
-    expenses.unshift(newExpense);
-    await this.saveExpenses(tripId, expenses);
-    return this.buildExpenseOverview(tripId, expenses);
+    const paidBy = expenseData.paidBy.trim();
+    const split = (expenseData.splitBetween ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
+    await this.prisma.tripExpense.create({
+      data: {
+        tripId,
+        title: expenseData.title.trim(),
+        amount: Math.round(Math.max(0, expenseData.amount) * 100) / 100,
+        currency: (expenseData.currency || trip.currency || '').trim().toUpperCase(),
+        paidBy,
+        splitBetween: split.length > 0 ? split : [paidBy]
+      }
+    });
+    return this.getExpenses(tripId);
+  }
+
+  /** Removes one logged expense, for the entry that was typed wrong. */
+  async deleteExpense(tripId: string, expenseId: string): Promise<ExpenseOverview> {
+    const { count } = await this.prisma.tripExpense.deleteMany({ where: { id: expenseId, tripId } });
+    if (count === 0) throw new NotFoundException('Expense not found');
+    return this.getExpenses(tripId);
   }
 
   /**
    * Retrieves the current expense ledger and simplified debt settlements.
    */
   async getExpenses(tripId: string): Promise<ExpenseOverview> {
-    const expenses = await this.getRawExpenses(tripId);
+    await this.importLegacyExpenses(tripId);
+    const rows = await this.prisma.tripExpense.findMany({
+      where: { tripId },
+      orderBy: { createdAt: 'desc' }
+    });
+    const expenses: TripExpense[] = rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      amount: row.amount,
+      currency: row.currency,
+      paidBy: row.paidBy,
+      splitBetween: row.splitBetween,
+      createdAt: row.createdAt.toISOString()
+    }));
     return this.buildExpenseOverview(tripId, expenses);
   }
 
-  private async getRawExpenses(tripId: string): Promise<TripExpense[]> {
+  /**
+   * Expenses used to live only in Redis with a 30 day expiry. The first read of a trip's ledger
+   * copies whatever is still there into the database, then drops the cache key so nothing is
+   * copied twice.
+   */
+  private async importLegacyExpenses(tripId: string): Promise<void> {
     const cacheKey = `trip:expenses:${tripId}`;
-    const cached = await this.redis.get<TripExpense[]>(cacheKey);
-    if (cached && Array.isArray(cached)) {
-      return cached;
-    }
-    return this.inMemoryExpenses.get(tripId) || [];
-  }
-
-  private async saveExpenses(tripId: string, expenses: TripExpense[]): Promise<void> {
-    const cacheKey = `trip:expenses:${tripId}`;
-    this.inMemoryExpenses.set(tripId, expenses);
+    let legacy: TripExpense[] | null = null;
     try {
-      await this.redis.set(cacheKey, expenses, 60 * 60 * 24 * 30); // 30-day retention
+      legacy = await this.redis.get<TripExpense[]>(cacheKey);
     } catch {
-      // In-memory fallback
+      return;
     }
+    if (!legacy || !Array.isArray(legacy) || legacy.length === 0) return;
+
+    const valid = legacy.filter((e) => e && typeof e.amount === 'number' && e.amount > 0 && e.title && e.paidBy);
+    if (valid.length > 0) {
+      await this.prisma.tripExpense.createMany({
+        data: valid.map((e) => ({
+          tripId,
+          title: String(e.title),
+          amount: e.amount,
+          currency: String(e.currency || '').toUpperCase(),
+          paidBy: String(e.paidBy),
+          splitBetween: Array.isArray(e.splitBetween) && e.splitBetween.length > 0 ? e.splitBetween : [String(e.paidBy)],
+          createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
+        }))
+      });
+    }
+    await this.redis.del(cacheKey).catch(() => undefined);
+    this.logger.log(`Moved ${valid.length} expense(s) for trip ${tripId} from cache into the database`);
   }
 
   private buildExpenseOverview(tripId: string, expenses: TripExpense[]): ExpenseOverview {

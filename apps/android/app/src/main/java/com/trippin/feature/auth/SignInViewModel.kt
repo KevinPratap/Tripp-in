@@ -56,7 +56,7 @@ class SignInViewModel @Inject constructor(
                     // so the code is prefilled rather than asking a developer to dig it out.
                     val emailed = result.value.delivery.lowercase() == "email"
                     val note = if (emailed) {
-                        "We sent a sign-in link to ${state.email}. Open it on this device, or paste the code from it below."
+                        "We sent a sign-in link to ${state.email}. Tap it on this phone and you are in. On another device, paste the code from it below."
                     } else {
                         "No mail provider is configured on the server, so the sign-in code went to its log instead of your inbox."
                     }
@@ -77,6 +77,18 @@ class SignInViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Signs in straight from a tapped email link: the code and address come from the link, so there
+     * is nothing to type. A link that fails (expired, already used) lands on the code step with the
+     * reason, where a new code is one tap away.
+     */
+    fun verifyFromLink(token: String, email: String?) {
+        _uiState.update {
+            it.copy(stage = SignInStage.ENTER_CODE, token = token, email = email ?: it.email, deliveryNote = null, error = null)
+        }
+        verify()
+    }
+
     fun verify() {
         val state = _uiState.value
         if (!state.canVerify) return
@@ -85,7 +97,7 @@ class SignInViewModel @Inject constructor(
             when (val result = authRepository.verify(state.token, state.email.ifBlank { null })) {
                 is DataResult.Ok -> _uiState.update { it.copy(loading = false, signedIn = true) }
                 is DataResult.Fail -> _uiState.update {
-                    it.copy(loading = false, error = "That code did not work. Check it and try again.")
+                    it.copy(loading = false, error = "That sign-in link or code did not work. It may have expired or already been used; send a new one.")
                 }
             }
         }

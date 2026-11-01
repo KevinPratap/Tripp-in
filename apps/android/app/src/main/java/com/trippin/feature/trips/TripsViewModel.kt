@@ -10,6 +10,8 @@ import com.trippin.core.repository.GroupRepository
 import com.trippin.core.repository.HomeRepository
 import com.trippin.core.repository.TripRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,8 +25,13 @@ data class TripsUiState(
     val home: HomeFeedDto? = null,
     val loading: Boolean = true,
     val refreshing: Boolean = false,
-    val error: String? = null
-)
+    val error: String? = null,
+    /** A trip swiped away whose delete has not been sent yet. Hidden from the list until then. */
+    val pendingDelete: SavedTripSummaryDto? = null,
+    val message: String? = null
+) {
+    val visibleTrips: List<SavedTripSummaryDto> get() = myTrips.filter { it.id != pendingDelete?.id }
+}
 
 data class JoinUiState(
     val open: Boolean = false,
@@ -105,4 +112,49 @@ class TripsViewModel @Inject constructor(
     }
 
     fun consumeJoined() = _joinState.update { it.copy(joinedTripId = null) }
+
+    // ---- Swipe to delete, with an undo that really undoes ----
+
+    private var deleteJob: Job? = null
+
+    /**
+     * Hides the trip at once and only asks the server to delete it once the undo window has passed,
+     * so Undo cancels a delete that never happened rather than pretending to restore one. A second
+     * swipe during the window sends the first delete straight away.
+     */
+    fun delete(trip: SavedTripSummaryDto) {
+        _uiState.value.pendingDelete?.let { previous ->
+            deleteJob?.cancel()
+            sendDelete(previous)
+        }
+        _uiState.update { it.copy(pendingDelete = trip) }
+        deleteJob = viewModelScope.launch {
+            delay(UNDO_WINDOW_MS)
+            _uiState.update { it.copy(pendingDelete = null) }
+            sendDelete(trip)
+        }
+    }
+
+    fun undoDelete() {
+        deleteJob?.cancel()
+        deleteJob = null
+        _uiState.update { it.copy(pendingDelete = null) }
+    }
+
+    private fun sendDelete(trip: SavedTripSummaryDto) {
+        viewModelScope.launch {
+            when (tripRepository.delete(trip.id)) {
+                is DataResult.Ok -> tripRepository.refreshMyTrips()
+                is DataResult.Fail -> _uiState.update {
+                    it.copy(message = "Could not delete ${trip.destinationName.substringBefore(',')}. It is back in the list.")
+                }
+            }
+        }
+    }
+
+    fun clearMessage() = _uiState.update { it.copy(message = null) }
+
+    private companion object {
+        const val UNDO_WINDOW_MS = 5000L
+    }
 }

@@ -21,3 +21,16 @@ fun shareTokenFromPath(path: String?): String? {
     if (segments.size != 2 || segments[0] != "t") return null
     return segments[1].takeIf { it.isNotBlank() }
 }
+
+/** The token and email a magic sign-in link carries. */
+data class MagicLink(val token: String, val email: String?)
+
+/**
+ * A sign-in link ("https://.../login?token=...&email=...") read from its parts, or null when the
+ * path is not the login page or the link has no token. The caller decodes the query parameters.
+ */
+fun magicLinkFrom(path: String?, token: String?, email: String?): MagicLink? {
+    if (path?.trim('/') != "login") return null
+    val t = token?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return MagicLink(token = t, email = email?.trim()?.takeIf { it.isNotEmpty() })
+}

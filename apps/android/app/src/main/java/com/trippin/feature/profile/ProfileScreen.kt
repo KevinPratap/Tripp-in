@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trippin.core.design.SectionLabel
 import com.trippin.core.design.ThemeMode
 import com.trippin.core.design.TrippinButton
+import com.trippin.core.design.TrippinOutlineButton
 import com.trippin.core.design.TrippinCard
 import com.trippin.core.design.TrippinIconButton
 import com.trippin.core.design.TrippinScaffold
@@ -52,45 +54,62 @@ fun ProfileScreen(
     val colors = TrippinTheme.colors
 
     TrippinScaffold(
-        topBar = { TrippinTopBar(title = "You", subtitle = "Your account and saved places") }
+        topBar = {}
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                TrippinCard {
-                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(52.dp).background(colors.accent, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                (state.account?.displayName ?: "T").take(1).uppercase(),
-                                style = TrippinType.Title,
-                                color = colors.onAccent
-                            )
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(state.account?.displayName ?: "Traveller", style = TrippinType.Title, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(state.account?.email ?: "", style = TrippinType.Body, color = colors.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
+                Row(
+                    Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, end = 4.dp, top = 24.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier.size(60.dp).background(colors.ink, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            (state.account?.displayName?.takeIf { it.isNotBlank() } ?: state.account?.email ?: "T").take(1).uppercase(),
+                            style = TrippinType.Title,
+                            color = colors.paper
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            state.account?.displayName?.takeIf { it.isNotBlank() } ?: "Traveller",
+                            style = TrippinType.Display,
+                            color = colors.ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(state.account?.email ?: "", style = TrippinType.Body, color = colors.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
 
             item {
+                val stats = state.stats
                 TrippinCard(onClick = onOpenTrips) {
-                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Your trips", style = TrippinType.Heading, color = colors.ink, modifier = Modifier.weight(1f))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = colors.inkMuted)
+                    Row(Modifier.fillMaxWidth()) {
+                        listOf(
+                            stats.trips to if (stats.trips == 1) "trip" else "trips",
+                            stats.places to if (stats.places == 1) "place" else "places",
+                            stats.daysPlanned to if (stats.daysPlanned == 1) "day planned" else "days planned"
+                        ).forEachIndexed { i, (value, label) ->
+                            if (i > 0) Box(Modifier.width(1.dp).height(64.dp).background(colors.hairline))
+                            Column(Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                Text("$value", style = TrippinType.Title, color = colors.ink)
+                                Text(label, style = TrippinType.Caption, color = colors.inkMuted)
+                            }
+                        }
                     }
                 }
             }
 
-            item { SectionLabel("Appearance", Modifier.padding(top = 6.dp)) }
+            item { SectionLabel("Appearance", Modifier.padding(top = 10.dp, start = 4.dp)) }
             item {
                 val modes = listOf(ThemeMode.SYSTEM, ThemeMode.LIGHT, ThemeMode.DARK)
                 TrippinSegmentedTabs(
@@ -100,13 +119,14 @@ fun ProfileScreen(
                 )
             }
 
-            item { SectionLabel("Saved places", Modifier.padding(top = 6.dp)) }
+            item { SectionLabel("Saved places", Modifier.padding(top = 10.dp, start = 4.dp)) }
             if (state.savedSpots.isEmpty()) {
                 item {
                     Text(
                         "Places you save from search appear here, so you can find them offline.",
                         style = TrippinType.Body,
-                        color = colors.inkMuted
+                        color = colors.inkMuted,
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
             } else {
@@ -128,31 +148,28 @@ fun ProfileScreen(
             }
 
             item {
-                Spacer(Modifier.height(8.dp))
-                TrippinCard {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Verified, null, tint = colors.good, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "Every plan here is checked against real opening hours and travel times. Nothing is invented.",
-                            style = TrippinType.Caption,
-                            color = colors.inkMuted
-                        )
-                    }
-                }
-            }
-
-            item {
-                Spacer(Modifier.height(4.dp))
-                TrippinButton(
+                Spacer(Modifier.height(16.dp))
+                TrippinOutlineButton(
                     text = "Sign out",
                     onClick = viewModel::signOut,
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = Icons.Default.Logout,
-                    container = colors.panel,
-                    onContainer = colors.danger
+                    contentColor = colors.danger
                 )
-                Spacer(Modifier.height(24.dp))
+            }
+
+            item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val version = androidx.compose.runtime.remember(context) {
+                    runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+                }
+                Text(
+                    listOfNotNull("Tripp'in", version?.let { "version $it" }).joinToString(" "),
+                    style = TrippinType.Caption,
+                    color = colors.inkMuted,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }

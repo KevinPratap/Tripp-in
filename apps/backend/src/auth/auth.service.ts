@@ -10,6 +10,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { RequestMagicLinkDto } from './dto/request-link.dto';
 import { VerifyMagicLinkDto } from './dto/verify-link.dto';
 import { Mailer } from '../common/mail/mailer';
+import { cityNameOnly, cityPhotoMap } from '../places/city-photos';
 
 /** Magic links are short lived on purpose. */
 export const MAGIC_LINK_TTL_MINUTES = 15;
@@ -50,6 +51,8 @@ export interface SavedTripSummary {
   currency: string | null;
   totalEstimatedCost: number | null;
   shareToken: string | null;
+  /** The destination's own photograph, or null when it has none. Never a stand-in. */
+  heroImageUrl: string | null;
 }
 
 @Injectable()
@@ -242,6 +245,8 @@ export class AuthService {
       }
     });
 
+    const cityPhotos = await cityPhotoMap(trips.map((trip) => trip.destinationName));
+
     return trips.map((trip) => {
       const itinerary = trip.itineraries[0];
       const days = itinerary?.days ?? [];
@@ -256,7 +261,8 @@ export class AuthService {
         stopCount: days.reduce((total, day) => total + day.activities.length, 0),
         currency: itinerary?.currency ?? trip.currency ?? null,
         totalEstimatedCost: itinerary?.totalEstimatedCost ?? null,
-        shareToken: trip.shares[0]?.token ?? null
+        shareToken: trip.shares[0]?.token ?? null,
+        heroImageUrl: cityPhotos.get(cityNameOnly(trip.destinationName)) ?? null
       };
     });
   }

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -90,139 +92,139 @@ fun PlannerScreen(
     }
 
     TrippinScaffold(
-        topBar = {
-            TrippinTopBar(
-                title = "Plan a trip",
-                subtitle = "Checked against opening hours and travel times",
-                onBack = onBack
-            )
-        }
+        topBar = { TrippinTopBar(title = "New trip", onBack = onBack) }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                PlannerCard("Where to") {
-                    DestinationField(
-                        value = state.destination,
-                        suggestions = state.suggestions,
-                        recentDestinations = state.recentDestinations,
-                        hint = state.suggestionHint,
-                        loading = state.suggestionsLoading,
-                        resolvedLabel = state.resolved?.label,
-                        onValueChange = viewModel::onDestinationChange,
-                        onPick = viewModel::pickSuggestion,
-                        onFocusGained = viewModel::onDestinationFocused,
-                        onDismiss = viewModel::dismissSuggestions
-                    )
-                    if (state.destinationIsUnresolved) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    // The one question that matters most is the one the screen leads with.
+                    Column(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
+                        Text("Where to?", style = TrippinType.Display.copy(fontSize = 44.sp, lineHeight = 46.sp), color = colors.ink)
+                        Spacer(Modifier.height(14.dp))
+                        DestinationField(
+                            value = state.destination,
+                            suggestions = state.suggestions,
+                            recentDestinations = state.recentDestinations,
+                            hint = state.suggestionHint,
+                            loading = state.suggestionsLoading,
+                            resolvedLabel = state.resolved?.label,
+                            onValueChange = viewModel::onDestinationChange,
+                            onPick = viewModel::pickSuggestion,
+                            onFocusGained = viewModel::onDestinationFocused,
+                            onDismiss = viewModel::dismissSuggestions
+                        )
+                        if (state.destinationIsUnresolved) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "Pick a place from the list so the plan is built around the right one.",
+                                style = TrippinType.Caption,
+                                color = colors.inkMuted
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    PlannerCard("When") {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DatePreset.entries.forEach { preset ->
+                                TrippinChoiceChip(
+                                    text = preset.label,
+                                    selected = state.matchesPreset(preset)
+                                ) { viewModel.applyDatePreset(preset) }
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DateField("First day", state.startDate, Modifier.weight(1f)) { pickingStart = true }
+                            DateField("Last day", state.endDate, Modifier.weight(1f)) { pickingEnd = true }
+                        }
+                    }
+                }
+
+                item {
+                    PlannerCard("Who and how") {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Travellers", style = TrippinType.Label, color = colors.ink, modifier = Modifier.weight(1f))
+                            Stepper(
+                                value = state.travelers,
+                                onMinus = viewModel::decTravelers,
+                                onPlus = viewModel::incTravelers
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Text("Pace", style = TrippinType.Label, color = colors.ink)
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Pick a place from the list so the plan is built around the right one. " +
-                                "Typed text still works, but a name we cannot find will fail once the plan starts.",
-                            style = TrippinType.Caption,
-                            color = colors.inkMuted
-                        )
-                    }
-                }
-            }
-
-            item {
-                PlannerCard("When", "The plan runs from the first day to the last day you pick. Nothing is assumed.") {
-                    // The dates most trips actually use, in one tap instead of four and a lot of scrolling.
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        DatePreset.entries.forEach { preset ->
-                            TrippinChoiceChip(
-                                text = preset.label,
-                                selected = state.matchesPreset(preset)
-                            ) { viewModel.applyDatePreset(preset) }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TripPaceChoices.forEach { (code, label) ->
+                                TrippinChoiceChip(label, state.pace == code) { viewModel.setPace(code) }
+                            }
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        DateField("First day", state.startDate, Modifier.weight(1f)) { pickingStart = true }
-                        DateField("Last day", state.endDate, Modifier.weight(1f)) { pickingEnd = true }
-                    }
                 }
-            }
 
-            item {
-                PlannerCard("Travellers and budget") {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Travellers", style = TrippinType.Label, color = colors.ink, modifier = Modifier.weight(1f))
-                        Stepper(
-                            value = state.travelers,
-                            onMinus = viewModel::decTravelers,
-                            onPlus = viewModel::incTravelers
-                        )
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    TrippinTextField(
-                        value = state.budget,
-                        onValueChange = viewModel::onBudgetChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = if (state.currency == null) {
-                            "Budget per person"
-                        } else {
-                            "Budget per person (${currencySymbol(state.currency)})"
-                        },
-                        placeholder = "Optional",
-                        keyboardType = KeyboardType.Decimal
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text("Currency", style = TrippinType.Caption, color = colors.inkMuted)
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.offeredCurrencies.forEach { (code, symbol) ->
-                            TrippinChoiceChip("$symbol $code", state.currency == code) { viewModel.setCurrency(code) }
+                item {
+                    PlannerCard("What you are into", "Nothing is picked for you.") {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            InterestWords.forEach { word ->
+                                TrippinChoiceChip(
+                                    text = word.replaceFirstChar { it.uppercase() },
+                                    selected = word in state.interests
+                                ) { viewModel.toggleInterest(word) }
+                            }
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
-                    Text(
+                }
+
+                item {
+                    PlannerCard("Budget", "Optional. Leave it blank and the plan is not checked against one.") {
+                        TrippinTextField(
+                            value = state.budget,
+                            onValueChange = viewModel::onBudgetChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = if (state.currency == null) {
+                                "Per person"
+                            } else {
+                                "Per person (${currencySymbol(state.currency)})"
+                            },
+                            placeholder = "No budget",
+                            keyboardType = KeyboardType.Decimal
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            state.offeredCurrencies.forEach { (code, symbol) ->
+                                TrippinChoiceChip("$symbol $code", state.currency == code) { viewModel.setCurrency(code) }
+                            }
+                        }
                         if (state.resolved?.currency != null && !state.currencyTouched) {
-                            "Set from ${state.resolved?.country ?: "the destination"}, because that is where you are spending. " +
-                                "Change it if you would rather budget in something else."
-                        } else {
-                            "The trip is created in the currency you pick, and every amount in it is stated in that currency. " +
-                                "Leave the budget blank and the plan is not checked against one."
-                        },
-                        style = TrippinType.Caption,
-                        color = colors.inkMuted
-                    )
-                }
-            }
-
-            item {
-                PlannerCard("Pace") {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TripPaceChoices.forEach { (code, label) ->
-                            TrippinChoiceChip(label, state.pace == code) { viewModel.setPace(code) }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "Set from ${state.resolved?.country ?: "the destination"}, where you will be spending.",
+                                style = TrippinType.Caption,
+                                color = colors.inkMuted
+                            )
                         }
                     }
                 }
             }
 
-            item {
-                PlannerCard("Your interests", "Pick what you want out of the trip. Nothing is picked for you.") {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InterestWords.forEach { word ->
-                            TrippinChoiceChip(
-                                text = word.replaceFirstChar { it.uppercase() },
-                                selected = word in state.interests
-                            ) { viewModel.toggleInterest(word) }
-                        }
-                    }
-                }
-            }
-
-            item {
+            // Always in reach: the one action on this screen never scrolls away.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(colors.paper)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+            ) {
                 state.error?.let {
-                    Text(it, style = TrippinType.Body, color = colors.danger, modifier = Modifier.padding(bottom = 10.dp))
+                    Text(it, style = TrippinType.Body, color = colors.danger, modifier = Modifier.padding(bottom = 8.dp))
                 }
                 TrippinButton(
                     text = if (state.submitting) "Building your plan" else "Build my plan",
@@ -233,10 +235,9 @@ fun PlannerScreen(
                     leadingIcon = Icons.Default.Bolt
                 )
                 state.guidance?.let {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(it, style = TrippinType.Caption, color = colors.inkMuted)
                 }
-                Spacer(Modifier.height(24.dp))
             }
         }
     }

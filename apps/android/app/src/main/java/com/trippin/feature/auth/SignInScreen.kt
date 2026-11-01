@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trippin.core.design.PillTone
@@ -43,10 +44,19 @@ import com.trippin.core.design.TrippinType
 @Composable
 fun SignInScreen(
     onSignedIn: () -> Unit,
+    magicLink: com.trippin.core.common.MagicLink? = null,
+    onMagicLinkConsumed: () -> Unit = {},
     viewModel: SignInViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val colors = TrippinTheme.colors
+
+    LaunchedEffect(magicLink) {
+        magicLink?.let {
+            viewModel.verifyFromLink(it.token, it.email)
+            onMagicLinkConsumed()
+        }
+    }
 
     LaunchedEffect(state.signedIn) { if (state.signedIn) onSignedIn() }
 
@@ -59,17 +69,13 @@ fun SignInScreen(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(56.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusPill(text = "Verified only", tone = PillTone.ACCENT)
-        }
-        Spacer(Modifier.height(16.dp))
-        Text("Tripp'in AI", style = TrippinType.Display, color = colors.ink)
-        Spacer(Modifier.height(8.dp))
+        Text("Tripp'in", style = TrippinType.Display.copy(fontSize = 56.sp, lineHeight = 58.sp), color = colors.ink)
+        Spacer(Modifier.height(10.dp))
         Text(
-            "Honest, checked itineraries. Every stop is verified against real opening hours and travel times, and nothing is invented.",
-            style = TrippinType.Body,
+            "Trip plans you can check. Every stop is tested against real opening hours and travel times, and nothing is made up.",
+            style = TrippinType.Body.copy(fontSize = 17.sp, lineHeight = 25.sp),
             color = colors.inkMuted
         )
 
@@ -94,7 +100,7 @@ fun SignInScreen(
             Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = colors.inkMuted, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
             Text(
-                "No password. We send a one-time sign-in code.",
+                "No password. We email you a link that signs you in.",
                 style = TrippinType.Caption,
                 color = colors.inkMuted
             )
@@ -107,7 +113,7 @@ private fun EnterEmail(state: SignInUiState, viewModel: SignInViewModel) {
     Text("Sign in", style = TrippinType.Title, color = TrippinTheme.colors.ink)
     Spacer(Modifier.height(4.dp))
     Text(
-        "Enter your email and we send a one-time code.",
+        "Enter your email and we send you a sign-in link.",
         style = TrippinType.Body,
         color = TrippinTheme.colors.inkMuted
     )
@@ -122,7 +128,7 @@ private fun EnterEmail(state: SignInUiState, viewModel: SignInViewModel) {
     )
     Spacer(Modifier.height(16.dp))
     TrippinButton(
-        text = "Send my code",
+        text = "Email me a link",
         onClick = viewModel::requestLink,
         modifier = Modifier.fillMaxWidth(),
         enabled = state.canRequest,
@@ -139,7 +145,7 @@ private fun EnterCode(state: SignInUiState, viewModel: SignInViewModel) {
             onClick = viewModel::backToEmail
         )
         Spacer(Modifier.width(4.dp))
-        Text("Enter your code", style = TrippinType.Title, color = TrippinTheme.colors.ink)
+        Text("Check your email", style = TrippinType.Title, color = TrippinTheme.colors.ink)
     }
     state.deliveryNote?.let {
         Spacer(Modifier.height(8.dp))
@@ -151,7 +157,7 @@ private fun EnterCode(state: SignInUiState, viewModel: SignInViewModel) {
         onValueChange = viewModel::onTokenChange,
         modifier = Modifier.fillMaxWidth(),
         label = "Sign-in code",
-        placeholder = "Paste the code from your link"
+        placeholder = "Or paste the code from the link"
     )
     Spacer(Modifier.height(16.dp))
     TrippinButton(
@@ -163,7 +169,7 @@ private fun EnterCode(state: SignInUiState, viewModel: SignInViewModel) {
     )
     Spacer(Modifier.height(8.dp))
     TrippinOutlineButton(
-        text = "Send a new code",
+        text = "Send a new link",
         onClick = viewModel::requestLink,
         modifier = Modifier.fillMaxWidth(),
         enabled = !state.loading

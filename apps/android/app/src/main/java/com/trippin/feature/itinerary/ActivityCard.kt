@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
@@ -77,8 +78,14 @@ fun ActivityCard(
     destinationName: String?,
     /** The day this stop falls on ("yyyy-MM-dd..."), so it can be added to the device calendar. */
     dayDate: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** When set, the card is the short version and tapping it opens the stop's own page. */
+    onOpen: (() -> Unit)? = null
 ) {
+    if (onOpen != null) {
+        CompactActivityCard(activity, visited, onToggleVisited, onOpen, modifier)
+        return
+    }
     val colors = TrippinTheme.colors
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -227,6 +234,90 @@ fun ActivityCard(
     }
 }
 
+/**
+ * A stop as one line of a day: its photograph, when, what, and why. Everything else (the address,
+ * each fact's source, directions, calendar) is one tap away on the stop's own page, so a day reads
+ * as a sequence of places rather than a stack of forms.
+ */
+@Composable
+private fun CompactActivityCard(
+    activity: ActivityDto,
+    visited: Boolean,
+    onToggleVisited: () -> Unit,
+    onOpen: () -> Unit,
+    modifier: Modifier
+) {
+    val colors = TrippinTheme.colors
+    val haptic = rememberCommitHaptic()
+    val photoUrl = activity.effectivePhotoUrl
+    val confirmed = activity.checks.count { it.status.equals("confirmed", ignoreCase = true) }
+
+    Column(modifier) {
+        if (activity.travelTimeFromPreviousMinutes > 0) {
+            Row(Modifier.padding(start = 18.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(width = 2.dp, height = 14.dp).background(colors.hairline))
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "${activity.travelTimeFromPreviousMinutes} min from the stop before",
+                    style = TrippinType.Caption,
+                    color = colors.inkMuted
+                )
+            }
+        }
+        TrippinSurface(
+            shape = TrippinTheme.shapes.card,
+            background = if (visited) colors.goodSurface else colors.panel,
+            onClick = onOpen
+        ) {
+            Column {
+                if (!photoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = photoUrl,
+                        contentDescription = activity.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().height(128.dp)
+                            .clip(RoundedCornerShape(topStart = 13.dp, topEnd = 13.dp))
+                    )
+                }
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "${activity.startTime.take(5)} to ${activity.endTime.take(5)}",
+                            style = TrippinType.NumericSmall,
+                            color = colors.inkMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        VisitedToggle(visited) { haptic(); onToggleVisited() }
+                    }
+                    Text(activity.title, style = TrippinType.Title, color = colors.ink, maxLines = 2)
+                    if (!activity.reason.isNullOrBlank()) {
+                        Text(
+                            activity.reason,
+                            style = TrippinType.Body,
+                            color = colors.inkMuted,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (activity.checks.isEmpty()) "Details" else "$confirmed of ${activity.checks.size} facts confirmed",
+                            style = TrippinType.Caption,
+                            color = colors.inkMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Open ${activity.title}",
+                            tint = colors.inkMuted
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun VisitedToggle(visited: Boolean, onClick: () -> Unit) {
     val colors = TrippinTheme.colors
@@ -297,7 +388,7 @@ private fun statusVisual(status: String, good: Color, warn: Color, muted: Color)
  * to report a failure from an icon button, and a malformed time from the server is not something
  * retrying fixes.
  */
-private fun launchAddStopToCalendar(context: android.content.Context, activity: ActivityDto, dayDate: String) {
+internal fun launchAddStopToCalendar(context: android.content.Context, activity: ActivityDto, dayDate: String) {
     val event = com.trippin.core.common.stopCalendarEvent(
         title = activity.title,
         dayDate = dayDate,
@@ -318,7 +409,7 @@ private fun launchAddStopToCalendar(context: android.content.Context, activity: 
     runCatching { context.startActivity(intent) }
 }
 
-private fun launchMaps(context: android.content.Context, activity: ActivityDto, destinationName: String?) {
+internal fun launchMaps(context: android.content.Context, activity: ActivityDto, destinationName: String?) {
     val point = activity.place?.location
     val exact = point?.takeIf { it.latitude != 0.0 || it.longitude != 0.0 }
         ?.let { String.format(Locale.US, "%f,%f", it.latitude, it.longitude) }
