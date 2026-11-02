@@ -46,3 +46,6 @@ data/
 coverage/
 logs/
 *.log
+
+# LLM eval dry-run output is synthetic; real runs in test-cases/results/ are kept
+test-cases/results/llm-eval-dryrun-*

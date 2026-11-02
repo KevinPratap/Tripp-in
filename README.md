@@ -73,6 +73,38 @@ pnpm backend:dev
 npx ts-node test-cases/run-eval.ts
 ```
 
+### Measuring the LLM
+`run-eval.ts` checks the validator against one hardcoded itinerary. `run-llm-eval.ts` measures the **model**: for each of the 6 scenarios in `test-cases/` it calls the production `AIPlannerService.planItinerary()` (real prompt, real repair loop, real deterministic fallback, real validator) `N` times and reports first-pass verified rate, verified rate after repair, fallback rate, average repair rounds and the most common violation types.
+
+One-time setup (the same prerequisites as the other scripts):
+```bash
+pnpm install
+pnpm --filter "./packages/*" run build
+pnpm db:generate
+```
+
+Real measurement (calls the paid or free-tier model API, up to 4 calls per run, so `6 x N x 4` calls at most):
+```bash
+# bash
+export GEMINI_API_KEY=...            # or OPENAI_API_KEY / GROQ_API_KEY, see below
+pnpm eval:llm -- --n 10
+```
+```powershell
+# PowerShell
+$env:GEMINI_API_KEY = "..."
+pnpm eval:llm -- --n 10
+```
+Model selection is whatever `AIPlannerService` already does, from environment variables only: `OPENAI_API_KEY` (plus optional `OPENAI_BASE_URL`, `OPENAI_MODEL`), else `GEMINI_API_KEY` (native Gemini, `gemini-2.5-flash`), else `GROQ_API_KEY` (`llama-3.3-70b-versatile`). A Google endpoint or a `gemini` model name routes to the native Gemini client, which silently falls over to flash-lite models on HTTP 429/503, so the recorded model is the configured one. To load variables from a file, pass it explicitly with `--env-file <path>`; nothing is auto-loaded. If no key is set the script aborts instead of silently measuring only the deterministic generator.
+
+Dry run (no key, no network, no cost): swaps the model client for a seeded fake that reads the real prompt and returns correct or deliberately broken itineraries. It proves the harness runs end to end and is **not** a measurement of any model. Its output files are named `llm-eval-dryrun-*` and carry a banner.
+```bash
+pnpm eval:llm -- --dry-run --n 10
+```
+
+Flags: `--n <int>` (default 10), `--scenario <id[,id]>` (e.g. `tokyo-solo,london-rain`), `--delay-ms <int>` (pause between runs, default 1500 real / 0 dry), `--seed <int>` (dry run), `--out-dir <path>`, `--env-file <path>`, `--verbose`. Output goes to `test-cases/results/llm-eval-<timestamp>.json` (every run, every attempt, every violation code) and a `.md` summary table.
+
+What is mocked: places, opening hours, routes (the repo's `MockRouteProvider`), geocoding, weather, and the venue catalogue (the 5 Paris venues from `MockPlaceProvider` plus synthetic venues per city). Prisma, Redis and NestJS are not started. Runs where the model call itself errors (HTTP, rate limit, network) are excluded from every rate and counted separately; unparseable model output counts as a model failure.
+
 ### 6. Open Android Project
 Open `apps/android` in Android Studio or build via Gradle:
 ```bash
