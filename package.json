@@ -8,6 +8,7 @@
     "start": "pnpm --filter @trippin/backend run start:prod",
     "test": "pnpm -r run test",
     "test:gemini": "node test-cases/test-live-gemini.js",
+    "eval:llm": "pnpm --filter @trippin/backend exec ts-node --project tsconfig.json ../../test-cases/run-llm-eval.ts",
     "smoke:prod": "node scripts/smoke-test.mjs",
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",

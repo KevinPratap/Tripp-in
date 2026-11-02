@@ -744,6 +744,15 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       }
     ];
 
+    // Track visits across days: the validator allows each venue once per trip and food venues twice.
+    const isFood = (p: any): boolean => !!(p.types?.includes('restaurant') || p.types?.includes('cafe'));
+    const visits = new Map<string, number>();
+    const visitKey = (p: any): string => p.googlePlaceId || p.id;
+    const canVisit = (p: any): boolean => (visits.get(visitKey(p)) || 0) < (isFood(p) ? 2 : 1);
+    const markVisit = (p: any): void => {
+      visits.set(visitKey(p), (visits.get(visitKey(p)) || 0) + 1);
+    };
+
     const days = [];
     for (let d = 0; d < diffDays; d++) {
       const dayDate = new Date(startDate);
@@ -760,9 +769,23 @@ Respond strictly with valid JSON. Do not include markdown code block syntax.`;
       };
 
       const openPlaces = catalog.filter(isPlaceOpen);
-      const p1 = openPlaces[d % openPlaces.length] || catalog[0];
-      const p2 = openPlaces.find((p) => p.types?.includes('restaurant') || p.types?.includes('cafe')) || catalog[1 % catalog.length];
-      const p3 = openPlaces.find((p) => p.id !== p1.id && p.id !== p2.id) || catalog[2 % catalog.length];
+      const openSights = openPlaces.filter((p) => !isFood(p));
+      // Rotate the starting point per day, and prefer venues not yet used on this trip.
+      // If the catalog runs out, fall back to the old picks; the validator then marks the plan DRAFT.
+      const pickSight = (exclude: any[]): any =>
+        [...openSights.slice(d % Math.max(1, openSights.length)), ...openSights].find(
+          (p) => canVisit(p) && !exclude.some((e) => e && visitKey(e) === visitKey(p))
+        );
+      const leastUsedFood = openPlaces
+        .filter((p) => isFood(p) && canVisit(p))
+        .sort((a, b) => (visits.get(visitKey(a)) || 0) - (visits.get(visitKey(b)) || 0))[0];
+
+      const p1 = pickSight([]) || openPlaces[d % Math.max(1, openPlaces.length)] || catalog[0];
+      markVisit(p1);
+      const p2 = leastUsedFood || openPlaces.find(isFood) || catalog[1 % catalog.length];
+      markVisit(p2);
+      const p3 = pickSight([p1, p2]) || openPlaces.find((p) => p.id !== p1.id && p.id !== p2.id) || catalog[2 % catalog.length];
+      markVisit(p3);
 
       days.push({
         dayIndex: d + 1,
